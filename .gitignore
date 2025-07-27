@@ -1,6 +1,3 @@
-Backend/node_modules
-Backend/dist
-Frontend/node_modules
-Frontend/build
-Frontend/.svelte-kit
-EOF
+.idea
+.DS_Store
+.vscode
