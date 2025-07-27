@@ -62,7 +62,90 @@ $ npm run test:cov
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
 If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+# Backend de Juego de Carreras con IA
 
+Este es el backend para un juego de carreras local donde los usuarios pueden entrenar sus propias IAs para competir en pistas virtuales.
+
+## Características
+
+- Gestión completa de usuarios con autenticación JWT
+- Almacenamiento de modelos de IA entrenados por los usuarios
+- Configuración de pistas y carreras
+- Sistema de estadísticas y clasificaciones
+- Base de datos SQLite para persistencia local
+
+## Estructura de Módulos
+
+- **UsersModule**: Gestión de usuarios y perfiles
+- **AuthModule**: Autenticación y autorización
+- **AiModelsModule**: Gestión de modelos de IA entrenados
+- **TracksModule**: Configuración de pistas disponibles
+- **RacesModule**: Gestión de carreras y participantes
+- **StatisticsModule**: Estadísticas y clasificaciones
+
+## Requisitos
+
+- Node.js 16.x o superior
+- npm
+
+## Instalación
+
+```bash
+# Instalar dependencias
+npm install
+
+# Configurar variables de entorno
+# (Copia .env.example a .env y ajusta los valores)
+
+# Ejecutar en modo desarrollo
+npm run start:dev
+
+# Construir para producción
+npm run build
+
+# Ejecutar en modo producción
+npm run start:prod
+```
+
+## API Endpoints
+
+### Autenticación
+- `POST /api/auth/register` - Registro de usuario
+- `POST /api/auth/login` - Inicio de sesión
+- `GET /api/auth/profile` - Perfil del usuario actual
+
+### Usuarios
+- `GET /api/users` - Listar usuarios
+- `GET /api/users/:id` - Obtener usuario por ID
+- `PATCH /api/users/:id` - Actualizar usuario
+- `DELETE /api/users/:id` - Eliminar usuario
+
+### Modelos de IA
+- `POST /api/ai-models` - Crear modelo de IA
+- `GET /api/ai-models` - Listar modelos del usuario
+- `GET /api/ai-models/:id` - Obtener modelo específico
+- `PATCH /api/ai-models/:id` - Actualizar modelo
+- `DELETE /api/ai-models/:id` - Eliminar modelo
+
+### Pistas
+- `GET /api/tracks` - Listar pistas disponibles
+- `GET /api/tracks/:id` - Obtener pista específica
+
+### Carreras
+- `POST /api/races` - Crear carrera
+- `GET /api/races` - Listar carreras
+- `GET /api/races/:id` - Obtener carrera específica
+- `PATCH /api/races/:id` - Actualizar carrera
+- `DELETE /api/races/:id` - Eliminar carrera
+
+### Estadísticas
+- `GET /api/statistics/user` - Estadísticas del usuario actual
+- `GET /api/statistics/ai-model/:id` - Estadísticas de un modelo de IA
+- `GET /api/statistics/leaderboard` - Tabla de clasificación global
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT.
 ```bash
 $ npm install -g @nestjs/mau
 $ mau deploy
