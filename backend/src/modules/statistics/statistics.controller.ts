@@ -2,6 +2,8 @@ import { Controller, Get, Param, UseGuards, Request } from '@nestjs/common';
 import { StatisticsService } from './statistics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+import { LeaderboardEntry } from './interfaces/leaderboard-entry.interface';
+
 @Controller('statistics')
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
@@ -18,7 +20,7 @@ export class StatisticsController {
   }
 
   @Get('leaderboard')
-  getLeaderboard() {
+  getLeaderboard(): Promise<LeaderboardEntry[]> {
     return this.statisticsService.getLeaderboard();
   }
 }

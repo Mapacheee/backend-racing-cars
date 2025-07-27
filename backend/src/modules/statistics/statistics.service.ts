@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Race } from '../races/entities/race.entity';
 import { RaceParticipant } from '../races/entities/race-participant.entity';
 import { AIModel } from '../ai-models/entities/ai-model.entity';
+import { LeaderboardEntry } from './interfaces/leaderboard-entry.interface';
 
 @Injectable()
 export class StatisticsService {
@@ -148,13 +149,13 @@ export class StatisticsService {
     };
   }
 
-  async getLeaderboard() {
+    async getLeaderboard(): Promise<LeaderboardEntry[]> {
     // Obtener todos los modelos de IA con sus participaciones
     const aiModels = await this.aiModelsRepository.find({
       relations: ['user'],
     });
 
-    const leaderboardData = [];
+    const leaderboardData: LeaderboardEntry[] = [];
 
     for (const model of aiModels) {
       // Obtener participaciones del modelo
