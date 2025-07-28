@@ -8,10 +8,11 @@ import { AiModelsModule } from '../ai-models/ai-models.module';
 import { Race } from '../races/entities/race.entity';
 import { RaceParticipant } from '../races/entities/race-participant.entity';
 import { AIModel } from '../ai-models/entities/ai-model.entity';
+import { RaceStatistics } from './entities/race-statistics.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Race, RaceParticipant, AIModel]),
+    TypeOrmModule.forFeature([RaceStatistics]),
     RacesModule,
     UsersModule,
     AiModelsModule,

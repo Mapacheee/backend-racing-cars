@@ -1,22 +1,28 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsObject, IsString, IsNumber, IsOptional, IsUUID, ValidateNested } from 'class-validator';
+import { IsArray, IsObject, IsString, IsNumber, IsOptional, IsUUID, ValidateNested, Min, ArrayMinSize, ArrayMaxSize, IsDateString, IsIn } from 'class-validator';
 
 class ParticipantDto {
   @IsUUID()
   aiModelId: string;
 
   @IsNumber()
+  @Min(1)
   position: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   finishTime?: number;
 
   @IsNumber()
+  @Min(0)
   distanceCompleted: number;
 
   @IsArray()
   @IsNumber({}, { each: true })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @Min(0, { each: true })
   lapTimes: number[];
 }
 
@@ -93,13 +99,16 @@ export class RaceStatisticsFilterDto {
 
   @IsOptional()
   @IsString()
+  @IsDateString()
   dateFrom?: string;
 
   @IsOptional()
   @IsString()
+  @IsDateString()
   dateTo?: string;
 
   @IsOptional()
   @IsString()
+  @IsIn(['easy', 'medium', 'hard'])
   difficulty?: string;
 }
