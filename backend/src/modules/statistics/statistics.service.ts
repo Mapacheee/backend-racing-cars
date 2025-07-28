@@ -1,203 +1,172 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Race } from '../races/entities/race.entity';
-import { RaceParticipant } from '../races/entities/race-participant.entity';
-import { AIModel } from '../ai-models/entities/ai-model.entity';
-import { LeaderboardEntry } from './interfaces/leaderboard-entry.interface';
+import { Repository, Between } from 'typeorm';
+import { RaceStatistics } from './entities/race-statistics.entity';
+import { CreateRaceStatisticsDto, RaceStatisticsFilterDto } from './dto/race-statistics.dto';
+import { AIModelStats, TrackLeaderboardEntry, UserStatistics } from './interfaces/statistics.interface';
 
 @Injectable()
 export class StatisticsService {
   constructor(
-    @InjectRepository(Race)
-    private racesRepository: Repository<Race>,
-    @InjectRepository(RaceParticipant)
-    private participantsRepository: Repository<RaceParticipant>,
-    @InjectRepository(AIModel)
-    private aiModelsRepository: Repository<AIModel>,
+    @InjectRepository(RaceStatistics)
+    private readonly raceStatisticsRepository: Repository<RaceStatistics>,
   ) {}
 
-  async getUserStatistics(userId: string) {
-    // Obtener todos los modelos de IA del usuario
-    const aiModels = await this.aiModelsRepository.find({
-      where: { userId },
-    });
+  async create(createRaceStatisticsDto: CreateRaceStatisticsDto): Promise<RaceStatistics> {
+    const raceStatistics = this.raceStatisticsRepository.create(createRaceStatisticsDto);
+    return this.raceStatisticsRepository.save(raceStatistics);
+  }
 
-    const aiModelIds = aiModels.map((model) => model.id);
+  async findAll(filters: RaceStatisticsFilterDto): Promise<RaceStatistics[]> {
+    const query = this.raceStatisticsRepository.createQueryBuilder('raceStatistics');
 
-    // Obtener todas las participaciones en carreras de estos modelos
-    const participations = await this.participantsRepository
-      .createQueryBuilder('participant')
-      .where('participant.aiModelId IN (:...aiModelIds)', { aiModelIds })
-      .leftJoinAndSelect('participant.race', 'race')
-      .leftJoinAndSelect('participant.aiModel', 'aiModel')
+    if (filters.trackId) {
+      query.andWhere('raceStatistics.trackInfo->>\'trackId\' = :trackId', { trackId: filters.trackId });
+    }
+
+    if (filters.aiModelId) {
+      query.andWhere('EXISTS (SELECT 1 FROM json_each(raceStatistics.participants) WHERE json_extract(value, \'$.aiModelId\') = :aiModelId)', 
+        { aiModelId: filters.aiModelId }
+      );
+    }
+
+    if (filters.dateFrom) {
+      query.andWhere('raceStatistics.raceDate >= :dateFrom', { dateFrom: new Date(filters.dateFrom) });
+    }
+
+    if (filters.dateTo) {
+      query.andWhere('raceStatistics.raceDate <= :dateTo', { dateTo: new Date(filters.dateTo) });
+    }
+
+    if (filters.difficulty) {
+      query.andWhere('raceStatistics.raceConditions->>\'difficulty\' = :difficulty', { difficulty: filters.difficulty });
+    }
+
+    return query.getMany();
+  }
+
+  async getAIModelStats(aiModelId: string): Promise<AIModelStats> {
+    const races = await this.raceStatisticsRepository
+      .createQueryBuilder('raceStatistics')
+      .where('EXISTS (SELECT 1 FROM json_each(raceStatistics.participants) WHERE json_extract(value, \'$.aiModelId\') = :aiModelId)', 
+        { aiModelId }
+      )
       .getMany();
 
-    // Calcular estadísticas
-    const totalRaces = new Set(
-      participations.map((p) => p.raceId),
-    ).size;
-    const victories = participations.filter((p) => p.position === 1).length;
-    const podiums = participations.filter((p) => p.position <= 3).length;
-
-    // Calcular tiempo promedio
-    const validTimes = participations
-      .filter((p) => p.finishingTime != null)
-      .map((p) => p.finishingTime);
-    const averageTime =
-      validTimes.length > 0
-        ? validTimes.reduce((a, b) => a + b, 0) / validTimes.length
-        : 0;
-
-    // Calcular modelo más exitoso
-    const modelStats = {};
-    for (const p of participations) {
-      if (!modelStats[p.aiModelId]) {
-        modelStats[p.aiModelId] = {
-          id: p.aiModelId,
-          name: p.aiModel.name,
-          races: 0,
-          victories: 0,
-          podiums: 0,
-        };
+    const stats = races.reduce((acc: {
+      totalRaces: number;
+      totalDistance: number;
+      positions: number[];
+      lapTimes: number[];
+    }, race) => {
+      const participant = race.participants.find(p => p.aiModelId === aiModelId);
+      if (participant) {
+        acc.totalRaces++;
+        acc.totalDistance += participant.distanceCompleted;
+        acc.positions.push(participant.position);
+        if (participant.lapTimes) {
+          acc.lapTimes.push(...participant.lapTimes);
+        }
       }
-
-      modelStats[p.aiModelId].races++;
-      if (p.position === 1) modelStats[p.aiModelId].victories++;
-      if (p.position <= 3) modelStats[p.aiModelId].podiums++;
-    }
-
-    const mostSuccessfulModel = Object.values(modelStats).sort(
-      (a: any, b: any) => b.victories - a.victories,
-    )[0];
+      return acc;
+    }, {
+      totalRaces: 0,
+      totalDistance: 0,
+      positions: [] as number[],
+      lapTimes: [] as number[]
+    });
 
     return {
-      totalModels: aiModels.length,
-      totalRaces,
-      victories,
-      podiums,
-      averageTime,
-      mostSuccessfulModel,
-      recentParticipations: participations
-        .sort((a, b) => {
-          return (
-            new Date(b.race.createdAt).getTime() -
-            new Date(a.race.createdAt).getTime()
-          );
-        })
-        .slice(0, 5)
-        .map((p) => ({
-          raceId: p.raceId,
-          raceName: p.race.name,
-          aiModelId: p.aiModelId,
-          aiModelName: p.aiModel.name,
-          position: p.position,
-          finishingTime: p.finishingTime,
-          date: p.race.createdAt,
-        })),
+      ...stats,
+      averagePosition: stats.positions.length > 0 ? 
+        stats.positions.reduce((a, b) => a + b) / stats.positions.length : 0,
+      bestPosition: Math.min(...stats.positions),
+      bestLapTime: Math.min(...stats.lapTimes),
+      averageLapTime: stats.lapTimes.reduce((a, b) => a + b) / stats.lapTimes.length
     };
   }
 
-  async getAiModelStatistics(aiModelId: string) {
-    // Obtener todas las participaciones en carreras de este modelo
-    const participations = await this.participantsRepository.find({
-      where: { aiModelId },
-      relations: ['race'],
+  async getTrackLeaderboard(trackId: string): Promise<TrackLeaderboardEntry[]> {
+    const races = await this.raceStatisticsRepository
+      .createQueryBuilder('raceStatistics')
+      .where('raceStatistics.trackInfo->>\'trackId\' = :trackId', { trackId })
+      .getMany();
+
+    const leaderboard = new Map();
+
+    races.forEach(race => {
+      race.participants.forEach(participant => {
+        const currentStats = leaderboard.get(participant.aiModelId) || {
+          aiModelId: participant.aiModelId,
+          bestPosition: Infinity,
+          bestLapTime: Infinity,
+          totalRaces: 0,
+          wins: 0
+        };
+
+        currentStats.totalRaces++;
+        if (participant.position === 1) currentStats.wins++;
+        if (participant.position < currentStats.bestPosition) {
+          currentStats.bestPosition = participant.position;
+        }
+        if (participant.lapTimes) {
+          const bestLap = Math.min(...participant.lapTimes);
+          if (bestLap < currentStats.bestLapTime) {
+            currentStats.bestLapTime = bestLap;
+          }
+        }
+
+        leaderboard.set(participant.aiModelId, currentStats);
+      });
     });
 
-    // Calcular estadísticas
-    const totalRaces = participations.length;
-    const victories = participations.filter((p) => p.position === 1).length;
-    const podiums = participations.filter((p) => p.position <= 3).length;
-
-    // Calcular tiempo promedio
-    const validTimes = participations
-      .filter((p) => p.finishingTime != null)
-      .map((p) => p.finishingTime);
-    const averageTime =
-      validTimes.length > 0
-        ? validTimes.reduce((a, b) => a + b, 0) / validTimes.length
-        : 0;
-
-    // Mejor tiempo
-    const bestTime =
-      validTimes.length > 0 ? Math.min(...validTimes) : null;
-
-    return {
-      totalRaces,
-      victories,
-      podiums,
-      averageTime,
-      bestTime,
-      victoryRate: totalRaces > 0 ? (victories / totalRaces) * 100 : 0,
-      podiumRate: totalRaces > 0 ? (podiums / totalRaces) * 100 : 0,
-      recentParticipations: participations
-        .sort((a, b) => {
-          return (
-            new Date(b.race.createdAt).getTime() -
-            new Date(a.race.createdAt).getTime()
-          );
-        })
-        .slice(0, 5)
-        .map((p) => ({
-          raceId: p.raceId,
-          raceName: p.race.name,
-          position: p.position,
-          finishingTime: p.finishingTime,
-          date: p.race.createdAt,
-        })),
-    };
+    return Array.from(leaderboard.values())
+      .sort((a, b) => b.wins - a.wins || a.bestPosition - b.bestPosition);
   }
 
-    async getLeaderboard(): Promise<LeaderboardEntry[]> {
-    // Obtener todos los modelos de IA con sus participaciones
-    const aiModels = await this.aiModelsRepository.find({
-      relations: ['user'],
+  async getUserStatistics(userId: string): Promise<UserStatistics> {
+    const races = await this.raceStatisticsRepository
+      .createQueryBuilder('raceStatistics')
+      .getMany();
+
+    const userStats: {
+      totalRaces: number;
+      totalWins: number;
+      bestPosition: number;
+      totalDistance: number;
+      bestLapTime: number;
+      averageLapTime: number;
+      allLapTimes: number[];
+    } = {
+      totalRaces: 0,
+      totalWins: 0,
+      bestPosition: Infinity,
+      totalDistance: 0,
+      bestLapTime: Infinity,
+      averageLapTime: 0,
+      allLapTimes: []
+    };
+
+    races.forEach(race => {
+      race.participants.forEach(participant => {
+        userStats.totalRaces++;
+        if (participant.position === 1) userStats.totalWins++;
+        if (participant.position < userStats.bestPosition) {
+          userStats.bestPosition = participant.position;
+        }
+        userStats.totalDistance += participant.distanceCompleted;
+        if (participant.lapTimes) {
+          userStats.allLapTimes.push(...participant.lapTimes);
+        }
+      });
     });
 
-    const leaderboardData: LeaderboardEntry[] = [];
-
-    for (const model of aiModels) {
-      // Obtener participaciones del modelo
-      const participations = await this.participantsRepository.find({
-        where: { aiModelId: model.id },
-      });
-
-      if (participations.length === 0) continue;
-
-      const totalRaces = participations.length;
-      const victories = participations.filter((p) => p.position === 1)
-        .length;
-      const podiums = participations.filter((p) => p.position <= 3).length;
-
-      // Calcular tiempo promedio
-      const validTimes = participations
-        .filter((p) => p.finishingTime != null)
-        .map((p) => p.finishingTime);
-      const averageTime =
-        validTimes.length > 0
-          ? validTimes.reduce((a, b) => a + b, 0) / validTimes.length
-          : 0;
-
-      // Mejor tiempo
-      const bestTime =
-        validTimes.length > 0 ? Math.min(...validTimes) : null;
-
-      leaderboardData.push({
-        aiModelId: model.id,
-        aiModelName: model.name,
-        username: model.user.username,
-        totalRaces,
-        victories,
-        podiums,
-        victoryRate: (victories / totalRaces) * 100,
-        podiumRate: (podiums / totalRaces) * 100,
-        averageTime,
-        bestTime,
-      });
+    if (userStats.allLapTimes.length > 0) {
+      userStats.bestLapTime = Math.min(...userStats.allLapTimes);
+      userStats.averageLapTime = userStats.allLapTimes.reduce((a, b) => a + b) / userStats.allLapTimes.length;
     }
 
-    // Ordenar por tasa de victorias (mejor criterio para un leaderboard)
-    return leaderboardData.sort((a, b) => b.victoryRate - a.victoryRate);
+    const { allLapTimes, ...stats } = userStats;
+    return stats;
   }
 }

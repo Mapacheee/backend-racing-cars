@@ -1,8 +1,7 @@
-import { Controller, Get, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
 import { StatisticsService } from './statistics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
-import { LeaderboardEntry } from './interfaces/leaderboard-entry.interface';
+import { CreateRaceStatisticsDto, RaceStatisticsFilterDto } from './dto/race-statistics.dto';
 
 @Controller('statistics')
 export class StatisticsController {
@@ -16,11 +15,28 @@ export class StatisticsController {
 
   @Get('ai-model/:id')
   getAiModelStatistics(@Param('id') id: string) {
-    return this.statisticsService.getAiModelStatistics(id);
+    return this.statisticsService.getAIModelStats(id);
   }
 
-  @Get('leaderboard')
-  getLeaderboard(): Promise<LeaderboardEntry[]> {
-    return this.statisticsService.getLeaderboard();
+  @Get('track/:id/leaderboard')
+  getTrackLeaderboard(@Param('id') id: string) {
+    return this.statisticsService.getTrackLeaderboard(id);
+  }
+
+  @Post('race')
+  @UseGuards(JwtAuthGuard)
+  createRaceStatistics(@Body() createRaceStatisticsDto: CreateRaceStatisticsDto) {
+    return this.statisticsService.create(createRaceStatisticsDto);
+  }
+
+  @Get('races')
+  @UseGuards(JwtAuthGuard)
+  getRaceStatistics(@Query() filters: RaceStatisticsFilterDto) {
+    return this.statisticsService.findAll(filters);
+  }
+
+  @Get('ai-model/:id/performance')
+  getAIModelPerformance(@Param('id') id: string) {
+    return this.statisticsService.getAIModelStats(id);
   }
 }
