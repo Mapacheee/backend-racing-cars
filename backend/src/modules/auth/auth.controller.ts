@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { CreateSimpleUserDto } from '../users/dto/create-simple-user.dto';
+import { CreateSimpleUserDto } from '../users/dto/create-simple-user.dto';
 import { UsersService } from '../users/users.service';
 
 @Controller('auth')
@@ -17,6 +19,28 @@ export class AuthController {
     const user = await this.usersService.create(createUserDto);
     const { password, ...result } = user;
     return result;
+  }
+
+  @Post('register-simple')
+  async registerSimple(@Body() createSimpleUserDto: CreateSimpleUserDto) {
+    const user = await this.usersService.createSimpleUser(createSimpleUserDto);
+    return {
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      token: this.authService.generateSimpleToken(user)
+    };
+  }
+
+  @Post('register-simple')
+  async registerSimple(@Body() createSimpleUserDto: CreateSimpleUserDto) {
+    const user = await this.usersService.createSimpleUser(createSimpleUserDto);
+    return {
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      token: this.authService.generateSimpleToken(user)
+    };
   }
 
   @UseGuards(LocalAuthGuard)

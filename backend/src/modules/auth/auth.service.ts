@@ -13,7 +13,12 @@ export class AuthService {
   async validateUser(username: string, password: string): Promise<any> {
     const user = await this.usersService.findByUsername(username);
 
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (!user) {
+      return null;
+    }
+
+    // Para usuarios administradores, verificar contraseña
+    if (user.password && await bcrypt.compare(password, user.password)) {
       const { password, ...result } = user;
       return result;
     }
@@ -22,7 +27,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.username, sub: user.id };
+    const payload = { username: user.username, sub: user.id, isAdmin: user.isAdmin };
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -34,5 +39,18 @@ export class AuthService {
         isAdmin: user.isAdmin,
       },
     };
+  }
+
+  generateSimpleToken(user: any) {
+    const payload = { username: user.username, sub: user.id, isAdmin: false };
+    return this.jwtService.sign(payload, { expiresIn: '24h' });
+  }
+
+  validateSimpleToken(token: string) {
+    try {
+      return this.jwtService.verify(token);
+    } catch (e) {
+      return null;
+    }
   }
 }

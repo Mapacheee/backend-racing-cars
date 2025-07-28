@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { CreateSimpleUserDto } from './dto/create-simple-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -14,11 +15,16 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { username, email, password } = createUserDto;
+    const { username, email, password, isAdmin } = createUserDto;
 
     // Verificar si el usuario ya existe
+    const whereConditions = [{ username }];
+    if (email) {
+      whereConditions.push({ email });
+    }
+
     const existingUser = await this.usersRepository.findOne({
-      where: [{ username }, { email }],
+      where: whereConditions,
     });
 
     if (existingUser) {
@@ -27,13 +33,37 @@ export class UsersService {
       );
     }
 
-    // Hash de la contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Crear nuevo usuario
     const user = this.usersRepository.create({
       ...createUserDto,
-      password: hashedPassword,
+    });
+
+    // Solo hacer hash de la contraseña si se proporciona (para administradores)
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    return this.usersRepository.save(user);
+  }
+
+  async createSimpleUser(createSimpleUserDto: CreateSimpleUserDto): Promise<User> {
+    const { username } = createSimpleUserDto;
+
+    // Verificar si el usuario ya existe
+    const existingUser = await this.usersRepository.findOne({
+      where: { username },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        'Un usuario con ese nombre ya existe',
+      );
+    }
+
+    // Crear nuevo usuario simple (sin contraseña ni email)
+    const user = this.usersRepository.create({
+      ...createSimpleUserDto,
+      isAdmin: false, // Usuario simple nunca es admin
     });
 
     return this.usersRepository.save(user);
