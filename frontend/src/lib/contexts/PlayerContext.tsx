@@ -7,7 +7,7 @@ export type PlayerData = {
 }
 
 type PlayerContextType = {
-    player: PlayerData | null
+    player: PlayerData
     setPlayer: (player: PlayerData) => void
     clearPlayer: () => void
 }
@@ -20,6 +20,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const setPlayer = (data: PlayerData) => setPlayerState(data)
     const clearPlayer = () => setPlayerState(null)
 
+    // Ensure player is always defined
+    // todo: implement logic to ensure player is always defined
+
     return (
         <PlayerContext.Provider value={{ player, setPlayer, clearPlayer }}>
             {children}
@@ -27,7 +30,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     )
 }
 
-export function usePlayer() {
+export function usePlayer(): PlayerContextType {
     const context = useContext(PlayerContext)
     if (!context) {
         throw new Error('usePlayer must be used within a PlayerProvider')

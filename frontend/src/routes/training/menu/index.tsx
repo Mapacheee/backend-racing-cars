@@ -1,11 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { usePlayer } from '../../../lib/contexts/PlayerContext'
 
 export default function TrainingMenu() {
     const navigate = useNavigate()
+    const { player } = usePlayer()
 
-    // Fake user data
-    const userName: string = 'Juan Pérez'
-    const aiGeneration: number = 1
+    const userName: string = player?.name || 'Usuario Anónimo'
+    const aiGeneration: number = player?.aiGeneration || 1
 
     function handleLogout() {
         alert('Sesión cerrada')
