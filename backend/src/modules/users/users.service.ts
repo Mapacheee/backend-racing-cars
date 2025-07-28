@@ -20,7 +20,7 @@ export class UsersService {
     // Verificar si el usuario ya existe
     const whereConditions = [{ username }];
     if (email) {
-      whereConditions.push({ email });
+      whereConditions.push({ email: email });
     }
 
     const existingUser = await this.usersRepository.findOne({

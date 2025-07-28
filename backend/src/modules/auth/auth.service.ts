@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -17,7 +17,7 @@ export class AuthService {
       return null;
     }
 
-    // Para usuarios administradores, verificar contraseña
+    // para usuarios administradores, verificar contraseña
     if (user.password && await bcrypt.compare(password, user.password)) {
       const { password, ...result } = user;
       return result;
@@ -43,7 +43,7 @@ export class AuthService {
 
   generateSimpleToken(user: any) {
     const payload = { username: user.username, sub: user.id, isAdmin: false };
-    return this.jwtService.sign(payload, { expiresIn: '24h' });
+    return this.jwtService.sign(payload);
   }
 
   validateSimpleToken(token: string) {
