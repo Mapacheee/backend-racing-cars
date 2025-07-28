@@ -15,16 +15,11 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { username, email, password, isAdmin } = createUserDto;
+    const { username, password, isAdmin } = createUserDto;
 
     // Verificar si el usuario ya existe
-    const whereConditions = [{ username }];
-    if (email) {
-      whereConditions.push({ email: email });
-    }
-
     const existingUser = await this.usersRepository.findOne({
-      where: whereConditions,
+      where: { username },
     });
 
     if (existingUser) {
@@ -83,10 +78,6 @@ export class UsersService {
 
   async findByUsername(username: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ username });
-  }
-
-  async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ email });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {

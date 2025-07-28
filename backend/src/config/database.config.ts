@@ -5,9 +5,9 @@ import { join } from 'path';
 export const getDatabaseConfig = (
   configService: ConfigService,
 ): TypeOrmModuleOptions => ({
-  type: configService.get<'sqlite'>('DATABASE_TYPE'),
-  database: configService.get<string>('DATABASE_NAME'),
+  type: 'better-sqlite3',
+  database: 'racing_ai.db',
   entities: [join(__dirname, '../**/*.entity{.ts,.js}')],
-  synchronize: configService.get<string>('NODE_ENV') === 'development',
-  logging: configService.get<string>('NODE_ENV') === 'development',
+  synchronize: true,
+  logging: true,
 });

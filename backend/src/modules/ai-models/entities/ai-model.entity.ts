@@ -21,8 +21,30 @@ export class AIModel {
   @Column('simple-json', { nullable: true })
   configuration: Record<string, any>;
 
+  @Column('int', { default: 1 })
+  generationNumber: number;
+
+  @Column('simple-json', { nullable: true })
+  trainingMetrics: {
+    distanceCompleted: number;
+    timeElapsed: number;
+    avgSpeed: number;
+    collisions: number;
+    lapTimes?: number[];
+  };
+
+  @Column('simple-json', { nullable: true })
+  genetics: {
+    parentIds?: string[];
+    fitnessScore: number;
+    mutationRate?: number;
+  };
+
   @Column({ nullable: true })
-  trainingStats: string;
+  lastTrainingDate: Date;
+
+  @Column('boolean', { default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
