@@ -6,7 +6,7 @@ import {
     type ReactNode,
 } from 'react'
 import Cookies from 'js-cookie'
-import type { AuthState } from '../types/auth'
+import type { Admin, AuthState, Player } from '../types/auth'
 
 type SetPlayer = { name: string; aiGeneration: number }
 type SetAdmin = { name: string; email: string }
@@ -104,10 +104,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 }
 
-export function useAuth(): AuthContextType {
+export interface PlayerAuth extends AuthContextType {
+    auth: {
+        user: Player
+        token: string | null
+    }
+}
+
+export interface AdminAuth extends AuthContextType {
+    auth: {
+        user: Admin
+        token: string
+    }
+}
+
+export function useAuth<
+    T extends AuthContextType | PlayerAuth | AdminAuth,
+>(): T {
     const context = useContext(AuthContext)
     if (!context) {
         throw new Error('useAuth must be used within an AuthProvider')
     }
-    return context
+    return context as T
 }

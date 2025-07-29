@@ -9,9 +9,7 @@ createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <AuthProvider>
             <CanvasSettingsProvider>
-                {/* <PlayerProvider> */}
                 <App />
-                {/* </PlayerProvider> */}
             </CanvasSettingsProvider>
         </AuthProvider>
     </StrictMode>
