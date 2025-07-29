@@ -3,6 +3,7 @@ import TrainingMenu from './routes/training/menu/index.tsx'
 import ProtectedRoute from './lib/components/ProtectedRoute.tsx'
 import type { JSX } from 'react'
 import Home from './routes/index.tsx'
+import AdminHome from './routes/admin/index.tsx'
 
 export default function App(): JSX.Element {
     return (
@@ -16,6 +17,7 @@ export default function App(): JSX.Element {
                         </ProtectedRoute>
                     }
                 />
+                <Route path="/admin" element={<AdminHome />} />
                 <Route
                     path="/training/menu"
                     element={
