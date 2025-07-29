@@ -71,7 +71,7 @@ export function CreateRaceForm() {
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto p-6">
             <h2 className="text-2xl font-bold mb-6">Crear carrera</h2>
 
-            {/* Track Selection */}
+            {/* selección de pista */}
             <div>
                 <label className="block text-sm font-medium mb-2">
                     Seleccionar pista
@@ -119,13 +119,13 @@ export function CreateRaceForm() {
                 </div>
             </div>
 
-            {/* Race Conditions */}
+            {/* condiciones de carrera */}
             <div>
-                <h3 className="text-lg font-medium mb-3">Race Conditions</h3>
+                <h3 className="text-lg font-medium mb-3">Condiciones de Carrera</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-2">
-                            Weather
+                            Lluvia
                         </label>
                         <select
                             value={formData.raceConditions.weather}
@@ -164,7 +164,7 @@ export function CreateRaceForm() {
                 </div>
             </div>
 
-            {/* Race Configuration */}
+            {/* config de carreras */}
             <div>
                 <h3 className="text-lg font-medium mb-3">Configuración de Carrera</h3>
                 <div className="grid grid-cols-2 gap-4">
