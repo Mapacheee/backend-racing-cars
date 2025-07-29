@@ -36,7 +36,7 @@ export default function TrainingMenu() {
                 {/* Actions Column */}
                 <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
                     <Link
-                        to="/training/traininig"
+                        to="/training/simulation"
                         className="w-full text-center rounded-md px-4 py-3 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
                     >
                         {aiGeneration === 1

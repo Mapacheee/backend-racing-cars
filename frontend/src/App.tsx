@@ -4,6 +4,7 @@ import ProtectedRoute from './lib/components/ProtectedRoute.tsx'
 import type { JSX } from 'react'
 import Home from './routes/index.tsx'
 import AdminHome from './routes/admin/index.tsx'
+import TrainingSimulation from './routes/training/simulation/index.tsx'
 
 export default function App(): JSX.Element {
     return (
@@ -30,7 +31,7 @@ export default function App(): JSX.Element {
                     path="/training/room"
                     element={
                         <ProtectedRoute>
-                            <div>Training Room</div>
+                            <div>Training Simulation</div>
                         </ProtectedRoute>
                     }
                 />
@@ -38,7 +39,7 @@ export default function App(): JSX.Element {
                     path="/training/simulation"
                     element={
                         <ProtectedRoute>
-                            <div>Training Simulation</div>
+                            <TrainingSimulation />
                         </ProtectedRoute>
                     }
                 />
