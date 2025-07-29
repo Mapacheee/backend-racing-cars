@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
-import Cookies from 'js-cookie'
 import type { ReactNode } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 type ProtectedRouteProps = {
     children: ReactNode
@@ -11,14 +11,19 @@ export default function ProtectedRoute({
     children,
     redirectIfLoggedIn = false,
 }: ProtectedRouteProps) {
-    const playerCookie = Cookies.get('player')
+    console.log('ProtectedRoute: ', 'the protected route is active')
+    const { isAdmin, isPlayer } = useAuth()
+    if (isAdmin()) {
+        // TODO: navigate to admin menu instead
+        return <Navigate to="/admin/login" replace />
+    }
 
-    if (redirectIfLoggedIn && playerCookie) {
+    if (redirectIfLoggedIn && isPlayer()) {
         // If already logged in, redirect from login to menu
         return <Navigate to="/training/menu" replace />
     }
 
-    if (!redirectIfLoggedIn && !playerCookie) {
+    if (!redirectIfLoggedIn && !isPlayer()) {
         // If not logged in, redirect to login
         return <Navigate to="/" replace />
     }

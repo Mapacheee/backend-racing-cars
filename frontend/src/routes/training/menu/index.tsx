@@ -1,17 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { usePlayer } from '../../../lib/contexts/PlayerContext'
+import { useAuth } from '../../../lib/contexts/AuthContext'
 
 export default function TrainingMenu() {
     const navigate = useNavigate()
-    const { player } = usePlayer()
-
-    const userName: string = player?.name || 'Usuario Anónimo'
-    const aiGeneration: number = player?.aiGeneration || 1
+    const { auth, clearAuth } = useAuth()
+    console.log('training menu: ', auth)
 
     function handleLogout() {
-        alert('Sesión cerrada')
-        // TODO: Add logout logic (clear context, redirect, etc.)
-
+        clearAuth()
         navigate('/')
     }
 
@@ -24,13 +20,13 @@ export default function TrainingMenu() {
                         Usuario
                     </div>
                     <div className="text-2xl font-bold text-primary">
-                        {userName}
+                        {auth?.user?.name}
                     </div>
                     <div className="text-base text-secondary mt-4">
                         AI Generación
                     </div>
                     <div className="text-lg font-semibold text-primary">
-                        Gen {aiGeneration}
+                        Gen {auth?.user?.aiGeneration}
                     </div>
                 </div>
                 {/* Actions Column */}
@@ -39,7 +35,7 @@ export default function TrainingMenu() {
                         to="/training/simulation"
                         className="w-full text-center rounded-md px-4 py-3 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
                     >
-                        {aiGeneration === 1
+                        {auth?.user?.aiGeneration === 1
                             ? 'Empezar Entrenamiento'
                             : 'Continuar Entrenamiento'}
                     </Link>

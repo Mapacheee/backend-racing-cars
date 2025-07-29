@@ -1,115 +1,113 @@
 import {
     createContext,
     useContext,
-    useState,
     useEffect,
+    useState,
     type ReactNode,
-} from 'react';
-import Cookies from 'js-cookie';
-import type { User, Player, Admin, AuthState } from '../types/auth.types';
+} from 'react'
+import Cookies from 'js-cookie'
+import type { AuthState } from '../types/auth'
+
+type SetPlayer = { name: string; aiGeneration: number }
+type SetAdmin = { name: string; email: string }
 
 type AuthContextType = {
-    auth: AuthState;
-    setPlayer: (player: Player) => void;
-    setAdmin: (admin: Admin, token: string) => void;
-    clearAuth: () => void;
-    isAdmin: () => boolean;
-    isPlayer: () => boolean;
-};
+    auth: AuthState | null
+    setPlayer: (player: SetPlayer) => void
+    setAdmin: (admin: SetAdmin, token: string) => void
+    clearAuth: () => void
+    isAdmin: () => boolean
+    isPlayer: () => boolean
+}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [auth, setAuth] = useState<AuthState>(() => {
-        // Check for admin session in localStorage
-        const adminData = localStorage.getItem('admin');
+        const adminData = Cookies.get('admin')
+        console.log('AuthProvider: adminData:', adminData)
         if (adminData) {
             try {
-                return JSON.parse(adminData);
-            } catch {
-                // Invalid admin data, check for player
-            }
+                return JSON.parse(adminData) as AuthState
+            } catch {}
         }
 
         // Check for player in cookies
-        const playerCookie = Cookies.get('player');
+        const playerCookie = Cookies.get('player')
+        console.log('AuthProvider: playerCookie:', playerCookie)
         if (playerCookie) {
             try {
-                const playerData = JSON.parse(playerCookie);
-                return {
-                    user: {
-                        name: playerData.name,
-                        aiGeneration: playerData.aiGeneration,
-                        role: 'player'
-                    } as Player
-                };
+                const playerData = JSON.parse(playerCookie) as AuthState
+                return playerData
             } catch {
-                return { user: null };
+                return { user: null, token: null }
             }
         }
 
-        return { user: null };
-    });
+        Cookies.remove('player')
+        Cookies.remove('admin')
 
-    const setPlayer = (player: Player) => {
-        setAuth({ user: player });
-        Cookies.set('player', JSON.stringify({
-            name: player.name,
-            aiGeneration: player.aiGeneration
-        }), { expires: 7 });
-    };
+        return { user: null, token: null }
+    })
 
-    const setAdmin = (admin: Admin, token: string) => {
-        const authState = { user: admin, token };
-        setAuth(authState);
-        localStorage.setItem('admin', JSON.stringify(authState));
-    };
+    useEffect(() => {
+        if (auth.user) {
+            Cookies.set('player', JSON.stringify(auth), { expires: 7 })
+        } else {
+            Cookies.remove('player')
+        }
+        if (auth.token) {
+            Cookies.set('admin', JSON.stringify(auth), { expires: 7 })
+        } else {
+            Cookies.remove('admin')
+        }
+    }, [auth])
+
+    const setPlayer = ({ name, aiGeneration }: SetPlayer) => {
+        setAuth({ user: { name, aiGeneration, role: 'player' }, token: null })
+        Cookies.set('player', JSON.stringify(auth), { expires: 7 })
+    }
+
+    const setAdmin = ({ name, email }: SetAdmin, token: string) => {
+        const authState: AuthState = {
+            user: { name, email, role: 'admin' },
+            token,
+        }
+        setAuth(authState)
+        Cookies.set('admin', JSON.stringify(auth), {
+            expires: 7,
+        })
+    }
 
     const clearAuth = () => {
-        setAuth({ user: null });
-        Cookies.remove('player');
-        localStorage.removeItem('admin');
-    };
+        setAuth({ user: null, token: null })
+        Cookies.remove('player')
+        Cookies.remove('admin')
+    }
 
-    const isAdmin = () => auth.user?.role === 'admin';
-    const isPlayer = () => auth.user?.role === 'player';
-
-    // Keep storage in sync with state
-    useEffect(() => {
-        if (!auth.user) {
-            Cookies.remove('player');
-            localStorage.removeItem('admin');
-            return;
-        }
-
-        if (auth.user.role === 'player') {
-            Cookies.set('player', JSON.stringify({
-                name: auth.user.name,
-                aiGeneration: auth.user.aiGeneration
-            }), { expires: 7 });
-        } else if (auth.user.role === 'admin') {
-            localStorage.setItem('admin', JSON.stringify(auth));
-        }
-    }, [auth]);
+    const isAdmin = () => auth?.user?.role === 'admin'
+    const isPlayer = () => auth?.user?.role === 'player'
 
     return (
-        <AuthContext.Provider value={{ 
-            auth, 
-            setPlayer, 
-            setAdmin, 
-            clearAuth,
-            isAdmin,
-            isPlayer
-        }}>
+        <AuthContext.Provider
+            value={{
+                auth,
+                setPlayer,
+                setAdmin,
+                clearAuth,
+                isAdmin,
+                isPlayer,
+            }}
+        >
             {children}
         </AuthContext.Provider>
-    );
+    )
 }
 
 export function useAuth(): AuthContextType {
-    const context = useContext(AuthContext);
+    const context = useContext(AuthContext)
     if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
+        throw new Error('useAuth must be used within an AuthProvider')
     }
-    return context;
+    return context
 }

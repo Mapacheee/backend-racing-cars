@@ -1,6 +1,6 @@
-import type { LoginCredentials } from '../../types/auth.types';
+import type { LoginCredentials } from '../../types/auth'
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:3000/api'
 
 export const AdminAuthService = {
     async login(credentials: LoginCredentials) {
@@ -10,13 +10,13 @@ export const AdminAuthService = {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(credentials),
-        });
+        })
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Authentication failed');
+            const error = await response.json()
+            throw new Error(error.message || 'Authentication failed')
         }
 
-        return response.json();
-    }
-};
+        return response.json()
+    },
+}

@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { usePlayer } from '../lib/contexts/PlayerContext'
 import type { JSX } from 'react'
-import Cookies from 'js-cookie'
 import { useFormik } from 'formik'
+import { useAuth } from '../lib/contexts/AuthContext'
 
 export default function Home(): JSX.Element {
     const navigate = useNavigate()
-    const { setPlayer } = usePlayer()
+    const { setPlayer } = useAuth()
 
     const formik = useFormik({
         initialValues: { username: '', password: '' },
@@ -24,11 +23,6 @@ export default function Home(): JSX.Element {
         },
         onSubmit: async values => {
             await new Promise(res => setTimeout(res, 600))
-            Cookies.set(
-                'player',
-                JSON.stringify({ name: values.username, aiGeneration: 1 }),
-                { expires: 7 }
-            )
             setPlayer({ name: values.username, aiGeneration: 1 })
             navigate('/training/menu')
         },

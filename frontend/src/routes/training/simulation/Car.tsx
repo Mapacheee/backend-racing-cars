@@ -2,7 +2,7 @@ import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useEffect, useRef } from 'react'
 import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
-import { RigidBody, type RigidBodyProps } from '@react-three/rapier'
+import { useBox } from '@react-three/cannon'
 import { useCar } from '../../../lib/contexts/CarContext'
 
 // Adjust the path to your actual car model .glb file
@@ -17,6 +17,15 @@ export default function Car(): JSX.Element {
     const { scene } = useGLTF(CAR_MODEL_PATH)
     const { showCollisions } = useCanvasSettings()
 
+    // Cannon.js car body
+    const [ref, api] = useBox(() => ({
+        mass: 1,
+        position,
+        args: [1, 0.5, 2.7],
+        angularDamping: 2,
+        linearDamping: 0.7,
+    }))
+
     // Natural car movement: use physics
     type CarKey = 'w' | 'a' | 's' | 'd'
     const keys = useRef<Record<CarKey, boolean>>({
@@ -25,7 +34,6 @@ export default function Car(): JSX.Element {
         a: false,
         d: false,
     })
-    const rigidBody = useRef<RigidBodyProps>(null)
 
     // Keyboard event listeners
     useEffect(() => {
@@ -49,85 +57,69 @@ export default function Car(): JSX.Element {
     useEffect(() => {
         let frame: number
         function animate() {
-            const rb = rigidBody.current
-            if (rb) {
-                // Get current orientation and velocity
-                const rot = rb.rotation()
-                const vel = rb.linvel()
-                const up = [0, 1, 0]
-                // Heading is Y rotation
-                const heading = rot ? rot.y : 0
+            api.rotation.subscribe(([, y]) => {
+                const heading = y
                 const maxSpeed = 6
                 const accel = 2
                 const turnSpeed = 1.5 // radians/sec
-                // Forward/backward
-                if (keys.current.w) {
-                    // Apply impulse in forward direction
-                    rb.applyImpulse(
-                        {
-                            x: Math.sin(heading) * accel,
-                            y: 0,
-                            z: Math.cos(heading) * accel,
-                        },
-                        true
-                    )
-                }
-                if (keys.current.s) {
-                    rb.applyImpulse(
-                        {
-                            x: -Math.sin(heading) * accel,
-                            y: 0,
-                            z: -Math.cos(heading) * accel,
-                        },
-                        true
-                    )
-                }
-                // Steering (A/D): apply torque
-                if (keys.current.a) {
-                    rb.applyTorqueImpulse({ x: 0, y: turnSpeed, z: 0 }, true)
-                }
-                if (keys.current.d) {
-                    rb.applyTorqueImpulse({ x: 0, y: -turnSpeed, z: 0 }, true)
-                }
-                // Clamp speed
-                const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
-                if (speed > maxSpeed) {
-                    const scale = maxSpeed / speed
-                    rb.setLinvel(
-                        { x: vel.x * scale, y: vel.y, z: vel.z * scale },
-                        true
-                    )
-                }
-            }
+                api.velocity.subscribe(([vx, , vz]) => {
+                    const speed = Math.sqrt(vx * vx + vz * vz)
+                    // Forward/backward
+                    if (keys.current.w) {
+                        api.applyImpulse(
+                            [
+                                Math.sin(heading) * accel,
+                                0,
+                                Math.cos(heading) * accel,
+                            ],
+                            true
+                        )
+                    }
+                    if (keys.current.s) {
+                        api.applyImpulse(
+                            [
+                                -Math.sin(heading) * accel,
+                                0,
+                                -Math.cos(heading) * accel,
+                            ],
+                            true
+                        )
+                    }
+                    // Steering (A/D): apply torque
+                    if (keys.current.a) {
+                        api.applyTorque([0, turnSpeed, 0], true)
+                    }
+                    if (keys.current.d) {
+                        api.applyTorque([0, -turnSpeed, 0], true)
+                    }
+                    // Clamp speed
+                    if (speed > maxSpeed) {
+                        const scale = maxSpeed / speed
+                        api.velocity.set([vx * scale, 0, vz * scale])
+                    }
+                })
+            })
             frame = requestAnimationFrame(animate)
         }
         frame = requestAnimationFrame(animate)
         return () => cancelAnimationFrame(frame)
-    }, [])
+    }, [api])
 
     // Only set initial position
     return (
-        <RigidBody
-            ref={rigidBody}
-            colliders="cuboid"
-            position={position}
-            angularDamping={2}
-            linearDamping={0.7}
-        >
-            <group>
-                <primitive object={scene} scale={1.5} />
-                {showCollisions && (
-                    <mesh position={[-0.5, 0.2, -1]}>
-                        <boxGeometry args={[1, 0.4, 2]} />
-                        <meshBasicMaterial
-                            color="red"
-                            wireframe
-                            transparent
-                            opacity={0.5}
-                        />
-                    </mesh>
-                )}
-            </group>
-        </RigidBody>
+        <group ref={ref}>
+            <primitive object={scene} scale={1.5} />
+            {showCollisions && (
+                <mesh position={[-0.5, 0.2, -1]}>
+                    <boxGeometry args={[1, 0.4, 2.7]} />
+                    <meshBasicMaterial
+                        color="red"
+                        wireframe
+                        transparent
+                        opacity={0.5}
+                    />
+                </mesh>
+            )}
+        </group>
     )
 }

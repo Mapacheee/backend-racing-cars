@@ -18,7 +18,14 @@ export default function App(): JSX.Element {
                         </ProtectedRoute>
                     }
                 />
-                <Route path="/admin" element={<AdminHome />} />
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute redirectIfLoggedIn>
+                            <AdminHome />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/training/menu"
                     element={
