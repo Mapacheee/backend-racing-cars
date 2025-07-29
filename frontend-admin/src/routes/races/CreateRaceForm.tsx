@@ -46,9 +46,9 @@ export function CreateRaceForm() {
     try {
       setLoading(true);
       await RaceService.createRace(formData);
-      // Redirect or show success message
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create race');
+      setError(err instanceof Error ? err.message : 'error al hacer una carrera');
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export function CreateRaceForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">Create New Race</h2>
+      <h2 className="text-2xl font-bold mb-6">Crear nueva carrear</h2>
 
       {/* Track Selection */}
       <div>
@@ -72,7 +72,7 @@ export function CreateRaceForm() {
           className="w-full p-2 border rounded-md"
           required
         >
-          <option value="">Select a track...</option>
+          <option value="">seleccione pista...</option>
           {tracks.map((track) => (
             <option key={track.id} value={track.id}>
               {track.name} - {track.length}m
@@ -109,9 +109,8 @@ export function CreateRaceForm() {
         </div>
       </div>
 
-      {/* Race Conditions */}
       <div>
-        <h3 className="text-lg font-medium mb-3">Race Conditions</h3>
+        <h3 className="text-lg font-medium mb-3">condiciones de carrera</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -125,15 +124,15 @@ export function CreateRaceForm() {
               })}
               className="w-full p-2 border rounded-md"
             >
-              <option value="sunny">Sunny</option>
-              <option value="cloudy">Cloudy</option>
-              <option value="rainy">Rainy</option>
+              <option value="sunny">soleado</option>
+              <option value="cloudy">nublado</option>
+              <option value="rainy">lluvioso</option>
             </select>
           </div>
           
           <div>
             <label className="block text-sm font-medium mb-2">
-              Difficulty
+              Dificultad
             </label>
             <select
               value={formData.raceConditions.difficulty}
@@ -146,21 +145,20 @@ export function CreateRaceForm() {
               })}
               className="w-full p-2 border rounded-md"
             >
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Race Configuration */}
       <div>
-        <h3 className="text-lg font-medium mb-3">Race Configuration</h3>
+        <h3 className="text-lg font-medium mb-3">config de carrera</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">
-              Number of Laps
+              numero de vueltas
             </label>
             <input
               type="number"
@@ -198,7 +196,7 @@ export function CreateRaceForm() {
         disabled={loading}
         className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
       >
-        {loading ? 'Creating...' : 'Create Race'}
+        {loading ? 'creando...' : 'Crear Carrera'}
       </button>
     </form>
   );
