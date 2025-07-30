@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from './index';
 import { AdminRoutes } from './admin';
-import { TrainingRoutes } from './training';
+import { TrainingRoutes } from './training/index';
 
 export function AppRouter() {
     return (

@@ -120,7 +120,7 @@ export function RaceDetail() {
                 {/* resultados */}
                 {race.results && race.results.length > 0 && (
                     <div className="mb-8">
-                        <h3 className="text-lg font-semibold mb-4">Race Results</h3>
+                        <h3 className="text-lg font-semibold mb-4">Resultados</h3>
                         <div className="overflow-x-auto">
                             <table className="min-w-full">
                                 <thead>
