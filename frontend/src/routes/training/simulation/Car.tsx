@@ -2,14 +2,12 @@ import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useEffect, useRef } from 'react'
 import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
-import { RigidBody, type RigidBodyProps } from '@react-three/rapier'
+import { RigidBody } from '@react-three/rapier'
 import { useCar } from '../../../lib/contexts/CarContext'
 
 // Adjust the path to your actual car model .glb file
 const CAR_MODEL_PATH = '/src/assets/models/raceCarRed.glb'
 
-// CarModel is now prop-ready for future extensibility
-// No props needed, use context
 // CarModel is now prop-ready for future extensibility
 // No props needed, use context
 export default function Car(): JSX.Element {
@@ -25,9 +23,8 @@ export default function Car(): JSX.Element {
         a: false,
         d: false,
     })
-    const rigidBody = useRef<RigidBodyProps>(null)
+    const rigidBody = useRef<any>(null) 
 
-    // Keyboard event listeners
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             const key = e.key.toLowerCase() as CarKey
@@ -45,24 +42,26 @@ export default function Car(): JSX.Element {
         }
     }, [])
 
-    // Physics-based car movement
     useEffect(() => {
         let frame: number
         function animate() {
             const rb = rigidBody.current
             if (rb) {
-                // Get current orientation and velocity
-                const rot = rb.rotation()
+                const rotation = rb.rotation()
                 const vel = rb.linvel()
-                const up = [0, 1, 0]
-                // Heading is Y rotation
-                const heading = rot ? rot.y : 0
-                const maxSpeed = 6
-                const accel = 2
-                const turnSpeed = 1.5 // radians/sec
-                // Forward/backward
+                const angularVel = rb.angvel()
+                
+                const heading = Math.atan2(
+                    2 * (rotation.w * rotation.y + rotation.x * rotation.z),
+                    1 - 2 * (rotation.y * rotation.y + rotation.z * rotation.z)
+                )
+                
+                const maxSpeed = 8
+                const accel = 0.5
+                const maxTurnSpeed = 2
+                const turnDamping = 0.9
+                
                 if (keys.current.w) {
-                    // Apply impulse in forward direction
                     rb.applyImpulse(
                         {
                             x: Math.sin(heading) * accel,
@@ -75,22 +74,36 @@ export default function Car(): JSX.Element {
                 if (keys.current.s) {
                     rb.applyImpulse(
                         {
-                            x: -Math.sin(heading) * accel,
+                            x: -Math.sin(heading) * accel * 0.7, 
                             y: 0,
-                            z: -Math.cos(heading) * accel,
+                            z: -Math.cos(heading) * accel * 0.7,
                         },
                         true
                     )
                 }
-                // Steering (A/D): apply torque
-                if (keys.current.a) {
-                    rb.applyTorqueImpulse({ x: 0, y: turnSpeed, z: 0 }, true)
-                }
-                if (keys.current.d) {
-                    rb.applyTorqueImpulse({ x: 0, y: -turnSpeed, z: 0 }, true)
-                }
-                // Clamp speed
+                
                 const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
+                const speedFactor = Math.min(speed / 3, 1)
+                
+                if (keys.current.a && speed > 0.1) {
+                    if (Math.abs(angularVel.y) < maxTurnSpeed) {
+                        rb.applyTorqueImpulse({ x: 0, y: speedFactor * 0.3, z: 0 }, true)
+                    }
+                }
+                if (keys.current.d && speed > 0.1) {
+                    if (Math.abs(angularVel.y) < maxTurnSpeed) {
+                        rb.applyTorqueImpulse({ x: 0, y: -speedFactor * 0.3, z: 0 }, true)
+                    }
+                }
+                
+                if (!keys.current.a && !keys.current.d) {
+                    rb.setAngvel({
+                        x: angularVel.x * turnDamping,
+                        y: angularVel.y * turnDamping,
+                        z: angularVel.z * turnDamping
+                    }, true)
+                }
+                
                 if (speed > maxSpeed) {
                     const scale = maxSpeed / speed
                     rb.setLinvel(
@@ -103,9 +116,7 @@ export default function Car(): JSX.Element {
         }
         frame = requestAnimationFrame(animate)
         return () => cancelAnimationFrame(frame)
-    }, [])
-
-    // Only set initial position
+    }, [])   
     return (
         <RigidBody
             ref={rigidBody}
