@@ -1,25 +1,96 @@
 import { Canvas } from '@react-three/fiber'
 import type { JSX, ReactNode } from 'react'
+import { useState } from 'react'
 import CarScene from './CarScene'
+import WaypointModal from './WaypointModal'
+import { WaypointModalProvider } from './WaypointModalContext'
 import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
 import { CarProvider } from '../../../lib/contexts/CarContext'
+import { RaceResetProvider } from '../../../lib/contexts/RaceResetContext'
+import { TRACKS } from './TrackSystem'
 
 function CanvasSettingsMenu(): JSX.Element {
-    const { showCollisions, setShowCollisions } = useCanvasSettings()
+    const { showCollisions, setShowCollisions, showWaypoints, setShowWaypoints, editMode, setEditMode } = useCanvasSettings()
+    const [trainingMode, setTrainingMode] = useState(true)
+    
+    const track = TRACKS['main_circuit']
+    
     return (
-        <div className="absolute top-4 left-4 bg-white/90 rounded shadow-lg p-4 z-50 min-w-[180px]">
-            <h3 className="font-semibold mb-2 text-gray-700 text-sm">
-                Canvas Settings
+        <div className="absolute top-4 left-4 bg-white/90 rounded shadow-lg p-4 z-50 min-w-[200px]">
+            <h3 className="font-semibold mb-3 text-gray-700 text-sm">
+                ajustes
             </h3>
-            <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
-                <input
-                    type="checkbox"
-                    checked={showCollisions}
-                    onChange={e => setShowCollisions(e.target.checked)}
-                    className="accent-cyan-600"
-                />
-                Show Collisions
-            </label>
+            
+            <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={showCollisions}
+                        onChange={e => setShowCollisions(e.target.checked)}
+                        className="accent-cyan-600"
+                    />
+                    ver colisiones
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={showWaypoints}
+                        onChange={e => setShowWaypoints(e.target.checked)}
+                        className="accent-orange-600"
+                    />
+                    ver waypoints
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={editMode}
+                        onChange={e => setEditMode(e.target.checked)}
+                        className="accent-purple-600"
+                    />
+                    editar waypoints
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={trainingMode}
+                        onChange={e => setTrainingMode(e.target.checked)}
+                        className="accent-green-600"
+                    />
+                    modo entreno ia
+                </label>
+
+                <div className="border-t pt-2 mt-2">
+                    <div className="text-xs font-medium text-gray-700 mb-1">
+                        Pista: {track.name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                        {track.waypoints.length} Puntos • {Math.round(track.length)}m
+                    </div>
+                </div>
+                
+                {!trainingMode && !editMode && (
+                    <div className="text-xs text-gray-600 mt-2 p-2 bg-blue-50 rounded">
+                        Debug: Use WASD para controalr el auto
+                    </div>
+                )}
+                
+                {trainingMode && !editMode && (
+                    <div className="text-xs text-gray-600 mt-2 p-2 bg-green-50 rounded">
+                        La ia se está entrenando en {track.name}
+                    </div>
+                )}
+                
+                {editMode && (
+                    <div className="text-xs text-gray-600 mt-2 p-2 bg-purple-50 rounded">
+                        <div className="font-medium text-purple-700 mb-1">Modo Edición</div>
+                        <div>• <strong>clic suelo:</strong> agregar waypoint</div>
+                        <div>• <strong>clic waypoint:</strong> abrir menú de opciones</div>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
@@ -30,9 +101,11 @@ function SimulatorProviders({
     children: ReactNode
 }): JSX.Element {
     return (
-        <>
-            <CarProvider>{children}</CarProvider>
-        </>
+        <WaypointModalProvider>
+            <RaceResetProvider>
+                <CarProvider>{children}</CarProvider>
+            </RaceResetProvider>
+        </WaypointModalProvider>
     )
 }
 
@@ -48,6 +121,7 @@ export default function TrainingSimulation(): JSX.Element {
                 >
                     <CarScene />
                 </Canvas>
+                <WaypointModal />
             </div>
         </SimulatorProviders>
     )

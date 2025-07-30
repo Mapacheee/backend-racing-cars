@@ -3,7 +3,10 @@ import { createContext, useContext, useState, type ReactNode } from 'react'
 type CanvasSettings = {
     showCollisions: boolean
     setShowCollisions: (value: boolean) => void
-    // Add more canvas-wide settings here as needed
+    showWaypoints: boolean
+    setShowWaypoints: (value: boolean) => void
+    editMode: boolean
+    setEditMode: (value: boolean) => void
 }
 
 const CanvasSettingsContext = createContext<CanvasSettings | undefined>(
@@ -12,10 +15,12 @@ const CanvasSettingsContext = createContext<CanvasSettings | undefined>(
 
 export function CanvasSettingsProvider({ children }: { children: ReactNode }) {
     const [showCollisions, setShowCollisions] = useState(false)
+    const [showWaypoints, setShowWaypoints] = useState(true)
+    const [editMode, setEditMode] = useState(false)
 
     return (
         <CanvasSettingsContext.Provider
-            value={{ showCollisions, setShowCollisions }}
+            value={{ showCollisions, setShowCollisions, showWaypoints, setShowWaypoints, editMode, setEditMode }}
         >
             {children}
         </CanvasSettingsContext.Provider>
