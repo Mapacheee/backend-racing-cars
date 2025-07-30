@@ -1,21 +1,23 @@
-import { Navigate } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { Navigate, Outlet } from 'react-router-dom'
+import type { JSX } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 type ProtectedRouteProps = {
-    children: ReactNode
     redirectIfLoggedIn?: boolean
 }
 
 export default function ProtectedRoute({
-    children,
     redirectIfLoggedIn = false,
-}: ProtectedRouteProps) {
-    console.log('ProtectedRoute: ', 'the protected route is active')
+}: ProtectedRouteProps): JSX.Element {
     const { isAdmin, isPlayer } = useAuth()
-    if (isAdmin()) {
-        // TODO: navigate to admin menu instead
-        return <Navigate to="/admin/login" replace />
+
+    if (redirectIfLoggedIn && isAdmin()) {
+        return <Navigate to="/admin/menu" replace />
+    }
+
+    if (!redirectIfLoggedIn && isAdmin()) {
+        // If already logged in as admin, redirect from login to admin menu
+        return <Outlet />
     }
 
     if (redirectIfLoggedIn && isPlayer()) {
@@ -28,5 +30,5 @@ export default function ProtectedRoute({
         return <Navigate to="/" replace />
     }
 
-    return <>{children}</>
+    return <Outlet />
 }

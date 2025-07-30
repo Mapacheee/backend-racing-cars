@@ -25,7 +25,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [auth, setAuth] = useState<AuthState>(() => {
         const adminData = Cookies.get('admin')
-        console.log('AuthProvider: adminData:', adminData)
         if (adminData) {
             try {
                 return JSON.parse(adminData) as AuthState
@@ -34,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Check for player in cookies
         const playerCookie = Cookies.get('player')
-        console.log('AuthProvider: playerCookie:', playerCookie)
         if (playerCookie) {
             try {
                 const playerData = JSON.parse(playerCookie) as AuthState
