@@ -61,7 +61,7 @@ export function generateRoad(waypoints: Waypoint[]): TrackPiece[] {
     if (waypoints.length < 3) return []
     
     const pieces: TrackPiece[] = []
-    const segmentsPerSection = 8
+    const segmentsPerSection = 16
     
     function catmullRom(t: number, p0: number, p1: number, p2: number, p3: number): number {
         const t2 = t * t
@@ -177,8 +177,8 @@ export function moveWaypoint(trackId: string, index: number, x: number, z: numbe
 
 export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
     const walls: Wall[] = []
-    const segmentsPerSection = 8
-    const wallLength = 2.0  
+    const segmentsPerSection = 16
+    const wallLength = 1.2 
     const roadHalfWidth = ROAD_GEOMETRY.width / 2 
     
     function catmullRom(t: number, p0: number, p1: number, p2: number, p3: number): number {
@@ -208,11 +208,14 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
         const p3 = waypoints[(i + 2) % waypoints.length]
         
         for (let j = 0; j < segmentsPerSection; j++) {
+            if (j % 2 !== 0) continue
+            
             const t = j / segmentsPerSection
             const x = catmullRom(t, p0.x, p1.x, p2.x, p3.x)
             const z = catmullRom(t, p0.z, p1.z, p2.z, p3.z)
             const dx = catmullRomDerivative(t, p0.x, p1.x, p2.x, p3.x)
             const dz = catmullRomDerivative(t, p0.z, p1.z, p2.z, p3.z)
+            
             const dirLength = Math.sqrt(dx * dx + dz * dz)
             if (dirLength === 0) continue
             
@@ -221,10 +224,8 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
             const perpX = -normalizedDz
             const perpZ = normalizedDx
             
-            // Usar el ancho real de la carretera en lugar del radio del waypoint
             const trackHalfWidth = roadHalfWidth
             
-            // Pared izquierda - justo en el borde izquierdo de la carretera
             walls.push({
                 start: { 
                     x: x + perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
@@ -237,7 +238,6 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
                 side: 'left'
             })
             
-            // Pared derecha - justo en el borde derecho de la carretera
             walls.push({
                 start: { 
                     x: x - perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 

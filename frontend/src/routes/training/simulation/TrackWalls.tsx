@@ -26,14 +26,14 @@ export default function TrackWalls({ walls, visible = true }: TrackWallsProps) {
                     >
                         {visible && (
                             <mesh 
-                                position={[centerX, 0.5, centerZ]}
+                                position={[centerX, 0.25, centerZ]}
                                 rotation={[0, rotation, 0]}
                             >
-                                <boxGeometry args={[0.3, 1, length]} />
+                                <boxGeometry args={[0.2, 0.5, length]} />
                                 <meshBasicMaterial 
                                     color={wall.side === 'left' ? 'red' : 'blue'} 
                                     transparent 
-                                    opacity={0.6} 
+                                    opacity={0.7} 
                                 />
                             </mesh>
                         )}
