@@ -71,12 +71,6 @@ function CanvasSettingsMenu(): JSX.Element {
                     </div>
                 </div>
                 
-                {!trainingMode && !editMode && (
-                    <div className="text-xs text-gray-600 mt-2 p-2 bg-blue-50 rounded">
-                        Debug: Use WASD para controalr el auto
-                    </div>
-                )}
-                
                 {trainingMode && !editMode && (
                     <div className="text-xs text-gray-600 mt-2 p-2 bg-green-50 rounded">
                         La ia se está entrenando en {track.name}
