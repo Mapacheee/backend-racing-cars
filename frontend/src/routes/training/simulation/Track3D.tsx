@@ -2,6 +2,7 @@ import { useGLTF } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import type { JSX } from 'react'
 import type { TrackPiece } from './TrackSystem'
+import { ROAD_GEOMETRY } from './TrackSystem'
 
 interface Track3DProps {
     pieces: TrackPiece[]
@@ -14,7 +15,7 @@ function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
                 position={piece.position}
                 rotation={piece.rotation}
             >
-                <boxGeometry args={[3, 0.2, 4]} /> {/* ancho, alto, largo de la carretra*/}
+                <boxGeometry args={[ROAD_GEOMETRY.width, ROAD_GEOMETRY.height, ROAD_GEOMETRY.length]} />
                 <meshStandardMaterial color="#444444" />
             </mesh>
         )

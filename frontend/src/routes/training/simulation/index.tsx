@@ -10,7 +10,7 @@ import { RaceResetProvider } from '../../../lib/contexts/RaceResetContext'
 import { TRACKS } from './TrackSystem'
 
 function CanvasSettingsMenu(): JSX.Element {
-    const { showCollisions, setShowCollisions, showWaypoints, setShowWaypoints, editMode, setEditMode } = useCanvasSettings()
+    const { showCollisions, setShowCollisions, showWaypoints, setShowWaypoints, showWalls, setShowWalls, editMode, setEditMode } = useCanvasSettings()
     const [trainingMode, setTrainingMode] = useState(true)
     
     const track = TRACKS['main_circuit']
@@ -40,6 +40,16 @@ function CanvasSettingsMenu(): JSX.Element {
                         className="accent-orange-600"
                     />
                     ver waypoints
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
+                    <input
+                        type="checkbox"
+                        checked={showWalls}
+                        onChange={e => setShowWalls(e.target.checked)}
+                        className="accent-red-600"
+                    />
+                    ver paredes
                 </label>
                 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">

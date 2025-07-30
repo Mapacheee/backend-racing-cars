@@ -5,13 +5,14 @@ import { Physics, RigidBody } from '@react-three/rapier'
 import Car from './Car'
 import AICar from './AICar'
 import Track3D from './Track3D'
+import TrackWalls from './TrackWalls'
 import { TRACKS, addWaypoint, reorderWaypoints, moveWaypoint } from './TrackSystem'
 import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
 import { useRaceReset } from '../../../lib/contexts/RaceResetContext'
 import { useWaypointModal } from './WaypointModalContext'
 
 export default function CarScene(): JSX.Element {
-    const { showWaypoints, editMode } = useCanvasSettings()
+    const { showWaypoints, showWalls, editMode } = useCanvasSettings()
     const { triggerReset } = useRaceReset()
     const { modalState, openModal, closeModal } = useWaypointModal()
     const [, forceUpdate] = useState({})
@@ -167,6 +168,7 @@ export default function CarScene(): JSX.Element {
                 </RigidBody>
 
                 {renderTrack3D()}
+                <TrackWalls walls={track.walls} visible={showWalls} />
                 {renderTrackWaypoints()}
 
                 <Suspense fallback={null}>
