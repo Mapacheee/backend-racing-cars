@@ -6,7 +6,7 @@ import Car from './Car'
 import AICar from './AICar'
 import Track3D from './Track3D'
 import { TRACKS, addWaypoint, reorderWaypoints, moveWaypoint } from './TrackSystem'
-import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
+import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
 import { useRaceReset } from '../../../lib/contexts/RaceResetContext'
 import { useWaypointModal } from './WaypointModalContext'
 

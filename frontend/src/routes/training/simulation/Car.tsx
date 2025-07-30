@@ -1,7 +1,7 @@
 import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useEffect, useRef } from 'react'
-import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
+import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
 import { RigidBody } from '@react-three/rapier'
 import { useCar } from '../../../lib/contexts/CarContext'
 import { useRaceReset } from '../../../lib/contexts/RaceResetContext'

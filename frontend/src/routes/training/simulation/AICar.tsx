@@ -1,7 +1,7 @@
 import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useRef } from 'react'
-import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
+import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
 import { RigidBody } from '@react-three/rapier'
 
 const CAR_MODEL_PATH = '/src/assets/models/raceCarRed.glb'
