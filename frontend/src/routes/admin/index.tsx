@@ -112,3 +112,5 @@ export default function Home(): JSX.Element {
         </div>
     )
 }
+
+export { AdminRoutes as default };

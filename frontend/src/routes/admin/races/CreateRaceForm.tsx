@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { AdminRaceService } from '../../../lib/services/admin/race.service'
-import type { Track, AIModel } from '../../../lib/types/race'
+import type {
+    Track,
+    AIModel,
+    RaceFormData,
+    Weather,
+    Difficulty,
+} from '../../../lib/types/race.types'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,12 +18,12 @@ export function CreateRaceForm() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<RaceFormData>({
         trackId: '',
-        aiModels: [] as string[],
+        aiModels: [],
         raceConditions: {
-            weather: 'sunny',
-            difficulty: 'medium' as const,
+            weather: 'sunny' as Weather,
+            difficulty: 'medium' as Difficulty,
             numberOfParticipants: 2,
         },
         raceConfig: {
@@ -26,8 +32,8 @@ export function CreateRaceForm() {
     })
 
     useEffect(() => {
-        // Verificar si es admin
-        if (!auth?.user?.role || auth?.user.role !== 'admin') {
+        // verificar admin
+        if (!auth.user?.role || auth.user.role !== 'admin') {
             navigate('/admin/login')
             return
         }
@@ -81,7 +87,7 @@ export function CreateRaceForm() {
         >
             <h2 className="text-2xl font-bold mb-6">Crear carrera</h2>
 
-            {/* selección de pista */}
+            {/* Track Selection */}
             <div>
                 <label className="block text-sm font-medium mb-2">
                     Seleccionar pista
@@ -136,15 +142,13 @@ export function CreateRaceForm() {
                 </div>
             </div>
 
-            {/* condiciones de carrera */}
+            {/* Race Conditions */}
             <div>
-                <h3 className="text-lg font-medium mb-3">
-                    Condiciones de Carrera
-                </h3>
+                <h3 className="text-lg font-medium mb-3">Race Conditions</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-2">
-                            Lluvia
+                            Weather
                         </label>
                         <select
                             value={formData.raceConditions.weather}
@@ -153,7 +157,7 @@ export function CreateRaceForm() {
                                     ...formData,
                                     raceConditions: {
                                         ...formData.raceConditions,
-                                        weather: e.target.value,
+                                        weather: e.target.value as Weather,
                                     },
                                 })
                             }
@@ -176,10 +180,8 @@ export function CreateRaceForm() {
                                     ...formData,
                                     raceConditions: {
                                         ...formData.raceConditions,
-                                        difficulty: e.target.value as
-                                            | 'easy'
-                                            | 'medium'
-                                            | 'hard',
+                                        difficulty: e.target
+                                            .value as Difficulty,
                                     },
                                 })
                             }
@@ -193,7 +195,7 @@ export function CreateRaceForm() {
                 </div>
             </div>
 
-            {/* config de carreras */}
+            {/* Race Configuration */}
             <div>
                 <h3 className="text-lg font-medium mb-3">
                     Configuración de Carrera

@@ -143,7 +143,7 @@ export function RaceDetail() {
                 {race.results && race.results.length > 0 && (
                     <div className="mb-8">
                         <h3 className="text-lg font-semibold mb-4">
-                            Race Results
+                            Resultados
                         </h3>
                         <div className="overflow-x-auto">
                             <table className="min-w-full">
