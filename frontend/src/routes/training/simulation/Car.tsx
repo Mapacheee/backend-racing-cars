@@ -1,30 +1,18 @@
 import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useEffect, useRef } from 'react'
-import { useCanvasSettings } from '../../../lib/contexts/CanvasSettings'
+import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
+import { RigidBody } from '@react-three/rapier'
 import { useCar } from '../../../lib/contexts/CarContext'
-import { useBox } from '@react-three/cannon'
+import { useRaceReset } from '../../../lib/contexts/RaceResetContext'
 
-// Adjust the path to your actual car model .glb file
 const CAR_MODEL_PATH = '/src/assets/models/raceCarRed.glb'
 
-// CarModel is now prop-ready for future extensibility
-// No props needed, use context
 export default function Car(): JSX.Element {
-    const { position } = useCar() // Only use for initial spawn
+    const { position } = useCar()
     const { scene } = useGLTF(CAR_MODEL_PATH)
     const { showCollisions } = useCanvasSettings()
-
-    // Cannon.js car body
-    const [ref, api] = useBox(() => ({
-        mass: 1,
-        position,
-        args: [1, 0.5, 2.7],
-        angularDamping: 2,
-        linearDamping: 0.7,
-    }))
-
-    // Natural car movement: use physics
+    const { resetCounter } = useRaceReset()
     type CarKey = 'w' | 'a' | 's' | 'd'
     const keys = useRef<Record<CarKey, boolean>>({
         w: false,
@@ -50,6 +38,16 @@ export default function Car(): JSX.Element {
             window.removeEventListener('keyup', handleKeyUp)
         }
     }, [])
+
+    useEffect(() => {
+        const rb = rigidBody.current
+        if (rb) {
+            rb.setTranslation(position, true)
+            rb.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true)
+            rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
+            rb.setAngvel({ x: 0, y: 0, z: 0 }, true)
+        }
+    }, [resetCounter, position])
 
     useEffect(() => {
         let frame: number

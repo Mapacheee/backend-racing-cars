@@ -1,32 +1,38 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import React, { createContext, useState, type ReactNode } from 'react'
 
-type CanvasSettings = {
+export interface CanvasSettings {
     showCollisions: boolean
     setShowCollisions: (value: boolean) => void
-    // Add more canvas-wide settings here as needed
+    showWaypoints: boolean
+    setShowWaypoints: (value: boolean) => void
+    showWalls: boolean
+    setShowWalls: (value: boolean) => void
+    editMode: boolean
+    setEditMode: (value: boolean) => void
 }
 
-const CanvasSettingsContext = createContext<CanvasSettings | undefined>(
-    undefined
-)
+export const CanvasSettingsContext = createContext<CanvasSettings | undefined>(undefined)
 
 export function CanvasSettingsProvider({ children }: { children: ReactNode }) {
     const [showCollisions, setShowCollisions] = useState(false)
+    const [showWaypoints, setShowWaypoints] = useState(true)
+    const [showWalls, setShowWalls] = useState(true)
+    const [editMode, setEditMode] = useState(false)
+
+    const value = React.useMemo(() => ({
+        showCollisions, 
+        setShowCollisions, 
+        showWaypoints, 
+        setShowWaypoints, 
+        showWalls,
+        setShowWalls,
+        editMode, 
+        setEditMode 
+    }), [showCollisions, showWaypoints, showWalls, editMode])
 
     return (
-        <CanvasSettingsContext.Provider
-            value={{ showCollisions, setShowCollisions }}
-        >
+        <CanvasSettingsContext.Provider value={value}>
             {children}
         </CanvasSettingsContext.Provider>
     )
-}
-
-export function useCanvasSettings() {
-    const ctx = useContext(CanvasSettingsContext)
-    if (!ctx)
-        throw new Error(
-            'useCanvasSettings must be used within a CanvasSettingsProvider'
-        )
-    return ctx
 }
