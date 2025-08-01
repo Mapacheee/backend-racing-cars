@@ -1,8 +1,8 @@
 import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useEffect, useRef } from 'react'
-import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
 import { RigidBody } from '@react-three/rapier'
+import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
 import { useCar } from '../../../lib/contexts/CarContext'
 import { useRaceReset } from '../../../lib/contexts/RaceResetContext'
 
@@ -134,19 +134,27 @@ export default function Car(): JSX.Element {
         return () => cancelAnimationFrame(frame)
     }, [])
     return (
-        <group ref={ref}>
-            <primitive object={scene} scale={1.5} />
-            {showCollisions && (
-                <mesh position={[-0.5, 0.2, -1]}>
-                    <boxGeometry args={[1, 0.4, 2.7]} />
-                    <meshBasicMaterial
-                        color="red"
-                        wireframe
-                        transparent
-                        opacity={0.5}
-                    />
-                </mesh>
-            )}
-        </group>
+        <RigidBody
+            ref={rigidBody}
+            colliders="cuboid"
+            position={position}
+            angularDamping={2}
+            linearDamping={0.7}
+        >
+            <group>
+                <primitive object={scene} scale={1.5} />
+                {showCollisions && (
+                    <mesh position={[-0.5, 0.2, -1]}>
+                        <boxGeometry args={[1, 0.4, 2.7]} />
+                        <meshBasicMaterial
+                            color="red"
+                            wireframe
+                            transparent
+                            opacity={0.5}
+                        />
+                    </mesh>
+                )}
+            </group>
+        </RigidBody>
     )
 }
