@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 import type { JSX, ReactNode } from 'react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CarScene from './CarScene'
 import WaypointModal from './WaypointModal'
 import { WaypointModalProvider } from './WaypointModalContext'
@@ -11,15 +12,29 @@ import { TRACKS } from './TrackSystem'
 
 function CanvasSettingsMenu(): JSX.Element {
     const { showCollisions, setShowCollisions, showWaypoints, setShowWaypoints, showWalls, setShowWalls, editMode, setEditMode } = useCanvasSettings()
+    const navigate = useNavigate()
     const [trainingMode, setTrainingMode] = useState(true)
     
     const track = TRACKS['main_circuit']
     
+    const handleBackToMenu = () => {
+        navigate('/training/menu')
+    }
+    
     return (
         <div className="absolute top-4 left-4 bg-white/90 rounded shadow-lg p-4 z-50 min-w-[200px]">
-            <h3 className="font-semibold mb-3 text-gray-700 text-sm">
-                ajustes
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-700 text-sm">
+                    ajustes
+                </h3>
+                <button
+                    onClick={handleBackToMenu}
+                    className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded transition-colors"
+                    title="volver al menu"
+                >
+                    volver
+                </button>
+            </div>
             
             <div className="space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
