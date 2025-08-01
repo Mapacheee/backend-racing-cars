@@ -1,7 +1,7 @@
 ## Main frontend routes
 
--   `/` - User home
--   `/admin` - Admin home (super Monsalves admin panel)
+-   `/` - User login/register
+-   `/admin` - Admin login (super Monsalves admin panel)
 
 ## Quick Start
 
