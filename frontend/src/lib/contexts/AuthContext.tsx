@@ -1,33 +1,40 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-    type ReactNode,
-} from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 import Cookies from 'js-cookie'
-import type { Admin, AuthState, Player } from '../types/auth'
+import type {
+    Admin,
+    AdminAuth,
+    AuthContextType,
+    Player,
+    PlayerAuth,
+    SetAdmin,
+    SetPlayer,
+    User,
+} from '../types/auth'
 
-type SetPlayer = { name: string; aiGeneration: number }
-type SetAdmin = { name: string; email: string }
+function clearAuthCookies(role: 'player' | 'admin' | 'both') {
+    if (role === 'player') {
+        Cookies.remove('player')
+    } else if (role === 'admin') {
+        Cookies.remove('admin')
+    } else if (role === 'both') {
+        Cookies.remove('player')
+        Cookies.remove('admin')
+    }
+}
 
-type AuthContextType = {
-    auth: AuthState | null
-    setPlayer: (player: SetPlayer) => void
-    setAdmin: (admin: SetAdmin, token: string) => void
-    clearAuth: () => void
-    isAdmin: () => boolean
-    isPlayer: () => boolean
+function setAuthCookies(data: User): void {
+    Cookies.set('player', JSON.stringify(data), { expires: 7 })
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [auth, setAuth] = useState<AuthState>(() => {
-        const adminData = Cookies.get('admin')
-        if (adminData) {
+    const [auth, setAuth] = useState<User | null>(() => {
+        const adminCookie = Cookies.get('admin')
+        if (adminCookie) {
             try {
-                return JSON.parse(adminData) as AuthState
+                const adminData: User = JSON.parse(adminCookie)
+                return adminData
             } catch {}
         }
 
@@ -35,56 +42,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const playerCookie = Cookies.get('player')
         if (playerCookie) {
             try {
-                const playerData = JSON.parse(playerCookie) as AuthState
+                const playerData: User = JSON.parse(playerCookie)
                 return playerData
             } catch {
-                return { user: null, token: null }
+                clearAuthCookies('both')
+                return null
             }
         }
 
-        Cookies.remove('player')
-        Cookies.remove('admin')
-
-        return { user: null, token: null }
+        clearAuthCookies('both')
+        return null
     })
 
-    useEffect(() => {
-        if (auth.user) {
-            Cookies.set('player', JSON.stringify(auth), { expires: 7 })
-        } else {
-            Cookies.remove('player')
+    const setPlayer = (playerData: SetPlayer) => {
+        const player: Player = {
+            role: 'player',
+            ...playerData,
         }
-        if (auth.token) {
-            Cookies.set('admin', JSON.stringify(auth), { expires: 7 })
-        } else {
-            Cookies.remove('admin')
-        }
-    }, [auth])
-
-    const setPlayer = ({ name, aiGeneration }: SetPlayer) => {
-        setAuth({ user: { name, aiGeneration, role: 'player' }, token: null })
-        Cookies.set('player', JSON.stringify(auth), { expires: 7 })
+        setAuth(player)
+        setAuthCookies(player)
     }
 
-    const setAdmin = ({ name, email }: SetAdmin, token: string) => {
-        const authState: AuthState = {
-            user: { name, email, role: 'admin' },
-            token,
+    const setAdmin = (adminData: SetAdmin) => {
+        const admin: Admin = {
+            role: 'admin',
+            ...adminData,
         }
-        setAuth(authState)
-        Cookies.set('admin', JSON.stringify(auth), {
-            expires: 7,
-        })
+        setAuth(admin)
+        setAuthCookies(admin)
     }
 
     const clearAuth = () => {
-        setAuth({ user: null, token: null })
-        Cookies.remove('player')
-        Cookies.remove('admin')
+        setAuth(null)
+        clearAuthCookies('both')
     }
 
-    const isAdmin = () => auth?.user?.role === 'admin'
-    const isPlayer = () => auth?.user?.role === 'player'
+    const isAdmin = () => auth?.role === 'admin'
+    const isPlayer = () => auth?.role === 'player'
 
     return (
         <AuthContext.Provider
@@ -102,22 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 }
 
-export interface PlayerAuth extends AuthContextType {
-    auth: {
-        user: Player
-        token: string | null
-    }
-}
-
-export interface AdminAuth extends AuthContextType {
-    auth: {
-        user: Admin
-        token: string
-    }
-}
-
 export function useAuth<
-    T extends AuthContextType | PlayerAuth | AdminAuth,
+    T extends AuthContextType | PlayerAuth | AdminAuth = AuthContextType,
 >(): T {
     const context = useContext(AuthContext)
     if (!context) {

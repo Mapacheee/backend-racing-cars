@@ -1,28 +1,34 @@
-export type UserRole = 'player' | 'admin'
-
-export interface BaseUser {
+export type Player = {
     name: string
-    role: UserRole
-}
-
-export interface Player extends BaseUser {
     role: 'player'
     aiGeneration: number
+    token: string
 }
 
-export interface Admin extends BaseUser {
+export type Admin = {
+    name: string
     role: 'admin'
-    email: string
+    token: string
 }
 
 export type User = Player | Admin
 
-export interface AuthState {
-    user: User | null
-    token: string | null
+export type SetPlayer = { name: string; aiGeneration: number; token: string }
+export type SetAdmin = { name: string; token: string }
+
+export type AuthContextType = {
+    auth: User | null
+    setPlayer: (player: SetPlayer) => void
+    setAdmin: (admin: SetAdmin) => void
+    clearAuth: () => void
+    isAdmin: () => boolean
+    isPlayer: () => boolean
 }
 
-export interface LoginCredentials {
-    email: string
-    password: string
+export interface PlayerAuth extends AuthContextType {
+    auth: Player
+}
+
+export interface AdminAuth extends AuthContextType {
+    auth: Admin
 }

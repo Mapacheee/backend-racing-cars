@@ -21,9 +21,13 @@ export default function Home(): JSX.Element {
             }
             return errors
         },
-        onSubmit: async values => {
+        onSubmit: async ({ username, password }) => {
             await new Promise(res => setTimeout(res, 600))
-            setPlayer({ name: values.username, aiGeneration: 1 })
+            console.log(
+                'send user and password to backend for register or login, then return a token',
+                { username, password }
+            )
+            setPlayer({ name: username, aiGeneration: 1, token: '' })
             navigate('/training/menu')
         },
         validateOnChange: true,

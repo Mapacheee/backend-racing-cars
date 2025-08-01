@@ -24,13 +24,13 @@ export default function Home(): JSX.Element {
             }
             return errors
         },
-        onSubmit: async ({ email, username, password }) => {
+        onSubmit: async ({ username, password }) => {
             await new Promise(res => setTimeout(res, 600))
             console.log(
                 'Todo: use this password to authenticate the admin: ',
                 password
             )
-            setAdmin({ email, name: username }, 'token')
+            setAdmin({ name: username, token: '' })
             navigate('/admin/menu')
         },
         validateOnChange: true,
@@ -112,5 +112,3 @@ export default function Home(): JSX.Element {
         </div>
     )
 }
-
-export { AdminRoutes as default };
