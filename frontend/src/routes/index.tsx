@@ -48,7 +48,7 @@ export default function Home(): JSX.Element {
                 noValidate
             >
                 <h2 className="text-xl font-semibold text-center mb-2 text-primary tracking-tight">
-                    Crea tu jugador
+                    Crea/Ingresa tu jugador
                 </h2>
                 <div className="w-full">
                     <input
