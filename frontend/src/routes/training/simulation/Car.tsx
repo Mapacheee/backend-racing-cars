@@ -20,7 +20,7 @@ export default function Car(): JSX.Element {
         a: false,
         d: false,
     })
-    const rigidBody = useRef<any>(null) 
+    const rigidBody = useRef<any>(null)
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -57,17 +57,17 @@ export default function Car(): JSX.Element {
                 const rotation = rb.rotation()
                 const vel = rb.linvel()
                 const angularVel = rb.angvel()
-                
+
                 const heading = Math.atan2(
                     2 * (rotation.w * rotation.y + rotation.x * rotation.z),
                     1 - 2 * (rotation.y * rotation.y + rotation.z * rotation.z)
                 )
-                
+
                 const maxSpeed = 8
                 const accel = 0.5
                 const maxTurnSpeed = 2
                 const turnDamping = 0.9
-                
+
                 if (keys.current.w) {
                     rb.applyImpulse(
                         {
@@ -81,36 +81,45 @@ export default function Car(): JSX.Element {
                 if (keys.current.s) {
                     rb.applyImpulse(
                         {
-                            x: -Math.sin(heading) * accel * 0.7, 
+                            x: -Math.sin(heading) * accel * 0.7,
                             y: 0,
                             z: -Math.cos(heading) * accel * 0.7,
                         },
                         true
                     )
                 }
-                
+
                 const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z)
                 const speedFactor = Math.min(speed / 3, 1)
-                
+
                 if (keys.current.a && speed > 0.1) {
                     if (Math.abs(angularVel.y) < maxTurnSpeed) {
-                        rb.applyTorqueImpulse({ x: 0, y: speedFactor * 0.3, z: 0 }, true)
+                        rb.applyTorqueImpulse(
+                            { x: 0, y: speedFactor * 0.3, z: 0 },
+                            true
+                        )
                     }
                 }
                 if (keys.current.d && speed > 0.1) {
                     if (Math.abs(angularVel.y) < maxTurnSpeed) {
-                        rb.applyTorqueImpulse({ x: 0, y: -speedFactor * 0.3, z: 0 }, true)
+                        rb.applyTorqueImpulse(
+                            { x: 0, y: -speedFactor * 0.3, z: 0 },
+                            true
+                        )
                     }
                 }
-                
+
                 if (!keys.current.a && !keys.current.d) {
-                    rb.setAngvel({
-                        x: angularVel.x * turnDamping,
-                        y: angularVel.y * turnDamping,
-                        z: angularVel.z * turnDamping
-                    }, true)
+                    rb.setAngvel(
+                        {
+                            x: angularVel.x * turnDamping,
+                            y: angularVel.y * turnDamping,
+                            z: angularVel.z * turnDamping,
+                        },
+                        true
+                    )
                 }
-                
+
                 if (speed > maxSpeed) {
                     const scale = maxSpeed / speed
                     rb.setLinvel(
@@ -123,29 +132,21 @@ export default function Car(): JSX.Element {
         }
         frame = requestAnimationFrame(animate)
         return () => cancelAnimationFrame(frame)
-    }, [])   
+    }, [])
     return (
-        <RigidBody
-            ref={rigidBody}
-            colliders="cuboid"
-            position={position}
-            angularDamping={2}
-            linearDamping={0.7}
-        >
-            <group>
-                <primitive object={scene} scale={1.5} />
-                {showCollisions && (
-                    <mesh position={[-0.5, 0.2, -1]}>
-                        <boxGeometry args={[1, 0.4, 2]} />
-                        <meshBasicMaterial
-                            color="red"
-                            wireframe
-                            transparent
-                            opacity={0.5}
-                        />
-                    </mesh>
-                )}
-            </group>
-        </RigidBody>
+        <group ref={ref}>
+            <primitive object={scene} scale={1.5} />
+            {showCollisions && (
+                <mesh position={[-0.5, 0.2, -1]}>
+                    <boxGeometry args={[1, 0.4, 2.7]} />
+                    <meshBasicMaterial
+                        color="red"
+                        wireframe
+                        transparent
+                        opacity={0.5}
+                    />
+                </mesh>
+            )}
+        </group>
     )
 }

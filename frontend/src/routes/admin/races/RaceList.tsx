@@ -1,56 +1,58 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import type { Race } from '../../../lib/types/race.types';
-import { AdminRaceService } from '../../../lib/services/admin/race.service';
-import { useAuth } from '../../../lib/contexts/AuthContext';
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import type { Race } from '../../../lib/types/race'
+import { AdminRaceService } from '../../../lib/services/admin/race.service'
 
 export function RaceList() {
-    const navigate = useNavigate();
-    const { auth } = useAuth();
-    const [races, setRaces] = useState<Race[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [races, setRaces] = useState<Race[]>([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        // Verificar si es admin
-        if (!auth.user?.role || auth.user.role !== 'admin') {
-            navigate('/admin/login');
-            return;
-        }
-
         const loadRaces = async () => {
             try {
-                setLoading(true);
-                const racesData = await AdminRaceService.getRaces();
-                setRaces(racesData);
+                setLoading(true)
+                const racesData = await AdminRaceService.getRaces()
+                setRaces(racesData)
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'error al cargar las carreras');
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'error al cargar las carreras'
+                )
             } finally {
-                setLoading(false);
+                setLoading(false)
             }
-        };
+        }
 
-        loadRaces();
-    }, [auth.user, navigate]);
+        loadRaces()
+    }, [])
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('quieres eliminar la carrera?')) {
-            return;
+            return
         }
 
         try {
-            setLoading(true);
-            await AdminRaceService.deleteRace(id);
-            setRaces(races.filter(race => race.id !== id));
+            setLoading(true)
+            await AdminRaceService.deleteRace(id)
+            setRaces(races.filter(race => race.id !== id))
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'error al borrar la carrera');
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'error al borrar la carrera'
+            )
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
-    if (loading) return <div className="flex justify-center items-center">Loading...</div>;
-    if (error) return <div className="text-red-500">{error}</div>;
+    if (loading)
+        return (
+            <div className="flex justify-center items-center">Loading...</div>
+        )
+    if (error) return <div className="text-red-500">{error}</div>
 
     return (
         <div className="p-6">
@@ -65,7 +67,7 @@ export function RaceList() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {races.map((race) => (
+                {races.map(race => (
                     <div
                         key={race.id}
                         className="bg-white p-6 rounded-lg shadow-md"
@@ -76,7 +78,9 @@ export function RaceList() {
                                     carrera {race.id}
                                 </h3>
                                 <p className="text-sm text-gray-600">
-                                    {new Date(race.createdAt).toLocaleDateString()}
+                                    {new Date(
+                                        race.createdAt
+                                    ).toLocaleDateString()}
                                 </p>
                             </div>
                             <span
@@ -84,10 +88,10 @@ export function RaceList() {
                                     race.status === 'completed'
                                         ? 'bg-green-100 text-green-800'
                                         : race.status === 'in-progress'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : race.status === 'cancelled'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-gray-100 text-gray-800'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : race.status === 'cancelled'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-gray-100 text-gray-800'
                                 }`}
                             >
                                 {race.status}
@@ -137,5 +141,5 @@ export function RaceList() {
                 </div>
             )}
         </div>
-    );
+    )
 }

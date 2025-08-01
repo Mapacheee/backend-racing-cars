@@ -1,20 +1,9 @@
-import { Outlet } from 'react-router-dom';
-import { useAuth } from '../../lib/contexts/AuthContext';
-import type { Admin } from '../../lib/types/auth.types';
+import { Outlet } from 'react-router-dom'
+import { useAuth } from '../../../lib/contexts/AuthContext'
+import type { AdminAuth } from '../../../lib/types/auth'
 
 export function AdminLayout() {
-    const { auth, logout } = useAuth();
-
-    const getDisplayName = () => {
-        if (!auth.user) return '';
-        
-        if (auth.user.role === 'admin') {
-            const admin = auth.user as Admin;
-            return admin.email || admin.name;
-        }
-        
-        return auth.user.name;
-    };
+    const { auth, clearAuth } = useAuth<AdminAuth>()
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -26,10 +15,10 @@ export function AdminLayout() {
                         </h1>
                         <div className="flex items-center">
                             <span className="text-sm text-gray-600 mr-4">
-                                {getDisplayName()}
+                                {auth.name}
                             </span>
                             <button
-                                onClick={logout}
+                                onClick={clearAuth}
                                 className="text-sm text-red-600 hover:text-red-700"
                             >
                                 Cerrar sesión
@@ -43,5 +32,5 @@ export function AdminLayout() {
                 <Outlet />
             </main>
         </div>
-    );
+    )
 }

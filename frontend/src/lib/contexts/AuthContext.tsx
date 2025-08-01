@@ -1,168 +1,107 @@
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    type ReactNode,
-} from 'react';
-import Cookies from 'js-cookie';
-import type { User, Player, Admin, AuthState, AuthContextType } from '../types/auth.types';
-import { AdminAuthService } from '../services/admin/auth.service';
+import { createContext, useContext, useState, type ReactNode } from 'react'
+import Cookies from 'js-cookie'
+import type {
+    Admin,
+    AdminAuth,
+    AuthContextType,
+    Player,
+    PlayerAuth,
+    AdminResponse,
+    PlayerResponse,
+    User,
+} from '../types/auth'
 
-const AuthContext = createContext<AuthContextType>({
-    auth: { isAuthenticated: false, user: null },
-    login: async () => {},
-    adminLogin: async () => {},
-    logout: async () => {},
-    error: null
-});
+function clearAuthCookies(role: 'player' | 'admin' | 'both') {
+    if (role === 'player') {
+        Cookies.remove('player')
+    } else if (role === 'admin') {
+        Cookies.remove('admin')
+    } else if (role === 'both') {
+        Cookies.remove('player')
+        Cookies.remove('admin')
+    }
+}
+
+function setAuthCookies(data: User): void {
+    Cookies.set(data.role, JSON.stringify(data), { expires: 7 })
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [auth, setAuth] = useState<AuthState>(() => {
-        // Check for admin session in localStorage
-        const adminData = localStorage.getItem('admin');
-        if (adminData) {
+    const [auth, setAuth] = useState<User | null>(() => {
+        const adminCookie = Cookies.get('admin')
+        if (adminCookie) {
             try {
-                const data = JSON.parse(adminData);
-                return {
-                    isAuthenticated: true,
-                    user: data.user
-                };
-            } catch {
-                // Invalid admin data, check for player
-            }
+                const adminData: User = JSON.parse(adminCookie)
+                return adminData
+            } catch {}
         }
 
         // Check for player in cookies
-        const playerCookie = Cookies.get('player');
+        const playerCookie = Cookies.get('player')
         if (playerCookie) {
             try {
-                const playerData = JSON.parse(playerCookie);
-                return {
-                    isAuthenticated: true,
-                    user: {
-                        id: playerData.id || 'local',
-                        name: playerData.name,
-                        aiGeneration: playerData.aiGeneration,
-                        role: 'player'
-                    } as Player
-                };
+                const playerData: User = JSON.parse(playerCookie)
+                return playerData
             } catch {
-                return { isAuthenticated: false, user: null };
+                clearAuthCookies('both')
+                return null
             }
         }
 
-        return { isAuthenticated: false, user: null };
-    });
+        clearAuthCookies('both')
+        return null
+    })
 
-    const [error, setError] = useState<string | null>(null);
-
-    const login = async (username: string, password: string) => {
-        try {
-            setError(null);
-            // Para mantener compatibilidad con el login actual
-            setAuth({ 
-                isAuthenticated: true,
-                user: {
-                    id: 'local',
-                    name: username,
-                    aiGeneration: 1,
-                    role: 'player'
-                } 
-            });
-            Cookies.set('player', JSON.stringify({
-                name: username,
-                aiGeneration: 1
-            }), { expires: 7 });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
-            throw err;
+    const setPlayer = (playerData: PlayerResponse) => {
+        const player: Player = {
+            role: 'player',
+            ...playerData,
         }
-    };
+        setAuth(player)
+        setAuthCookies(player)
+    }
 
-    const adminLogin = async (email: string, password: string) => {
-        try {
-            setError(null);
-            const response = await AdminAuthService.login(email, password);
-            setAuth({
-                isAuthenticated: true,
-                user: response.user
-            });
-            localStorage.setItem('admin', JSON.stringify(response));
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
-            throw err;
+    const setAdmin = (adminData: AdminResponse) => {
+        const admin: Admin = {
+            role: 'admin',
+            ...adminData,
         }
-    };
+        setAuth(admin)
+        setAuthCookies(admin)
+    }
 
-    const logout = async () => {
-        try {
-            setError(null);
-            if (auth.user?.role === 'admin') {
-                await AdminAuthService.logout();
-                localStorage.removeItem('admin');
-            } else {
-                Cookies.remove('player');
-            }
-            setAuth({ isAuthenticated: false, user: null });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al cerrar sesión');
-            throw err;
-        }
-    };
+    const clearAuth = () => {
+        setAuth(null)
+        clearAuthCookies('both')
+    }
 
-    // Keep storage in sync with state
-    useEffect(() => {
-        if (!auth.user) {
-            Cookies.remove('player');
-            localStorage.removeItem('admin');
-            return;
-        }
-
-        if (auth.user.role === 'player') {
-            Cookies.set('player', JSON.stringify({
-                name: auth.user.name,
-                aiGeneration: auth.user.aiGeneration
-            }), { expires: 7 });
-        } else if (auth.user.role === 'admin') {
-            localStorage.setItem('admin', JSON.stringify(auth));
-        }
-    }, [auth]);
-
-    // Sincronizar el almacenamiento con el estado
-    useEffect(() => {
-        if (!auth.isAuthenticated || !auth.user) {
-            Cookies.remove('player');
-            localStorage.removeItem('admin');
-            return;
-        }
-
-        if (auth.user.role === 'player') {
-            Cookies.set('player', JSON.stringify({
-                id: auth.user.id,
-                name: auth.user.name,
-                aiGeneration: (auth.user as Player).aiGeneration
-            }), { expires: 7 });
-        }
-    }, [auth]);
+    const isAdmin = () => auth?.role === 'admin'
+    const isPlayer = () => auth?.role === 'player'
 
     return (
-        <AuthContext.Provider value={{ 
-            auth,
-            login,
-            adminLogin,
-            logout,
-            error
-        }}>
+        <AuthContext.Provider
+            value={{
+                auth,
+                setPlayer,
+                setAdmin,
+                clearAuth,
+                isAdmin,
+                isPlayer,
+            }}
+        >
             {children}
         </AuthContext.Provider>
-    );
+    )
 }
 
-export function useAuth(): AuthContextType {
-    const context = useContext(AuthContext);
+export function useAuth<
+    T extends AuthContextType | PlayerAuth | AdminAuth = AuthContextType,
+>(): T {
+    const context = useContext(AuthContext)
     if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
+        throw new Error('useAuth must be used within an AuthProvider')
     }
-    return context;
+    return context as T
 }

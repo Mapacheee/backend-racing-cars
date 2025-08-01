@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { usePlayer } from '../lib/contexts/PlayerContext'
 import type { JSX } from 'react'
-import Cookies from 'js-cookie'
 import { useFormik } from 'formik'
+import { useAuth } from '../lib/contexts/AuthContext'
 
 export default function Home(): JSX.Element {
     const navigate = useNavigate()
-    const { setPlayer } = usePlayer()
+    const { setPlayer } = useAuth()
 
     const formik = useFormik({
         initialValues: { username: '', password: '' },
@@ -22,14 +21,13 @@ export default function Home(): JSX.Element {
             }
             return errors
         },
-        onSubmit: async values => {
+        onSubmit: async ({ username, password }) => {
             await new Promise(res => setTimeout(res, 600))
-            Cookies.set(
-                'player',
-                JSON.stringify({ name: values.username, aiGeneration: 1 }),
-                { expires: 7 }
+            console.log(
+                'send user and password to backend for register or login, then return a token',
+                { username, password }
             )
-            setPlayer({ name: values.username, aiGeneration: 1 })
+            setPlayer({ name: username, aiGeneration: 1, token: '' })
             navigate('/training/menu')
         },
         validateOnChange: true,

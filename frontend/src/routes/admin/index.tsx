@@ -1,19 +1,92 @@
-import { Routes, Route } from 'react-router-dom';
-import { AdminLayout } from './AdminLayout';
-import { RaceRoutes } from './races';
-import { AdminLogin } from './auth/AdminLogin';
-import { AdminDashboard } from './dashboard';
+import { useNavigate } from 'react-router-dom'
+import type { JSX } from 'react'
+import { useFormik } from 'formik'
+import { useAuth } from '../../lib/contexts/AuthContext'
 
-export function AdminRoutes() {
+export default function Home(): JSX.Element {
+    const navigate = useNavigate()
+    const { setAdmin } = useAuth()
+
+    const formik = useFormik({
+        initialValues: { username: '', password: '' },
+        validate: values => {
+            const errors: Record<string, string> = {}
+            if (!values.username || values.username.length < 3) {
+                errors['username'] =
+                    'El nombre de usuario debe tener al menos 3 caracteres'
+            }
+            if (values.password.length === 0) {
+                errors['password'] = 'Ingrese una contraseña'
+            }
+            return errors
+        },
+        onSubmit: async ({ username, password }) => {
+            await new Promise(res => setTimeout(res, 600))
+            console.log(
+                'Todo: use this password to authenticate the admin: ',
+                password
+            )
+            setAdmin({ name: username, token: '' })
+            navigate('/admin/menu')
+        },
+        validateOnChange: true,
+        validateOnBlur: true,
+    })
+
     return (
-        <Routes>
-            <Route path="/login" element={<AdminLogin />} />
-            <Route path="/" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="races/*" element={<RaceRoutes />} />
-            </Route>
-        </Routes>
-    );
+        <div className="min-h-screen w-screen flex items-center justify-center bg-background">
+            <form
+                className="flex flex-col gap-5 w-full max-w-xs bg-white/70 rounded-xl shadow-lg px-6 py-8 border border-accent"
+                onSubmit={formik.handleSubmit}
+                noValidate
+            >
+                <h2 className="text-xl font-semibold text-center mb-2 text-primary tracking-tight">
+                    Inicio para admin
+                </h2>
+                <div className="w-full">
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        placeholder="Nombre de usuario"
+                        className={`w-full px-4 py-2 rounded-md border border-accent bg-background text-primary text-base outline-none focus:ring-2 focus:ring-secondary transition ${formik.errors.username && formik.touched.username ? 'border-red-500' : ''}`}
+                        value={formik.values.username}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        autoComplete="name"
+                    />
+                    {formik.errors.username && formik.touched.username && (
+                        <span className="text-red-500 text-sm mt-1 block">
+                            {formik.errors.username}
+                        </span>
+                    )}
+                </div>
+                <div className="w-full">
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Contraseña"
+                        className={` w-full px-4 py-2 rounded-md border border-accent bg-background text-primary text-base outline-none focus:ring-2 focus:ring-secondary   transition ${formik.errors.password && formik.touched.password ? 'border-red-500' : ''}`}
+                        value={formik.values.password}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        autoComplete="current-password"
+                    />
+                    {formik.errors.password && formik.touched.password && (
+                        <span className="text-red-500 text-sm mt-1 block">
+                            {formik.errors.password}
+                        </span>
+                    )}
+                </div>
+                <button
+                    type="submit"
+                    className="w-full mt-2 rounded-md px-4 py-2 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-60"
+                    disabled={formik.isSubmitting || !formik.isValid}
+                >
+                    {formik.isSubmitting ? 'Cargando...' : 'Empezar'}
+                </button>
+            </form>
+        </div>
+    )
 }
-
-export { AdminRoutes as default };
