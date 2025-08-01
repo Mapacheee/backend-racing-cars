@@ -16,6 +16,7 @@ import { CreateRaceForm } from './routes/admin/races/CreateRaceForm.tsx'
 import { RaceList } from './routes/admin/races/RaceList.tsx'
 import { AdminDashboard } from './routes/admin/dashboard/index.tsx'
 import AdminRoom from './routes/admin/room/index.tsx'
+import PlayerRoom from './routes/training/room/index.tsx'
 
 export default function App(): JSX.Element {
     return (
@@ -30,10 +31,7 @@ export default function App(): JSX.Element {
                 {/* Private routes */}
                 <Route element={<ProtectedRoute />}>
                     <Route path="/training/menu" element={<TrainingMenu />} />
-                    <Route
-                        path="/training/room"
-                        element={<div>Training Simulation</div>}
-                    />
+                    <Route path="/training/room" element={<PlayerRoom />} />
                     <Route
                         path="/training/simulation"
                         element={<TrainingSimulation />}

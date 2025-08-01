@@ -149,7 +149,7 @@ export default function TrainingSimulation(): JSX.Element {
             <div className="fixed inset-0 w-screen h-screen bg-cyan-200 z-50">
                 <CanvasSettingsMenu />
                 <Canvas
-                    camera={{ position: [0, 100, 0], fov: 40 }}
+                    camera={{ position: [0, 80, 120], fov: 30 }}
                     style={{ display: 'block', userSelect: 'none' }}
                     className="no-drag"
                 >

@@ -1,10 +1,39 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
+import { useFormik } from 'formik'
+import { useState } from 'react'
 
 export default function TrainingMenu() {
     const navigate = useNavigate()
     const { auth, clearAuth } = useAuth<PlayerAuth>()
+    const [isJoiningRoom, setIsJoiningRoom] = useState(false)
+
+    const roomFormik = useFormik({
+        initialValues: { roomNumber: '' },
+        validate: values => {
+            const errors: Record<string, string> = {}
+            if (!/^[0-9]{4}$/.test(values.roomNumber)) {
+                errors['roomNumber'] = 'El número de sala debe ser de 4 dígitos'
+            }
+            return errors
+        },
+        onSubmit: async ({ roomNumber }) => {
+            setIsJoiningRoom(true)
+            await new Promise(res => setTimeout(res, 800)) // Simulate API call
+            console.log('Joining room:', roomNumber)
+            // Navigate to room
+            navigate('/training/room')
+        },
+        validateOnChange: true,
+        validateOnBlur: true,
+    })
+
+    // Only allow numbers in room number
+    const handleRoomNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/\D/g, '')
+        roomFormik.setFieldValue('roomNumber', value)
+    }
 
     function handleLogout() {
         clearAuth()
@@ -39,12 +68,50 @@ export default function TrainingMenu() {
                             ? 'Empezar Entrenamiento'
                             : 'Continuar Entrenamiento'}
                     </Link>
-                    <Link
-                        to="/training/room"
-                        className="w-full text-center rounded-md px-4 py-3 font-medium border border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
-                    >
-                        Unirse a una sala
-                    </Link>
+
+                    {/* Room Number Input Form */}
+                    <form onSubmit={roomFormik.handleSubmit} className="w-full">
+                        <div className="text-center text-secondary text-sm font-medium mb-3">
+                            Unirse a una sala
+                        </div>
+                        <div className="relative">
+                            <input
+                                id="roomNumber"
+                                name="roomNumber"
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={4}
+                                placeholder="Número de sala (4 dígitos)"
+                                className={`text-left w-full pl-3 pr-24 py-3 rounded-md border border-secondary bg-transparent text-secondary font-medium outline-none focus:ring-2 focus:ring-secondary transition ${
+                                    roomFormik.errors.roomNumber &&
+                                    roomFormik.touched.roomNumber
+                                        ? 'border-error'
+                                        : ''
+                                }`}
+                                value={roomFormik.values.roomNumber}
+                                onChange={handleRoomNumberChange}
+                                onBlur={roomFormik.handleBlur}
+                                disabled={isJoiningRoom}
+                            />
+                            <button
+                                type="submit"
+                                className="absolute right-1 top-1 bottom-1 px-3 rounded-sm bg-secondary text-background font-medium text-sm hover:bg-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                                disabled={
+                                    !roomFormik.isValid ||
+                                    !roomFormik.values.roomNumber ||
+                                    isJoiningRoom
+                                }
+                            >
+                                {isJoiningRoom ? '...' : 'Entrar'}
+                            </button>
+                        </div>
+                        {roomFormik.errors.roomNumber &&
+                            roomFormik.touched.roomNumber && (
+                                <span className="text-error text-xs mt-2 block text-center">
+                                    {roomFormik.errors.roomNumber}
+                                </span>
+                            )}
+                    </form>
                 </div>
             </div>
             {/* Logout Button Fixed to Lower Right */}
