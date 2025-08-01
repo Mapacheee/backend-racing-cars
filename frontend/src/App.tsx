@@ -14,6 +14,8 @@ import AdminMenu from './routes/admin/menu/index.tsx'
 import { RaceDetail } from './routes/admin/races/RaceDetail.tsx'
 import { CreateRaceForm } from './routes/admin/races/CreateRaceForm.tsx'
 import { RaceList } from './routes/admin/races/RaceList.tsx'
+import { AdminDashboard } from './routes/admin/dashboard/index.tsx'
+import AdminRoom from './routes/admin/room/index.tsx'
 
 export default function App(): JSX.Element {
     return (
@@ -38,9 +40,14 @@ export default function App(): JSX.Element {
                     />
 
                     <Route path="/admin/menu" element={<AdminMenu />} />
+                    <Route path="/admin/room" element={<AdminRoom />} />
                     <Route path="/admin/list" element={<RaceList />} />
                     <Route path="/admin/create" element={<CreateRaceForm />} />
                     <Route path="/admin/:id" element={<RaceDetail />} />
+                    <Route
+                        path="/admin/dashboard"
+                        element={<AdminDashboard />}
+                    />
 
                     {/* Default route */}
                     <Route path="*" element={<Navigate to="/" replace />} />

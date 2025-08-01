@@ -68,9 +68,66 @@ export function CreateRaceForm() {
 
     if (loading)
         return (
-            <div className="flex justify-center items-center">Loading...</div>
+            <div className="min-h-screen w-screen flex items-center justify-center bg-background">
+                <div className="text-lg text-secondary font-medium">
+                    Loading...
+                </div>
+            </div>
         )
-    if (error) return <div className="text-red-500">{error}</div>
+
+    if (error) {
+        return (
+            <div className="min-h-screen w-screen flex items-center justify-center bg-background relative">
+                <div className="w-full max-w-3xl bg-white/80 rounded-xl shadow-lg border border-accent flex flex-col overflow-hidden">
+                    {/* Error Message */}
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
+                        <div className="text-lg text-error/80 font-medium text-center">
+                            Error
+                        </div>
+                        <div className="text-xl font-bold text-error text-center max-w-md">
+                            {error}
+                        </div>
+                        <button
+                            onClick={() => navigate('/admin')}
+                            className="w-full max-w-xs text-center rounded-md px-4 py-3 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
+                        >
+                            Volver al Menú
+                        </button>
+                        <button
+                            onClick={() => {
+                                setError(null)
+                                // Retry loading data
+                                const loadData = async () => {
+                                    try {
+                                        setLoading(true)
+                                        const [tracksData, aiModelsData] =
+                                            await Promise.all([
+                                                AdminRaceService.getTracks(),
+                                                AdminRaceService.getAIModels(),
+                                            ])
+                                        setTracks(tracksData)
+                                        setAIModels(aiModelsData)
+                                    } catch (err) {
+                                        setError(
+                                            err instanceof Error
+                                                ? err.message
+                                                : 'Error al cargar datos'
+                                        )
+                                    } finally {
+                                        setLoading(false)
+                                    }
+                                }
+                                loadData()
+                            }}
+                            className="w-full max-w-xs text-center rounded-md px-4 py-3 font-medium border border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
+                        >
+                            Reintentar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <form

@@ -5,6 +5,9 @@
     --color-secondary: #456882;
     --color-accent: #d2c1b6;
     --color-background: #f9f3ef;
+    --color-warning: #b8860b;
+    --color-error: #8b4513;
+    --color-info: #2f4f4f;
 }
 
 :root {
