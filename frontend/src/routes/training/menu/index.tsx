@@ -52,7 +52,7 @@ export default function TrainingMenu() {
                         {auth.name}
                     </div>
                     <div className="text-base text-secondary mt-4">
-                        AI Generación
+                        Generación de IA
                     </div>
                     <div className="text-lg font-semibold text-primary">
                         Gen {auth.aiGeneration}

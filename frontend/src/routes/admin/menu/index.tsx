@@ -46,7 +46,7 @@ export default function AdminMenu(): JSX.Element {
                     </Link>
                     <Link
                         to="/admin/dashboard"
-                        className="text-center rounded-md px-3 py-1 font-extralight bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
+                        className="text-center rounded-md text-sm px-3 py-1 font-extralight bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
                     >
                         Administración avanzada
                     </Link>
