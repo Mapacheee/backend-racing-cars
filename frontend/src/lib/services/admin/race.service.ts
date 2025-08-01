@@ -1,30 +1,14 @@
-import type { RaceFormData, Track, AIModel, Race } from '../../types/race.types'
+import type { RaceFormData, Track, AIModel, Race } from '../../types/race'
+import { getAdminData } from '../../utils/AuthData'
 
 //const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const API_URL = 'http://localhost:3000/api'
-
-function getAdminToken(): string {
-    const adminData = localStorage.getItem('admin')
-    if (!adminData) {
-        throw new Error('auth requerido')
-    }
-
-    try {
-        const { token } = JSON.parse(adminData)
-        if (!token) {
-            throw new Error('auth requerido')
-        }
-        return token
-    } catch {
-        throw new Error('auth requerido')
-    }
-}
 
 export const AdminRaceService = {
     async getTracks(): Promise<Track[]> {
         const response = await fetch(`${API_URL}/tracks`, {
             headers: {
-                Authorization: `Bearer ${getAdminToken()}`,
+                Authorization: `Bearer ${getAdminData().token}`,
             },
         })
         if (!response.ok) throw new Error('Error al cargar las pistas')
@@ -34,7 +18,7 @@ export const AdminRaceService = {
     async getAIModels(): Promise<AIModel[]> {
         const response = await fetch(`${API_URL}/ai-models`, {
             headers: {
-                Authorization: `Bearer ${getAdminToken()}`,
+                Authorization: `Bearer ${getAdminData().token}`,
             },
         })
         if (!response.ok) throw new Error('Error al cargar los modelos de IA')
@@ -46,7 +30,7 @@ export const AdminRaceService = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${getAdminToken()}`,
+                Authorization: `Bearer ${getAdminData().token}`,
             },
             body: JSON.stringify(raceData),
         })
@@ -62,7 +46,7 @@ export const AdminRaceService = {
     async getRaces(): Promise<Race[]> {
         const response = await fetch(`${API_URL}/races`, {
             headers: {
-                Authorization: `Bearer ${getAdminToken()}`,
+                Authorization: `Bearer ${getAdminData().token}`,
             },
         })
 
@@ -77,7 +61,7 @@ export const AdminRaceService = {
     async getRace(id: string): Promise<Race> {
         const response = await fetch(`${API_URL}/races/${id}`, {
             headers: {
-                Authorization: `Bearer ${getAdminToken()}`,
+                Authorization: `Bearer ${getAdminData().token}`,
             },
         })
 
@@ -93,7 +77,7 @@ export const AdminRaceService = {
         const response = await fetch(`${API_URL}/races/${id}`, {
             method: 'DELETE',
             headers: {
-                Authorization: `Bearer ${getAdminToken()}`,
+                Authorization: `Bearer ${getAdminData().token}`,
             },
         })
 

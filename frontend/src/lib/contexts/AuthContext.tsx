@@ -6,8 +6,8 @@ import type {
     AuthContextType,
     Player,
     PlayerAuth,
-    SetAdmin,
-    SetPlayer,
+    AdminResponse,
+    PlayerResponse,
     User,
 } from '../types/auth'
 
@@ -23,7 +23,7 @@ function clearAuthCookies(role: 'player' | 'admin' | 'both') {
 }
 
 function setAuthCookies(data: User): void {
-    Cookies.set('player', JSON.stringify(data), { expires: 7 })
+    Cookies.set(data.role, JSON.stringify(data), { expires: 7 })
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null
     })
 
-    const setPlayer = (playerData: SetPlayer) => {
+    const setPlayer = (playerData: PlayerResponse) => {
         const player: Player = {
             role: 'player',
             ...playerData,
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthCookies(player)
     }
 
-    const setAdmin = (adminData: SetAdmin) => {
+    const setAdmin = (adminData: AdminResponse) => {
         const admin: Admin = {
             role: 'admin',
             ...adminData,

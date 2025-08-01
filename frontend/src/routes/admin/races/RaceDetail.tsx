@@ -2,22 +2,15 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { Race } from '../../../lib/types/race'
 import { AdminRaceService } from '../../../lib/services/admin/race.service'
-import { useAuth } from '../../../lib/contexts/AuthContext'
 
 export function RaceDetail() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
-    const { auth } = useAuth()
     const [race, setRace] = useState<Race | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!auth.user?.role || auth.user.role !== 'admin') {
-            navigate('/admin/login')
-            return
-        }
-
         const loadRace = async () => {
             if (!id) return
 
@@ -37,7 +30,7 @@ export function RaceDetail() {
         }
 
         loadRace()
-    }, [id, auth.user, navigate])
+    }, [id])
 
     const handleDelete = async () => {
         if (!id || !window.confirm('quieres borrar la carrera?')) {

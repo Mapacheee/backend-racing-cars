@@ -8,17 +8,13 @@ export default function Home(): JSX.Element {
     const { setAdmin } = useAuth()
 
     const formik = useFormik({
-        initialValues: { email: '', username: '', password: '' },
+        initialValues: { username: '', password: '' },
         validate: values => {
             const errors: Record<string, string> = {}
             if (!values.username || values.username.length < 3) {
                 errors['username'] =
                     'El nombre de usuario debe tener al menos 3 caracteres'
             }
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-                errors['email'] = 'El email debe ser un email válido'
-            }
-
             if (values.password.length === 0) {
                 errors['password'] = 'Ingrese una contraseña'
             }
@@ -62,24 +58,6 @@ export default function Home(): JSX.Element {
                     {formik.errors.username && formik.touched.username && (
                         <span className="text-red-500 text-sm mt-1 block">
                             {formik.errors.username}
-                        </span>
-                    )}
-                </div>
-                <div className="w-full">
-                    <input
-                        id="email"
-                        name="email"
-                        type="text"
-                        placeholder="Email"
-                        className={`w-full px-4 py-2 rounded-md border border-accent bg-background text-primary text-base outline-none focus:ring-2 focus:ring-secondary transition ${formik.errors.email && formik.touched.email ? 'border-red-500' : ''}`}
-                        value={formik.values.email}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-                        autoComplete="name"
-                    />
-                    {formik.errors.email && formik.touched.email && (
-                        <span className="text-red-500 text-sm mt-1 block">
-                            {formik.errors.email}
                         </span>
                     )}
                 </div>

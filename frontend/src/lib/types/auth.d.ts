@@ -4,22 +4,24 @@ export type Player = {
     aiGeneration: number
     token: string
 }
-
 export type Admin = {
     name: string
     role: 'admin'
     token: string
 }
-
 export type User = Player | Admin
 
-export type SetPlayer = { name: string; aiGeneration: number; token: string }
-export type SetAdmin = { name: string; token: string }
+export type PlayerResponse = {
+    name: string
+    aiGeneration: number
+    token: string
+}
+export type AdminResponse = { name: string; token: string }
 
 export type AuthContextType = {
     auth: User | null
-    setPlayer: (player: SetPlayer) => void
-    setAdmin: (admin: SetAdmin) => void
+    setPlayer: (player: PlayerResponse) => void
+    setAdmin: (admin: AdminResponse) => void
     clearAuth: () => void
     isAdmin: () => boolean
     isPlayer: () => boolean

@@ -1,23 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { Race } from '../../../lib/types/race'
 import { AdminRaceService } from '../../../lib/services/admin/race.service'
-import { useAuth } from '../../../lib/contexts/AuthContext'
 
 export function RaceList() {
-    const navigate = useNavigate()
-    const { auth } = useAuth()
     const [races, setRaces] = useState<Race[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        // Verificar si es admin
-        if (!auth.user?.role || auth.user.role !== 'admin') {
-            navigate('/admin/login')
-            return
-        }
-
         const loadRaces = async () => {
             try {
                 setLoading(true)
@@ -35,7 +26,7 @@ export function RaceList() {
         }
 
         loadRaces()
-    }, [auth.user, navigate])
+    }, [])
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('quieres eliminar la carrera?')) {

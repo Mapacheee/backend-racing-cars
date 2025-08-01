@@ -6,13 +6,11 @@ import type {
     RaceFormData,
     Weather,
     Difficulty,
-} from '../../../lib/types/race.types'
-import { useAuth } from '../../../lib/contexts/AuthContext'
+} from '../../../lib/types/race'
 import { useNavigate } from 'react-router-dom'
 
 export function CreateRaceForm() {
     const navigate = useNavigate()
-    const { auth } = useAuth()
     const [tracks, setTracks] = useState<Track[]>([])
     const [aiModels, setAIModels] = useState<AIModel[]>([])
     const [loading, setLoading] = useState(false)
@@ -32,12 +30,6 @@ export function CreateRaceForm() {
     })
 
     useEffect(() => {
-        // verificar admin
-        if (!auth.user?.role || auth.user.role !== 'admin') {
-            navigate('/admin/login')
-            return
-        }
-
         const loadData = async () => {
             try {
                 setLoading(true)
@@ -57,7 +49,7 @@ export function CreateRaceForm() {
         }
 
         loadData()
-    }, [auth.user, navigate])
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
