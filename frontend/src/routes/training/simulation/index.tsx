@@ -1,6 +1,5 @@
 import { Canvas } from '@react-three/fiber'
 import type { JSX, ReactNode } from 'react'
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CarScene from './CarScene'
 import WaypointModal from './WaypointModal'
@@ -22,7 +21,6 @@ function CanvasSettingsMenu(): JSX.Element {
         setEditMode,
     } = useCanvasSettings()
     const navigate = useNavigate()
-    const [trainingMode, setTrainingMode] = useState(true)
 
     const track = TRACKS['main_circuit']
 
@@ -84,16 +82,6 @@ function CanvasSettingsMenu(): JSX.Element {
                     editar waypoints
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
-                    <input
-                        type="checkbox"
-                        checked={trainingMode}
-                        onChange={e => setTrainingMode(e.target.checked)}
-                        className="accent-green-600"
-                    />
-                    modo entreno ia
-                </label>
-
                 <div className="border-t pt-2 mt-2">
                     <div className="text-xs font-medium text-gray-700 mb-1">
                         Pista: {track.name}
@@ -103,12 +91,6 @@ function CanvasSettingsMenu(): JSX.Element {
                         {Math.round(track.length)}m
                     </div>
                 </div>
-
-                {trainingMode && !editMode && (
-                    <div className="text-xs text-gray-600 mt-2 p-2 bg-green-50 rounded">
-                        La ia se está entrenando en {track.name}
-                    </div>
-                )}
 
                 {editMode && (
                     <div className="text-xs text-gray-600 mt-2 p-2 bg-purple-50 rounded">
