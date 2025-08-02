@@ -12,6 +12,7 @@ const CAR_MODEL_PATH = '/src/assets/models/raceCarRed.glb'
 interface AICar {
     id: string
     position: [number, number, number]
+    rotation?: number
     color?: string
     trackId?: string
 }
@@ -118,8 +119,11 @@ export default function AICar({ carData }: AICarProps): JSX.Element {
                 ref={rigidBody}
                 colliders="cuboid"
                 position={carData.position}
+                rotation={carData.rotation ? [0, carData.rotation, 0] : undefined}
                 angularDamping={2}
                 linearDamping={0.7}
+                collisionGroups={0x00020001}
+                solverGroups={0x00020001}
             >
                 <group>
                     <primitive object={scene.clone()} scale={1.5} />

@@ -2,7 +2,7 @@ import { Suspense, useState } from 'react'
 import type { JSX } from 'react'
 import { OrbitControls, Text } from '@react-three/drei'
 import { Physics, RigidBody } from '@react-three/rapier'
-import Car from './Car'
+// import Car from './Car'
 import AICar from './AICar'
 import Track3D from './Track3D'
 import TrackWalls from './TrackWalls'
@@ -69,34 +69,46 @@ export default function CarScene(): JSX.Element {
         }
     }
 
+    const firstWaypoint = track.waypoints[0]
+    const secondWaypoint = track.waypoints[1]
+    const baseSpawnPosition = [firstWaypoint.x, 1, firstWaypoint.z] as [number, number, number]
+    const dx = secondWaypoint.x - firstWaypoint.x
+    const dz = secondWaypoint.z - firstWaypoint.z
+    const spawnRotation = Math.atan2(dx, dz)
+    
     const aiCars = [
         {
             id: 'ai-1',
-            position: [-4, 1, -2] as [number, number, number],
+            position: [baseSpawnPosition[0], baseSpawnPosition[1], baseSpawnPosition[2]] as [number, number, number],
+            rotation: spawnRotation,
             color: 'red',
             trackId: currentTrack,
         },
         {
             id: 'ai-2',
-            position: [-4, 1, 2] as [number, number, number],
+            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.1, baseSpawnPosition[2]] as [number, number, number],
+            rotation: spawnRotation,
             color: 'blue',
             trackId: currentTrack,
         },
         {
             id: 'ai-3',
-            position: [-7, 1, -2] as [number, number, number],
+            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.2, baseSpawnPosition[2]] as [number, number, number],
+            rotation: spawnRotation,
             color: 'green',
             trackId: currentTrack,
         },
         {
             id: 'ai-4',
-            position: [-7, 1, 2] as [number, number, number],
+            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.3, baseSpawnPosition[2]] as [number, number, number],
+            rotation: spawnRotation,
             color: 'yellow',
             trackId: currentTrack,
         },
         {
             id: 'ai-5',
-            position: [-10, 1, 0] as [number, number, number],
+            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.4, baseSpawnPosition[2]] as [number, number, number],
+            rotation: spawnRotation,
             color: 'purple',
             trackId: currentTrack,
         },
@@ -197,7 +209,7 @@ export default function CarScene(): JSX.Element {
             <ambientLight intensity={0.7} />
             <directionalLight position={[5, 10, 7]} intensity={1} />
 
-            <RigidBody type="fixed" colliders="cuboid">
+            <RigidBody type="fixed" colliders="cuboid" collisionGroups={0x00010002} solverGroups={0x00010002}>
                 <mesh
                     rotation={[-Math.PI / 2, 0, 0]}
                     position={[0, -0.5, 0]}
@@ -223,9 +235,11 @@ export default function CarScene(): JSX.Element {
             <TrackWalls walls={track.walls} visible={showWalls} />
             {renderTrackWaypoints()}
 
+            {/* Comentado durante entrenamiento IA
             <Suspense fallback={null}>
                 <Car />
             </Suspense>
+            */}
 
             {aiCars.map(carData => (
                 <Suspense key={carData.id} fallback={null}>

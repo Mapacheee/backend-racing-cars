@@ -23,6 +23,8 @@ export default function TrackWalls({ walls, visible = true }: TrackWallsProps) {
                         type="fixed" 
                         colliders="cuboid"
                         userData={{ type: 'wall' }}
+                        collisionGroups={0x00010002}
+                        solverGroups={0x00010002}
                     >
                         {visible && (
                             <mesh 
