@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import type { Race } from '../../../lib/types/race'
 import { AdminRaceService } from '../../../lib/services/admin/race.service'
+import type { AdminAuth } from '../../../lib/types/auth'
+import { useAuth } from '../../../lib/contexts/AuthContext'
 
 export function RaceDetail() {
     const { id } = useParams<{ id: string }>()
@@ -9,6 +11,7 @@ export function RaceDetail() {
     const [race, setRace] = useState<Race | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { auth } = useAuth<AdminAuth>()
 
     useEffect(() => {
         const loadRace = async () => {
@@ -16,7 +19,7 @@ export function RaceDetail() {
 
             try {
                 setLoading(true)
-                const raceData = await AdminRaceService.getRace(id)
+                const raceData = await AdminRaceService.getRace(id, auth.token)
                 setRace(raceData)
             } catch (err) {
                 setError(
@@ -39,7 +42,7 @@ export function RaceDetail() {
 
         try {
             setLoading(true)
-            await AdminRaceService.deleteRace(id)
+            await AdminRaceService.deleteRace(id, auth.token)
             navigate('/admin/races')
         } catch (err) {
             setError(

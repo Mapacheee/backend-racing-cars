@@ -79,7 +79,7 @@ export default function PlayerRoom() {
                                         <span className="font-medium text-primary">
                                             {player.name}
                                         </span>
-                                        {player.name === auth.name && (
+                                        {player.name === auth.username && (
                                             <span className="px-2 py-1 bg-accent text-secondary text-xs rounded-full font-medium">
                                                 Tú
                                             </span>

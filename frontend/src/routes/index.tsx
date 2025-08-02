@@ -5,7 +5,7 @@ import { useAuth } from '../lib/contexts/AuthContext'
 
 export default function Home(): JSX.Element {
     const navigate = useNavigate()
-    const { setPlayer } = useAuth()
+    const { setPlayer, isLoading, error, clearError } = useAuth()
 
     useEffect(() => {
         document.title = 'Loggin - Carrera neuronal 🏎️🧠'
@@ -26,19 +26,16 @@ export default function Home(): JSX.Element {
             return errors
         },
         onSubmit: async ({ username, password }) => {
-            await new Promise(res => setTimeout(res, 600))
-            console.log(
-                'send user and password to backend for register or login, then return a token',
-                { username, password }
-            )
-            setPlayer({ name: username, aiGeneration: 1, token: '' })
-            navigate('/training/menu')
+            try {
+                clearError()
+                await setPlayer({ username, password })
+                navigate('/training/menu')
+            } catch (error) {}
         },
         validateOnChange: true,
         validateOnBlur: true,
     })
 
-    // Only allow numbers in password
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/\D/g, '')
         formik.setFieldValue('password', value)
@@ -54,6 +51,7 @@ export default function Home(): JSX.Element {
                 <h2 className="text-xl font-semibold text-center mb-2 text-primary tracking-tight">
                     Crea/Ingresa tu jugador
                 </h2>
+
                 <div className="w-full">
                     <input
                         id="username"
@@ -95,11 +93,23 @@ export default function Home(): JSX.Element {
                 </div>
                 <button
                     type="submit"
-                    className="w-full mt-2 rounded-md px-4 py-2 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-60"
-                    disabled={formik.isSubmitting || !formik.isValid}
+                    className="w-full mt-2 rounded-md px-4 py-2 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={
+                        isLoading || !formik.isValid || formik.isSubmitting
+                    }
                 >
-                    {formik.isSubmitting ? 'Cargando...' : 'Empezar'}
+                    {isLoading || formik.isSubmitting
+                        ? 'Cargando...'
+                        : 'Empezar'}
                 </button>
+                {/* Error Message */}
+                {error && (
+                    <div className="w-full p-3 bg-error/20 border border-error rounded-md">
+                        <p className="text-error text-sm text-center font-medium">
+                            {error}
+                        </p>
+                    </div>
+                )}
             </form>
         </div>
     )

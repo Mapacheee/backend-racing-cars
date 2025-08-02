@@ -1,15 +1,15 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import Cookies from 'js-cookie'
 import type {
-    Admin,
     AdminAuth,
     AuthContextType,
-    Player,
     PlayerAuth,
-    AdminResponse,
-    PlayerResponse,
+    AdminLogin,
+    PlayerLogin,
     User,
 } from '../types/auth'
+import { tryLoginPlayer } from '../services/player/auth.service'
+import { tryLoginAdmin } from '../services/admin/auth.service'
 
 function clearAuthCookies(role: 'player' | 'admin' | 'both') {
     if (role === 'player') {
@@ -22,8 +22,8 @@ function clearAuthCookies(role: 'player' | 'admin' | 'both') {
     }
 }
 
-function setAuthCookies(data: User): void {
-    Cookies.set(data.role, JSON.stringify(data), { expires: 7 })
+function setAuthCookies(data: User, role: 'player' | 'admin'): void {
+    Cookies.set(role, JSON.stringify(data), { expires: 7 })
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -44,49 +44,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
                 const playerData: User = JSON.parse(playerCookie)
                 return playerData
-            } catch {
-                clearAuthCookies('both')
-                return null
-            }
+            } catch {}
         }
 
         clearAuthCookies('both')
         return null
     })
 
-    const setPlayer = (playerData: PlayerResponse) => {
-        const player: Player = {
-            role: 'player',
-            ...playerData,
+    const [role, setRole] = useState<'player' | 'admin' | null>(() => {
+        if (Cookies.get('admin')) return 'admin'
+        if (Cookies.get('player')) return 'player'
+        return null
+    })
+
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string>('')
+
+    const setPlayer = async ({
+        username,
+        password,
+    }: PlayerLogin): Promise<void | never> => {
+        try {
+            setIsLoading(true)
+            setError('')
+
+            const player = await tryLoginPlayer({ username, password })
+            setAuth(player)
+            setRole('player')
+            setAuthCookies(player, 'player')
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Error de autenticación'
+            setError(errorMessage)
+            throw error
+        } finally {
+            setIsLoading(false)
         }
-        setAuth(player)
-        setAuthCookies(player)
     }
 
-    const setAdmin = (adminData: AdminResponse) => {
-        const admin: Admin = {
-            role: 'admin',
-            ...adminData,
+    const setAdmin = async ({
+        username,
+        password,
+    }: AdminLogin): Promise<void | never> => {
+        try {
+            setIsLoading(true)
+            setError('')
+            const admin = await tryLoginAdmin({ username, password })
+            setAuth(admin)
+            setRole('admin')
+            setAuthCookies(admin, 'admin')
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Error de autenticación'
+            setError(errorMessage)
+            throw error
+        } finally {
+            setIsLoading(false)
         }
-        setAuth(admin)
-        setAuthCookies(admin)
     }
 
     const clearAuth = () => {
         setAuth(null)
+        setError('')
         clearAuthCookies('both')
     }
 
-    const isAdmin = () => auth?.role === 'admin'
-    const isPlayer = () => auth?.role === 'player'
+    const clearError = () => {
+        setError('')
+    }
+
+    const isAdmin = () => role === 'admin'
+    const isPlayer = () => role === 'player'
 
     return (
         <AuthContext.Provider
             value={{
                 auth,
+                isLoading,
+                error,
                 setPlayer,
                 setAdmin,
                 clearAuth,
+                clearError,
                 isAdmin,
                 isPlayer,
             }}
@@ -95,6 +138,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         </AuthContext.Provider>
     )
 }
+
+// // Token refresh functionality
+// useEffect(() => {
+//     if (!auth) return
+
+//     const refreshInterval = setInterval(async () => {
+//         try {
+//             if (role === 'player') {
+//                 const refreshedPlayer = await tryRefreshPlayerToken()
+//                 setAuth(refreshedPlayer)
+//                 setAuthCookies(refreshedPlayer, 'player')
+//             } else if (role === 'admin') {
+//                 const refreshedAdmin = await AdminAuthService.refreshToken()
+//                 setAuth(refreshedAdmin)
+//                 setAuthCookies(refreshedAdmin, 'admin')
+//             }
+//         } catch (error) {
+//             consle.log('Token refresh failed, logging out...')
+//             clearAuth()
+//         }
+//     }, 15 * 60 * 1000) // 15 minutes
+
+//     return () => clearInterval(refreshInterval)
+// }, [auth, role])
 
 export function useAuth<
     T extends AuthContextType | PlayerAuth | AdminAuth = AuthContextType,

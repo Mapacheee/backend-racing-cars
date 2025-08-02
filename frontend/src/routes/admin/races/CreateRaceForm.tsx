@@ -8,6 +8,8 @@ import type {
     Difficulty,
 } from '../../../lib/types/race'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../lib/contexts/AuthContext'
+import type { AdminAuth } from '../../../lib/types/auth'
 
 export function CreateRaceForm() {
     const navigate = useNavigate()
@@ -15,6 +17,7 @@ export function CreateRaceForm() {
     const [aiModels, setAIModels] = useState<AIModel[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { auth } = useAuth<AdminAuth>()
 
     const [formData, setFormData] = useState<RaceFormData>({
         trackId: '',
@@ -34,8 +37,8 @@ export function CreateRaceForm() {
             try {
                 setLoading(true)
                 const [tracksData, aiModelsData] = await Promise.all([
-                    AdminRaceService.getTracks(),
-                    AdminRaceService.getAIModels(),
+                    AdminRaceService.getTracks(auth.token),
+                    AdminRaceService.getAIModels(auth.token),
                 ])
                 setTracks(tracksData)
                 setAIModels(aiModelsData)
@@ -55,7 +58,7 @@ export function CreateRaceForm() {
         e.preventDefault()
         try {
             setLoading(true)
-            await AdminRaceService.createRace(formData)
+            await AdminRaceService.createRace(formData, auth.token)
             navigate('/admin/races')
         } catch (err) {
             setError(
@@ -102,8 +105,12 @@ export function CreateRaceForm() {
                                         setLoading(true)
                                         const [tracksData, aiModelsData] =
                                             await Promise.all([
-                                                AdminRaceService.getTracks(),
-                                                AdminRaceService.getAIModels(),
+                                                AdminRaceService.getTracks(
+                                                    auth.token
+                                                ),
+                                                AdminRaceService.getAIModels(
+                                                    auth.token
+                                                ),
                                             ])
                                         setTracks(tracksData)
                                         setAIModels(aiModelsData)
