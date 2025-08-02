@@ -71,7 +71,7 @@ export default function CarScene(): JSX.Element {
 
     const firstWaypoint = track.waypoints[0]
     const secondWaypoint = track.waypoints[1]
-    const baseSpawnPosition = [firstWaypoint.x, 1, firstWaypoint.z] as [number, number, number]
+    const baseSpawnPosition = [firstWaypoint.x, 0.5, firstWaypoint.z] as [number, number, number]
     const dx = secondWaypoint.x - firstWaypoint.x
     const dz = secondWaypoint.z - firstWaypoint.z
     const spawnRotation = Math.atan2(dx, dz)

@@ -11,13 +11,20 @@ interface Track3DProps {
 function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
     if (piece.model === 'road_segment') {
         return (
-            <mesh 
-                position={piece.position}
-                rotation={piece.rotation}
+            <RigidBody 
+                type="fixed" 
+                colliders="cuboid"
+                collisionGroups={0x00010002} 
+                solverGroups={0x00010002}
             >
-                <boxGeometry args={[ROAD_GEOMETRY.width, ROAD_GEOMETRY.height, ROAD_GEOMETRY.length]} />
-                <meshStandardMaterial color="#444444" />
-            </mesh>
+                <mesh 
+                    position={piece.position}
+                    rotation={piece.rotation}
+                >
+                    <boxGeometry args={[ROAD_GEOMETRY.width, ROAD_GEOMETRY.height, ROAD_GEOMETRY.length]} />
+                    <meshStandardMaterial color="#444444" />
+                </mesh>
+            </RigidBody>
         )
     }
     const { scene } = useGLTF(`/src/assets/models/${piece.model}`)

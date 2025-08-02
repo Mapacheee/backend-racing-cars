@@ -101,7 +101,7 @@ export function generateRoad(waypoints: Waypoint[]): TrackPiece[] {
             
             pieces.push({
                 model: 'road_segment',
-                position: [x, 0, z],
+                position: [x, -ROAD_GEOMETRY.height / 2, z],
                 rotation: [0, rotation, 0]
             })
         }
