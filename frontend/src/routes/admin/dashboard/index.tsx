@@ -1,10 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import type { AdminAuth } from '../../../lib/types/auth'
+import { useEffect } from 'react'
 
 export function AdminDashboard() {
     const navigate = useNavigate()
     const { clearAuth } = useAuth<AdminAuth>()
+
+    useEffect(() => {
+        document.title = 'Panel de Administración - Carrera neuronal 🏎️🧠'
+    }, [])
 
     function handleLogout() {
         clearAuth()

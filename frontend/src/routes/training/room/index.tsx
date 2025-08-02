@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
@@ -25,14 +25,9 @@ export default function PlayerRoom() {
     const [players] = useState(fakePlayersData)
     const [roomNumber] = useState('2345') // Fake room number
 
-    // Simulate race starting (commented out for now)
-    // useEffect(() => {
-    //     const timer = setTimeout(() => {
-    //         console.log('Race started! Navigating to simulation...')
-    //         navigate('/training/simulation')
-    //     }, 10000) // 10 seconds delay
-    //     return () => clearTimeout(timer)
-    // }, [navigate])
+    useEffect(() => {
+        document.title = `Sala de Competición - Carrera neuronal 🏎️🧠`
+    }, [])
 
     function handleLogout() {
         clearAuth()

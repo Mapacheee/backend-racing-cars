@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import type { JSX, ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CarScene from './CarScene'
 import WaypointModal from './WaypointModal'
@@ -23,6 +23,10 @@ function CanvasSettingsMenu(): JSX.Element {
     } = useCanvasSettings()
     const navigate = useNavigate()
     const [trainingMode, setTrainingMode] = useState(true)
+
+    useEffect(() => {
+        document.title = 'Entrenamiento de la ia - Carrera neuronal 🏎️🧠'
+    }, [])
 
     const track = TRACKS['main_circuit']
 

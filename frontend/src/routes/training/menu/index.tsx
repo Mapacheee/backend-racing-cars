@@ -2,12 +2,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
 import { useFormik } from 'formik'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function TrainingMenu() {
     const navigate = useNavigate()
     const { auth, clearAuth } = useAuth<PlayerAuth>()
     const [isJoiningRoom, setIsJoiningRoom] = useState(false)
+
+    useEffect(() => {
+        document.title = 'Sala de Entrenamiento - Carrera neuronal 🏎️🧠'
+    }, [])
 
     const roomFormik = useFormik({
         initialValues: { roomNumber: '' },

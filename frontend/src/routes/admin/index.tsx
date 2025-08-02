@@ -1,11 +1,15 @@
 import { useNavigate } from 'react-router-dom'
-import type { JSX } from 'react'
+import { type JSX, useEffect } from 'react'
 import { useFormik } from 'formik'
 import { useAuth } from '../../lib/contexts/AuthContext'
 
 export default function Home(): JSX.Element {
     const navigate = useNavigate()
     const { setAdmin } = useAuth()
+
+    useEffect(() => {
+        document.title = 'Inicio como Admin - Carrera neuronal 🏎️🧠'
+    }, [])
 
     const formik = useFormik({
         initialValues: { username: '', password: '' },

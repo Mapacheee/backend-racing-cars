@@ -1,11 +1,15 @@
 import { useNavigate } from 'react-router-dom'
-import type { JSX } from 'react'
+import { useEffect, type JSX } from 'react'
 import { useFormik } from 'formik'
 import { useAuth } from '../lib/contexts/AuthContext'
 
 export default function Home(): JSX.Element {
     const navigate = useNavigate()
     const { setPlayer } = useAuth()
+
+    useEffect(() => {
+        document.title = 'Loggin - Carrera neuronal 🏎️🧠'
+    }, [])
 
     const formik = useFormik({
         initialValues: { username: '', password: '' },

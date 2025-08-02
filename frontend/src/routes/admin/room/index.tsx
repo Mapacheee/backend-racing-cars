@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import type { AdminAuth } from '../../../lib/types/auth'
@@ -23,6 +23,10 @@ export default function AdminRoom() {
     const { clearAuth } = useAuth<AdminAuth>()
     const [players, setPlayers] = useState(fakePlayersData)
     const roomNumber = 2345
+
+    useEffect(() => {
+        document.title = 'Administración de Sala - Carrera neuronal 🏎️🧠'
+    }, [])
 
     function handleLogout() {
         clearAuth()
