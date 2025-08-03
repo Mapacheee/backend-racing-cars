@@ -2,19 +2,14 @@ import { Suspense, useState } from 'react'
 import type { JSX } from 'react'
 import { OrbitControls, Text } from '@react-three/drei'
 import { Physics, RigidBody } from '@react-three/rapier'
-// import Car from './Car'
-import AICar from './AICar'
+import AICar from '../entities/AICar'
 import Track3D from './Track3D'
 import TrackWalls from './TrackWalls'
-import {
-    TRACKS,
-    addWaypoint,
-    reorderWaypoints,
-    moveWaypoint,
-} from './TrackSystem'
-import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
-import { useRaceReset } from '../../../lib/contexts/RaceResetContext'
-import { useWaypointModal } from './WaypointModalContext'
+import { TRACKS } from '../systems/TrackSystem'
+import { addWaypoint, moveWaypoint, reorderWaypoints } from '../systems/WaypointEditor'
+import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
+import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
+import { useWaypointModal } from '../contexts/WaypointModalContext'
 
 export default function CarScene(): JSX.Element {
     const { showWaypoints, showWalls, editMode } = useCanvasSettings()
@@ -234,12 +229,6 @@ export default function CarScene(): JSX.Element {
             {renderTrack3D()}
             <TrackWalls walls={track.walls} visible={showWalls} />
             {renderTrackWaypoints()}
-
-            {/* Comentado durante entrenamiento IA
-            <Suspense fallback={null}>
-                <Car />
-            </Suspense>
-            */}
 
             {aiCars.map(carData => (
                 <Suspense key={carData.id} fallback={null}>

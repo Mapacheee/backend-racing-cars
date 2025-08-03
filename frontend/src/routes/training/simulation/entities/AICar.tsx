@@ -2,20 +2,13 @@ import { useGLTF } from '@react-three/drei'
 import type { JSX } from 'react'
 import { useRef, useEffect, useState } from 'react'
 import { Vector3 } from 'three'
-import { useCanvasSettings } from '../../../lib/contexts/useCanvasSettings'
+import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { RigidBody } from '@react-three/rapier'
-import { TRACKS } from './TrackSystem'
+import { TRACKS } from '../systems/TrackSystem'
 import { createSensorReadings, DEFAULT_SENSOR_CONFIG, type SensorReading } from './CarSensors'
-
-const CAR_MODEL_PATH = '/src/assets/models/raceCarRed.glb'
-
-interface AICar {
-    id: string
-    position: [number, number, number]
-    rotation?: number
-    color?: string
-    trackId?: string
-}
+import type { AICar } from '../types/car'
+import { CAR_MODEL_PATH } from '../config/constants'
+import { CAR_PHYSICS_CONFIG, COLLISION_GROUPS } from '../config/physics'
 
 interface AICarProps {
     carData: AICar
@@ -120,10 +113,10 @@ export default function AICar({ carData }: AICarProps): JSX.Element {
                 colliders="cuboid"
                 position={carData.position}
                 rotation={carData.rotation ? [0, carData.rotation, 0] : undefined}
-                angularDamping={2}
-                linearDamping={0.7}
-                collisionGroups={0x00020001}
-                solverGroups={0x00020001}
+                angularDamping={CAR_PHYSICS_CONFIG.angularDamping}
+                linearDamping={CAR_PHYSICS_CONFIG.linearDamping}
+                collisionGroups={COLLISION_GROUPS.cars}
+                solverGroups={COLLISION_GROUPS.cars}
             >
                 <group>
                     <primitive object={scene.clone()} scale={1.5} />

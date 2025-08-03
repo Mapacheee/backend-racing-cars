@@ -1,6 +1,7 @@
-import { useWaypointModal } from './WaypointModalContext'
-import { TRACKS, removeWaypoint } from './TrackSystem'
-import { useRaceReset } from '../../../lib/contexts/RaceResetContext'
+import { useWaypointModal } from '../contexts/WaypointModalContext'
+import { TRACKS } from '../systems/TrackSystem'
+import { removeWaypoint } from '../systems/WaypointEditor'
+import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
 
 export default function WaypointModal() {
     const { modalState, closeModal, setMode } = useWaypointModal()

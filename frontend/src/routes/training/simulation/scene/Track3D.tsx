@@ -1,8 +1,8 @@
 import { useGLTF } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import type { JSX } from 'react'
-import type { TrackPiece } from './TrackSystem'
-import { ROAD_GEOMETRY } from './TrackSystem'
+import type { TrackPiece } from '../systems/TrackSystem'
+import { ROAD_GEOMETRY } from '../config/constants'
 
 interface Track3DProps {
     pieces: TrackPiece[]

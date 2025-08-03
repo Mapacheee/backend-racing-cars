@@ -63,7 +63,7 @@ export function WaypointModalProvider({ children }: { children: ReactNode }) {
 export function useWaypointModal() {
     const context = useContext(WaypointModalContext)
     if (context === undefined) {
-        throw new Error('useWaypointModal must be used within a WaypointModalProvider')
+        throw new Error('useWaypointModal debe ser usado en WaypointModalProvider')
     }
     return context
 }
