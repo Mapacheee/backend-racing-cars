@@ -8,7 +8,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.enableCors({
-    origin: '*',
+    origin: configService.get<string>('CORS_ORIGINS')?.split(','),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -26,4 +26,5 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`nest ta corriendo en: http://localhost:${port}/api`);
 }
-bootstrap();
+
+void bootstrap();

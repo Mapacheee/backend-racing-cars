@@ -1,20 +1,14 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import { Exclude } from 'class-transformer';
+import { IsString, IsOptional, Length } from 'class-validator';
 
-export class UpdateUserDto {
+export class UpdatePlayerDto {
   @IsOptional()
   @IsString()
   username?: string;
 
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
+  @Exclude()
   @IsOptional()
   @IsString()
-  @MinLength(6)
+  @Length(4, 4)
   password?: string;
-
-  @IsOptional()
-  @IsString()
-  fullName?: string;
 }

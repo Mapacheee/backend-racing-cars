@@ -1,5 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { Player } from '../../users/entities/user.entity';
 
 @Entity('ai_models')
 export class AIModel {
@@ -52,10 +60,10 @@ export class AIModel {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.aiModels)
+  @ManyToOne(() => Player, (user) => user.aiModels)
   @JoinColumn({ name: 'userId' })
-  user: User;
+  player: Player;
 
   @Column()
-  userId: string;
+  playerId: string;
 }

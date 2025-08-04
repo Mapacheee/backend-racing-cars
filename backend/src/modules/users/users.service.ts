@@ -1,101 +1,97 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { CreateSimpleUserDto } from './dto/create-simple-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { Player } from './entities/user.entity';
+import { CreatePlayerDto } from './dto/create-user.dto';
+import { UpdatePlayerDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    @InjectRepository(Player)
+    private usersRepository: Repository<Player>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const { username, password, isAdmin } = createUserDto;
+  async create(createUserDto: CreatePlayerDto): Promise<Player> {
+    const { username, password } = createUserDto;
 
-    // Verificar si el usuario ya existe
-    const existingUser = await this.usersRepository.findOne({
+    const existingPlayer = await this.usersRepository.findOne({
       where: { username },
     });
 
-    if (existingUser) {
+    if (existingPlayer) {
       throw new ConflictException(
-        'Un usuario con ese nombre de usuario o email ya existe',
+        'Un usuario con ese nombre de usuario ya existe',
       );
     }
 
-    // Crear nuevo usuario
-    const user = this.usersRepository.create({
-      ...createUserDto,
+    // Hash the password before saving
+    const password_hash = await bcrypt.hash(password, 10);
+
+    const player = this.usersRepository.create({
+      username,
+      password_hash,
     });
 
-    // Solo hacer hash de la contraseña si se proporciona (para administradores)
-    if (password) {
-      user.password = await bcrypt.hash(password, 10);
-    }
-
-    return this.usersRepository.save(user);
+    return this.usersRepository.save(player);
   }
 
-  async createSimpleUser(createSimpleUserDto: CreateSimpleUserDto): Promise<User> {
-    const { username } = createSimpleUserDto;
+  async increaseAiGeneration(username: string): Promise<Player> {
+    const user = await this.findOne(username);
 
-    // Verificar si el usuario ya existe
-    const existingUser = await this.usersRepository.findOne({
-      where: { username },
-    });
-
-    if (existingUser) {
-      throw new ConflictException(
-        'Un usuario con ese nombre ya existe',
-      );
-    }
-
-    // Crear nuevo usuario simple (sin contraseña ni email)
-    const user = this.usersRepository.create({
-      ...createSimpleUserDto,
-      isAdmin: false, // Usuario simple nunca es admin
-    });
-
-    return this.usersRepository.save(user);
+    const increasedAiGeneration = user.aiGeneration + 1;
+    const updatedUser = { ...user, aiGeneration: increasedAiGeneration };
+    return this.usersRepository.save(updatedUser);
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<Player[]> {
     return this.usersRepository.find();
   }
 
-  async findOne(id: string): Promise<User> {
-    const user = await this.usersRepository.findOneBy({ id });
+  async findOne(username: string): Promise<Player> {
+    const user = await this.usersRepository.findOneBy({ username });
     if (!user) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+      throw new NotFoundException(
+        `Usuario con nombre ${username} no encontrado`,
+      );
     }
     return user;
   }
 
-  async findByUsername(username: string): Promise<User | null> {
+  async findByUsername(username: string): Promise<Player | null> {
     return this.usersRepository.findOneBy({ username });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+  async update(
+    username: string,
+    updateUserDto: UpdatePlayerDto,
+  ): Promise<Player> {
+    const user = await this.findOne(username);
 
     // Si se actualiza la contraseña, hashearla
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      const password_hash = await bcrypt.hash(updateUserDto.password, 10);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _, ...otherFields } = updateUserDto;
+      Object.assign(user, { ...otherFields, password_hash });
+    } else {
+      Object.assign(user, updateUserDto);
     }
 
-    Object.assign(user, updateUserDto);
     return this.usersRepository.save(user);
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.usersRepository.delete(id);
+  async remove(username: string): Promise<void> {
+    const result = await this.usersRepository.delete({ username });
     if (result.affected === 0) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+      throw new NotFoundException(
+        `Usuario con nombre ${username} no encontrado`,
+      );
     }
   }
 }

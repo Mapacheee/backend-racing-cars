@@ -1,27 +1,28 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Exclude } from 'class-transformer';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { AIModel } from '../../ai-models/entities/ai-model.entity';
+import { Exclude } from 'class-transformer';
 
-@Entity('users')
-export class User {
+@Entity('players')
+export class Player {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ unique: true })
   username: string;
 
-  @Column({ unique: true, nullable: true })
-  email: string;
-
-  @Column({ nullable: true })
+  @Column()
   @Exclude()
-  password: string;
+  password_hash: string;
 
-  @Column({ nullable: true })
-  fullName: string;
-
-  @Column({ default: false })
-  isAdmin: boolean;
+  @Column('int', { default: 1 })
+  aiGeneration: number;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -29,6 +30,6 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => AIModel, (aiModel) => aiModel.user)
+  @OneToMany(() => AIModel, (aiModel) => aiModel.player)
   aiModels: AIModel[];
 }

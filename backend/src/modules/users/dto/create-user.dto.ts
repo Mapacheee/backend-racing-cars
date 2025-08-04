@@ -1,24 +1,14 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
+import { Exclude } from 'class-transformer';
+import { IsNotEmpty, IsString, Length } from 'class-validator';
 
-export class CreateUserDto {
+export class CreatePlayerDto {
   @IsNotEmpty()
   @IsString()
   username: string;
 
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @IsOptional()
+  @Exclude()
+  @IsNotEmpty()
   @IsString()
-  @MinLength(6)
-  password?: string;
-
-  @IsOptional()
-  @IsString()
-  fullName?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isAdmin?: boolean;
+  @Length(4, 4)
+  password: string;
 }

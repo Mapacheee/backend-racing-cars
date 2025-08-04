@@ -5,7 +5,10 @@
 
 ## Quick Start
 
-1. To start as admin first customize the backend env vars in `backend/.env` (TODO: add a .env file)
+1. To start as admin first customize the backend env vars in `backend/.env`
+
+1. Then customize the frontend env vars in `frontend/.env`
+
 1. Run the backend server
 
     ```bash

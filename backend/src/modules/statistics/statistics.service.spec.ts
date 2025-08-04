@@ -30,7 +30,9 @@ describe('StatisticsService', () => {
     }).compile();
 
     service = module.get<StatisticsService>(StatisticsService);
-    repository = module.get<Repository<RaceStatistics>>(getRepositoryToken(RaceStatistics));
+    repository = module.get<Repository<RaceStatistics>>(
+      getRepositoryToken(RaceStatistics),
+    );
   });
 
   it('should be defined', () => {
@@ -40,17 +42,19 @@ describe('StatisticsService', () => {
   describe('create', () => {
     it('should create race statistics', async () => {
       const createDto = {
-        participants: [{
-          aiModelId: '123',
-          position: 1,
-          distanceCompleted: 100,
-          lapTimes: [10, 11, 12]
-        }],
+        participants: [
+          {
+            aiModelId: '123',
+            position: 1,
+            distanceCompleted: 100,
+            lapTimes: [10, 11, 12],
+          },
+        ],
         trackInfo: {
           trackId: '456',
           trackName: 'Test Track',
-          numberOfLaps: 3
-        }
+          numberOfLaps: 3,
+        },
       };
 
       const expectedResult = { id: 1, ...createDto };
@@ -66,16 +70,22 @@ describe('StatisticsService', () => {
 
   describe('getAIModelStats', () => {
     it('should return AI model statistics', async () => {
-      const mockRaces = [{
-        participants: [{
-          aiModelId: '123',
-          position: 1,
-          distanceCompleted: 100,
-          lapTimes: [10, 11, 12]
-        }]
-      }];
+      const mockRaces = [
+        {
+          participants: [
+            {
+              aiModelId: '123',
+              position: 1,
+              distanceCompleted: 100,
+              lapTimes: [10, 11, 12],
+            },
+          ],
+        },
+      ];
 
-      mockRepository.createQueryBuilder().getMany.mockResolvedValueOnce(mockRaces);
+      mockRepository
+        .createQueryBuilder()
+        .getMany.mockResolvedValueOnce(mockRaces);
 
       const result = await service.getAIModelStats('123');
       expect(result).toBeDefined();
@@ -87,15 +97,21 @@ describe('StatisticsService', () => {
 
   describe('getTrackLeaderboard', () => {
     it('should return track leaderboard', async () => {
-      const mockRaces = [{
-        participants: [{
-          aiModelId: '123',
-          position: 1,
-          lapTimes: [10, 11, 12]
-        }]
-      }];
+      const mockRaces = [
+        {
+          participants: [
+            {
+              aiModelId: '123',
+              position: 1,
+              lapTimes: [10, 11, 12],
+            },
+          ],
+        },
+      ];
 
-      mockRepository.createQueryBuilder().getMany.mockResolvedValueOnce(mockRaces);
+      mockRepository
+        .createQueryBuilder()
+        .getMany.mockResolvedValueOnce(mockRaces);
 
       const result = await service.getTrackLeaderboard('456');
       expect(result).toBeDefined();

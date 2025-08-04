@@ -1,7 +1,19 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { StatisticsService } from './statistics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateRaceStatisticsDto, RaceStatisticsFilterDto } from './dto/race-statistics.dto';
+import {
+  CreateRaceStatisticsDto,
+  RaceStatisticsFilterDto,
+} from './dto/race-statistics.dto';
 
 @Controller('statistics')
 export class StatisticsController {
@@ -25,7 +37,9 @@ export class StatisticsController {
 
   @Post('race')
   @UseGuards(JwtAuthGuard)
-  createRaceStatistics(@Body() createRaceStatisticsDto: CreateRaceStatisticsDto) {
+  createRaceStatistics(
+    @Body() createRaceStatisticsDto: CreateRaceStatisticsDto,
+  ) {
     return this.statisticsService.create(createRaceStatisticsDto);
   }
 

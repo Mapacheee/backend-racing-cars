@@ -5,9 +5,9 @@ import { StatisticsController } from './statistics.controller';
 import { RacesModule } from '../races/races.module';
 import { UsersModule } from '../users/users.module';
 import { AiModelsModule } from '../ai-models/ai-models.module';
-import { Race } from '../races/entities/race.entity';
-import { RaceParticipant } from '../races/entities/race-participant.entity';
-import { AIModel } from '../ai-models/entities/ai-model.entity';
+// import { Race } from '../races/entities/race.entity';
+// import { RaceParticipant } from '../races/entities/race-participant.entity';
+// import { AIModel } from '../ai-models/entities/ai-model.entity';
 import { RaceStatistics } from './entities/race-statistics.entity';
 
 @Module({

@@ -2,12 +2,11 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { AdminAuthController } from './admin/admin-auth.controller';
+import { PlayerAuthController } from './player/player-auth.controller';
+import { AdminAuthService } from './admin/admin-auth.service';
+import { PlayerAuthService } from './player/player-auth.service';
 import { UsersModule } from '../users/users.module';
-import { LocalStrategy } from './strategies/local.strategy';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { SimpleTokenStrategy } from './strategies/simple-token.strategy';
 
 @Module({
   imports: [
@@ -19,13 +18,13 @@ import { SimpleTokenStrategy } from './strategies/simple-token.strategy';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRATION') || '24h',
+          expiresIn: configService.get<string>('JWT_EXPIRATION'),
         },
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, SimpleTokenStrategy],
-  exports: [AuthService],
+  controllers: [AdminAuthController, PlayerAuthController],
+  providers: [AdminAuthService, PlayerAuthService],
+  exports: [AdminAuthService, PlayerAuthService],
 })
 export class AuthModule {}

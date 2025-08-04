@@ -1,8 +1,16 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AIModel } from './entities/ai-model.entity';
-import { CreateAIModelDto, UpdateAIModelDto, AIModelFilterDto } from './dto/ai-model.dto';
+import {
+  CreateAIModelDto,
+  UpdateAIModelDto,
+  AIModelFilterDto,
+} from './dto/ai-model.dto';
 
 @Injectable()
 export class AiModelsService {
@@ -11,10 +19,13 @@ export class AiModelsService {
     private aiModelsRepository: Repository<AIModel>,
   ) {}
 
-  async create(userId: string, createAiModelDto: CreateAIModelDto): Promise<AIModel> {
+  async create(
+    userId: string,
+    createAiModelDto: CreateAIModelDto,
+  ): Promise<AIModel> {
     const aiModel = this.aiModelsRepository.create({
       ...createAiModelDto,
-      userId,
+      playerId: userId,
       generationNumber: createAiModelDto.generationNumber || 1,
       lastTrainingDate: new Date(),
     });
@@ -30,27 +41,30 @@ export class AiModelsService {
     }
 
     if (filters.minGeneration) {
-      query.andWhere('aiModel.generationNumber >= :minGeneration', { 
-        minGeneration: filters.minGeneration 
+      query.andWhere('aiModel.generationNumber >= :minGeneration', {
+        minGeneration: filters.minGeneration,
       });
     }
 
     if (filters.maxGeneration) {
-      query.andWhere('aiModel.generationNumber <= :maxGeneration', { 
-        maxGeneration: filters.maxGeneration 
+      query.andWhere('aiModel.generationNumber <= :maxGeneration', {
+        maxGeneration: filters.maxGeneration,
       });
     }
 
     if (filters.isActive !== undefined) {
-      query.andWhere('aiModel.isActive = :isActive', { 
-        isActive: filters.isActive 
+      query.andWhere('aiModel.isActive = :isActive', {
+        isActive: filters.isActive,
       });
     }
 
     if (filters.minFitnessScore) {
-      query.andWhere("CAST(aiModel.genetics->'$.fitnessScore' AS DECIMAL) >= :minFitnessScore", {
-        minFitnessScore: filters.minFitnessScore
-      });
+      query.andWhere(
+        "CAST(aiModel.genetics->'$.fitnessScore' AS DECIMAL) >= :minFitnessScore",
+        {
+          minFitnessScore: filters.minFitnessScore,
+        },
+      );
     }
 
     return query.getMany();
@@ -72,15 +86,21 @@ export class AiModelsService {
     return aiModel;
   }
 
-  async update(id: string, userId: string, updateAiModelDto: UpdateAIModelDto): Promise<AIModel> {
+  async update(
+    id: string,
+    userId: string,
+    updateAiModelDto: UpdateAIModelDto,
+  ): Promise<AIModel> {
     const aiModel = await this.findOne(id);
 
-    if (aiModel.userId !== userId) {
-      throw new ForbiddenException('No tienes permiso para actualizar este modelo de IA');
+    if (aiModel.playerId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para actualizar este modelo de IA',
+      );
     }
 
     Object.assign(aiModel, updateAiModelDto);
-    
+
     if (updateAiModelDto.trainingMetrics) {
       aiModel.lastTrainingDate = new Date();
     }
@@ -90,7 +110,7 @@ export class AiModelsService {
 
   async evolve(parentIds: string[], userId: string): Promise<AIModel> {
     const parents = await Promise.all(
-      parentIds.map(id => this.findOne(id, userId))
+      parentIds.map((id) => this.findOne(id, userId)),
     );
 
     // Encuentra el padre con mejor fitness score
@@ -111,15 +131,17 @@ export class AiModelsService {
         parentIds,
         fitnessScore: 0, // Se actualizará después del entrenamiento
         mutationRate: 0.1, // Tasa de mutación configurable
-      }
+      },
     });
   }
 
   async remove(id: string, userId: string): Promise<void> {
     const aiModel = await this.findOne(id);
 
-    if (aiModel.userId !== userId) {
-      throw new ForbiddenException('No tienes permiso para eliminar este modelo de IA');
+    if (aiModel.playerId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para eliminar este modelo de IA',
+      );
     }
 
     await this.aiModelsRepository.remove(aiModel);
@@ -128,14 +150,14 @@ export class AiModelsService {
   async getEvolutionHistory(id: string, userId: string): Promise<AIModel[]> {
     const currentModel = await this.findOne(id, userId);
     const history = [currentModel];
-    
+
     let currentParents = currentModel.genetics?.parentIds || [];
     while (currentParents.length > 0) {
       const parents = await Promise.all(
-        currentParents.map(parentId => this.findOne(parentId, userId))
+        currentParents.map((parentId) => this.findOne(parentId, userId)),
       );
       history.push(...parents);
-      currentParents = parents.flatMap(p => p.genetics?.parentIds || []);
+      currentParents = parents.flatMap((p) => p.genetics?.parentIds || []);
     }
 
     return history;
