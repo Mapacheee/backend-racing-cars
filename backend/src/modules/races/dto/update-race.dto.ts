@@ -1,4 +1,10 @@
-import { IsString, IsObject, IsOptional, IsEnum, IsDate } from 'class-validator';
+import {
+  IsString,
+  IsObject,
+  IsOptional,
+  IsEnum,
+  IsDate,
+} from 'class-validator';
 import { RaceStatus } from '../entities/race.entity';
 
 export class UpdateRaceDto {

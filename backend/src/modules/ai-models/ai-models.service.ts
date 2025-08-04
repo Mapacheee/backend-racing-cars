@@ -71,10 +71,10 @@ export class AiModelsService {
   }
 
   async findOne(id: string, userId?: string): Promise<AIModel> {
-    const queryOptions: any = { where: { id } };
+    const queryOptions = { where: { id } };
 
     if (userId) {
-      queryOptions.where.userId = userId;
+      queryOptions.where['userId'] = userId;
     }
 
     const aiModel = await this.aiModelsRepository.findOne(queryOptions);

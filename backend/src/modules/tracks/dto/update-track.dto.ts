@@ -1,4 +1,10 @@
-import { IsString, IsNumber, IsObject, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class UpdateTrackDto {
   @IsOptional()

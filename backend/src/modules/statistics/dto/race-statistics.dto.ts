@@ -1,5 +1,18 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsObject, IsString, IsNumber, IsOptional, IsUUID, ValidateNested, Min, ArrayMinSize, ArrayMaxSize, IsDateString, IsIn } from 'class-validator';
+import {
+  IsArray,
+  IsObject,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  ValidateNested,
+  Min,
+  ArrayMinSize,
+  ArrayMaxSize,
+  IsDateString,
+  IsIn,
+} from 'class-validator';
 
 class ParticipantDto {
   @IsUUID()

@@ -17,11 +17,11 @@ export class TracksService {
     return this.tracksRepository.save(track);
   }
 
-  async findAll(onlyActive = true): Promise<Track[]> {
-    const queryOptions: any = {};
+  async findAll(onlyActive: boolean = true): Promise<Track[]> {
+    const queryOptions = {};
 
     if (onlyActive) {
-      queryOptions.where = { isActive: true };
+      queryOptions['where'] = { isActive: true };
     }
 
     return this.tracksRepository.find(queryOptions);

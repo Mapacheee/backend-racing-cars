@@ -126,11 +126,13 @@ export class StatisticsService {
       .where("raceStatistics.trackInfo->>'trackId' = :trackId", { trackId })
       .getMany();
 
-    const leaderboard = new Map();
+    const leaderboard = new Map<string, TrackLeaderboardEntry>();
 
     races.forEach((race) => {
       race.participants.forEach((participant) => {
-        const currentStats = leaderboard.get(participant.aiModelId) || {
+        const currentStats: TrackLeaderboardEntry = leaderboard.get(
+          participant.aiModelId,
+        ) || {
           aiModelId: participant.aiModelId,
           bestPosition: Infinity,
           bestLapTime: Infinity,
@@ -159,7 +161,8 @@ export class StatisticsService {
     );
   }
 
-  async getPlayerStatistics(userId: string): Promise<PlayerStatistics> {
+  async getPlayerStatistics(_id: string): Promise<PlayerStatistics> {
+    console.error("TODO: getPlayerStatistics doesn't implement player ID yet");
     const races = await this.raceStatisticsRepository
       .createQueryBuilder('raceStatistics')
       .getMany();
@@ -203,7 +206,7 @@ export class StatisticsService {
         playerStats.allLapTimes.length;
     }
 
-    const { allLapTimes, ...stats } = playerStats;
+    const { allLapTimes: _, ...stats } = playerStats;
     return stats;
   }
 }

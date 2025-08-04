@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional, IsArray, IsEnum } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsObject,
+  IsOptional,
+  IsArray,
+  IsEnum,
+} from 'class-validator';
 import { RaceStatus } from '../entities/race.entity';
 
 export class CreateRaceDto {

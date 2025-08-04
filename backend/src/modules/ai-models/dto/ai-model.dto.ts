@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsObject, IsNumber, IsBoolean, IsArray, IsDate, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsObject,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateAIModelDto {
   @IsString()

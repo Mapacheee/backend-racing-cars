@@ -76,7 +76,7 @@ export class PlayersService {
     // Si se actualiza la contraseña, hashearla
     if (updateUserDto.password) {
       const password_hash = await bcrypt.hash(updateUserDto.password, 10);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const { password: _, ...otherFields } = updateUserDto;
       Object.assign(user, { ...otherFields, password_hash });
     } else {

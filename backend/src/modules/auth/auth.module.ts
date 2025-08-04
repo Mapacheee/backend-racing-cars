@@ -7,6 +7,7 @@ import { PlayerAuthController } from './player/player-auth.controller';
 import { AdminAuthService } from './admin/admin-auth.service';
 import { PlayerAuthService } from './player/player-auth.service';
 import { PlayersModule } from '../players/player.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { PlayersModule } from '../players/player.module';
     }),
   ],
   controllers: [AdminAuthController, PlayerAuthController],
-  providers: [AdminAuthService, PlayerAuthService],
+  providers: [AdminAuthService, PlayerAuthService, JwtStrategy],
   exports: [AdminAuthService, PlayerAuthService],
 })
 export class AuthModule {}

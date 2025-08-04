@@ -8,9 +8,9 @@ import { PlayersService } from '../../players/player.service';
 import { PlayerLoginDto, PlayerLoginResponseDto } from './dto/player-login.dto';
 import { PlayerRegisterDto } from './dto/player-register.dto';
 import {
-  TokenPayloadDto,
-  TokenPayloadResponseDto,
-} from './dto/player-token-payload.dto';
+  JwtPlayerPayload,
+  PlayerFromJwt,
+} from './interfaces/player-jwt.interface';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -20,8 +20,8 @@ export class PlayerAuthService {
     private readonly playersService: PlayersService,
   ) {}
 
-  private generatePlayerToken(player: TokenPayloadResponseDto): string {
-    const payload: TokenPayloadDto = {
+  private generatePlayerToken(player: PlayerFromJwt): string {
+    const payload: JwtPlayerPayload = {
       sub: player.id,
       username: player.username,
       aiGeneration: player.aiGeneration,
@@ -30,9 +30,9 @@ export class PlayerAuthService {
     return this.jwtService.sign(payload, { expiresIn: '24h' });
   }
 
-  private verifyPlayerToken(token: string): TokenPayloadResponseDto {
+  private verifyPlayerToken(token: string): PlayerFromJwt {
     try {
-      const decoded = this.jwtService.verify<TokenPayloadDto>(token);
+      const decoded = this.jwtService.verify<JwtPlayerPayload>(token);
 
       return {
         id: decoded.sub,

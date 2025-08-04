@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Race, RaceStatus } from './entities/race.entity';
@@ -29,7 +33,10 @@ export class RacesService {
     const savedRace = await this.racesRepository.save(race);
 
     // Agregar participantes si se proporcionan
-    if (createRaceDto.participantIds && createRaceDto.participantIds.length > 0) {
+    if (
+      createRaceDto.participantIds &&
+      createRaceDto.participantIds.length > 0
+    ) {
       for (const aiModelId of createRaceDto.participantIds) {
         // Verificar que el modelo de IA existe
         await this.aiModelsService.findOne(aiModelId);
@@ -70,7 +77,9 @@ export class RacesService {
 
     // No permitir cambios si la carrera ya está completada
     if (race.status === RaceStatus.COMPLETED) {
-      throw new BadRequestException('No se puede modificar una carrera completada');
+      throw new BadRequestException(
+        'No se puede modificar una carrera completada',
+      );
     }
 
     Object.assign(race, updateRaceDto);
@@ -87,8 +96,11 @@ export class RacesService {
     await this.racesRepository.remove(race);
   }
 
-  async addParticipant(id: string, addParticipantDto: AddParticipantDto): Promise<RaceParticipant> {
-    const race = await this.findOne(id);
+  async addParticipant(
+    id: string,
+    addParticipantDto: AddParticipantDto,
+  ): Promise<RaceParticipant> {
+    // const _race = await this.findOne(id);
 
     // Verificar que el modelo de IA existe
     await this.aiModelsService.findOne(addParticipantDto.aiModelId);
@@ -102,7 +114,9 @@ export class RacesService {
     });
 
     if (existingParticipant) {
-      throw new BadRequestException('Este modelo de IA ya está participando en la carrera');
+      throw new BadRequestException(
+        'Este modelo de IA ya está participando en la carrera',
+      );
     }
 
     const participant = this.participantsRepository.create({
@@ -113,26 +127,37 @@ export class RacesService {
     return this.participantsRepository.save(participant);
   }
 
-  async updateParticipant(raceId: string, participantId: string, updateParticipantDto: UpdateParticipantDto): Promise<RaceParticipant> {
+  async updateParticipant(
+    raceId: string,
+    participantId: string,
+    updateParticipantDto: UpdateParticipantDto,
+  ): Promise<RaceParticipant> {
     const participant = await this.participantsRepository.findOne({
       where: { id: participantId, raceId },
     });
 
     if (!participant) {
-      throw new NotFoundException(`Participante con ID ${participantId} no encontrado en la carrera ${raceId}`);
+      throw new NotFoundException(
+        `Participante con ID ${participantId} no encontrado en la carrera ${raceId}`,
+      );
     }
 
     Object.assign(participant, updateParticipantDto);
     return this.participantsRepository.save(participant);
   }
 
-  async removeParticipant(raceId: string, participantId: string): Promise<void> {
+  async removeParticipant(
+    raceId: string,
+    participantId: string,
+  ): Promise<void> {
     const participant = await this.participantsRepository.findOne({
       where: { id: participantId, raceId },
     });
 
     if (!participant) {
-      throw new NotFoundException(`Participante con ID ${participantId} no encontrado en la carrera ${raceId}`);
+      throw new NotFoundException(
+        `Participante con ID ${participantId} no encontrado en la carrera ${raceId}`,
+      );
     }
 
     await this.participantsRepository.remove(participant);

@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Race } from './race.entity';
 import { AIModel } from '../../ai-models/entities/ai-model.entity';
 

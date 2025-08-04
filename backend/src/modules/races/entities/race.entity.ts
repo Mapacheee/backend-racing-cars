@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { Track } from '../../tracks/entities/track.entity';
 import { RaceParticipant } from './race-participant.entity';
 
