@@ -29,12 +29,11 @@ function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
             </RigidBody>
         )
     }
-    const { scene } = useGLTF(`/src/assets/models/${piece.model}`)
-    
+    const { scene } = useGLTF(`/assets/models/${piece.model}`)
     return (
         <RigidBody type="fixed" colliders="trimesh">
-            <primitive 
-                object={scene.clone()} 
+            <primitive
+                object={scene.clone()}
                 position={piece.position}
                 rotation={piece.rotation}
                 scale={1}

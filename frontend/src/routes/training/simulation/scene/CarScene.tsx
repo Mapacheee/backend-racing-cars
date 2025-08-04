@@ -18,7 +18,9 @@ export default function CarScene(): JSX.Element {
     const { triggerReset } = useRaceReset()
     const { modalState, openModal, closeModal } = useWaypointModal()
     const [, forceUpdate] = useState({})
-    const [fitnessData, setFitnessData] = useState<Map<string, { fitness: number; metrics: FitnessMetrics }>>(new Map())
+    const [, setFitnessData] = useState<
+        Map<string, { fitness: number; metrics: FitnessMetrics }>
+    >(new Map())
 
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
@@ -40,10 +42,10 @@ export default function CarScene(): JSX.Element {
         setFitnessData(prev => {
             const newData = new Map(prev)
             newData.set(carId, { fitness, metrics })
-            
+
             // Log de fitness para debug (temporal)
             console.log(`Car ${carId}: Fitness ${fitness.toFixed(2)}, Distance: ${metrics.distanceTraveled.toFixed(1)}, Checkpoints: ${metrics.checkpointsReached}`)
-            
+
             return newData
         })
     }, [])
@@ -115,10 +117,10 @@ export default function CarScene(): JSX.Element {
                                 isStartPoint
                                     ? 'green'
                                     : isHighlighted
-                                      ? 'cyan'
-                                      : editMode
-                                        ? 'orange'
-                                        : 'red'
+                                        ? 'cyan'
+                                        : editMode
+                                            ? 'orange'
+                                            : 'red'
                             }
                             transparent={editMode}
                             opacity={isHighlighted ? 1 : editMode ? 0.8 : 1}
@@ -159,7 +161,7 @@ export default function CarScene(): JSX.Element {
                                 0.1,
                                 Math.sqrt(
                                     (nextWaypoint.x - waypoint.x) ** 2 +
-                                        (nextWaypoint.z - waypoint.z) ** 2
+                                    (nextWaypoint.z - waypoint.z) ** 2
                                 ),
                             ]}
                         />
@@ -183,8 +185,8 @@ export default function CarScene(): JSX.Element {
             <ambientLight intensity={0.7} />
             <directionalLight position={[5, 10, 7]} intensity={1} />
 
-            <RigidBody 
-                type="fixed" 
+            <RigidBody
+                type="fixed"
                 colliders="cuboid"
                 restitution={0}           // No bounce to prevent weird physics
                 friction={5.0}            // Very high friction
