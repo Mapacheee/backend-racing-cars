@@ -5,7 +5,6 @@ export type Player = {
     token: string
 }
 export type Admin = {
-    id: string
     username: string
     token: string
 }
