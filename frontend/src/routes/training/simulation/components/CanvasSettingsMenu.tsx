@@ -1,4 +1,4 @@
-import type { JSX } from 'react'
+import { useEffect, type JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { TRACKS } from '../systems/TrackSystem'
@@ -17,6 +17,10 @@ export default function CanvasSettingsMenu(): JSX.Element {
     const navigate = useNavigate()
 
     const track = TRACKS['main_circuit']
+
+    useEffect(() => {
+        document.title = 'Entrenamiento de la ia - Carrera neuronal 🏎️🧠'
+    }, [])
 
     const handleBackToMenu = () => {
         navigate('/training/menu')
