@@ -9,7 +9,7 @@ import {
 import {
   AIModelStats,
   TrackLeaderboardEntry,
-  UserStatistics,
+  PlayerStatistics,
 } from './interfaces/statistics.interface';
 
 @Injectable()
@@ -159,12 +159,12 @@ export class StatisticsService {
     );
   }
 
-  async getUserStatistics(userId: string): Promise<UserStatistics> {
+  async getPlayerStatistics(userId: string): Promise<PlayerStatistics> {
     const races = await this.raceStatisticsRepository
       .createQueryBuilder('raceStatistics')
       .getMany();
 
-    const userStats: {
+    const playerStats: {
       totalRaces: number;
       totalWins: number;
       bestPosition: number;
@@ -184,26 +184,26 @@ export class StatisticsService {
 
     races.forEach((race) => {
       race.participants.forEach((participant) => {
-        userStats.totalRaces++;
-        if (participant.position === 1) userStats.totalWins++;
-        if (participant.position < userStats.bestPosition) {
-          userStats.bestPosition = participant.position;
+        playerStats.totalRaces++;
+        if (participant.position === 1) playerStats.totalWins++;
+        if (participant.position < playerStats.bestPosition) {
+          playerStats.bestPosition = participant.position;
         }
-        userStats.totalDistance += participant.distanceCompleted;
+        playerStats.totalDistance += participant.distanceCompleted;
         if (participant.lapTimes) {
-          userStats.allLapTimes.push(...participant.lapTimes);
+          playerStats.allLapTimes.push(...participant.lapTimes);
         }
       });
     });
 
-    if (userStats.allLapTimes.length > 0) {
-      userStats.bestLapTime = Math.min(...userStats.allLapTimes);
-      userStats.averageLapTime =
-        userStats.allLapTimes.reduce((a, b) => a + b) /
-        userStats.allLapTimes.length;
+    if (playerStats.allLapTimes.length > 0) {
+      playerStats.bestLapTime = Math.min(...playerStats.allLapTimes);
+      playerStats.averageLapTime =
+        playerStats.allLapTimes.reduce((a, b) => a + b) /
+        playerStats.allLapTimes.length;
     }
 
-    const { allLapTimes, ...stats } = userStats;
+    const { allLapTimes, ...stats } = playerStats;
     return stats;
   }
 }

@@ -10,37 +10,37 @@ import {
   ClassSerializerInterceptor,
   UseInterceptors,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { PlayersService } from './player.service';
 import { CreatePlayerDto } from './dto/create-user.dto';
 import { UpdatePlayerDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('users')
 @UseInterceptors(ClassSerializerInterceptor) // Para excluir campos sensibles como password
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+export class PlayersController {
+  constructor(private readonly PlayersService: PlayersService) {}
 
   @Post()
   create(@Body() createUserDto: CreatePlayerDto) {
-    return this.usersService.create(createUserDto);
+    return this.PlayersService.create(createUserDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get()
   findAll() {
-    return this.usersService.findAll();
+    return this.PlayersService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':username')
   increaseAiGeneration(@Param('username') username: string) {
-    return this.usersService.increaseAiGeneration(username);
+    return this.PlayersService.increaseAiGeneration(username);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':username')
   findOne(@Param('username') username: string) {
-    return this.usersService.findOne(username);
+    return this.PlayersService.findOne(username);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -49,12 +49,12 @@ export class UsersController {
     @Param('username') username: string,
     @Body() updateUserDto: UpdatePlayerDto,
   ) {
-    return this.usersService.update(username, updateUserDto);
+    return this.PlayersService.update(username, updateUserDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':username')
   remove(@Param('username') username: string) {
-    return this.usersService.remove(username);
+    return this.PlayersService.remove(username);
   }
 }

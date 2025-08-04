@@ -1,8 +1,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { PlayerAuthService } from './player-auth.service';
-import { PlayerLoginDto } from './dto/player-login.dto';
+import { PlayerLoginDto, PlayerLoginResponseDto } from './dto/player-login.dto';
 import { PlayerRegisterDto } from './dto/player-register.dto';
-import { PlayerLoginResponseDto } from './dto/player-login-response.dto';
 
 @Controller('auth/player')
 export class PlayerAuthController {

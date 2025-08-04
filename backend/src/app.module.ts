@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './modules/users/users.module';
+import { PlayersModule } from './modules/players/player.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AiModelsModule } from './modules/ai-models/ai-models.module';
 import { TracksModule } from './modules/tracks/tracks.module';
@@ -19,7 +19,7 @@ import { getDatabaseConfig } from './config/database.config';
       inject: [ConfigService],
       useFactory: getDatabaseConfig,
     }),
-    UsersModule,
+    PlayersModule,
     AuthModule,
     AiModelsModule,
     TracksModule,

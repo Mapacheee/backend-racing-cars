@@ -10,3 +10,10 @@ export class PlayerLoginDto {
   @Length(4, 4, { message: 'La contraseña debe tener exactamente 4 dígitos' })
   password: string;
 }
+
+export class PlayerLoginResponseDto {
+  id: string;
+  username: string;
+  aiGeneration: number;
+  token: string;
+}

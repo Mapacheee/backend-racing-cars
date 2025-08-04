@@ -4,26 +4,24 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../../users/users.service';
-import { PlayerLoginDto } from './dto/player-login.dto';
+import { PlayersService } from '../../players/player.service';
+import { PlayerLoginDto, PlayerLoginResponseDto } from './dto/player-login.dto';
 import { PlayerRegisterDto } from './dto/player-register.dto';
-import { PlayerLoginResponseDto } from './dto/player-login-response.dto';
-import { PlayerTokenPayloadDto } from './dto/player-token-payload.dto';
+import {
+  TokenPayloadDto,
+  TokenPayloadResponseDto,
+} from './dto/player-token-payload.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class PlayerAuthService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly usersService: UsersService,
+    private readonly playersService: PlayersService,
   ) {}
 
-  private generatePlayerToken(player: {
-    id: string;
-    username: string;
-    aiGeneration: number;
-  }): string {
-    const payload: PlayerTokenPayloadDto = {
+  private generatePlayerToken(player: TokenPayloadResponseDto): string {
+    const payload: TokenPayloadDto = {
       sub: player.id,
       username: player.username,
       aiGeneration: player.aiGeneration,
@@ -32,13 +30,9 @@ export class PlayerAuthService {
     return this.jwtService.sign(payload, { expiresIn: '24h' });
   }
 
-  private verifyPlayerToken(token: string): {
-    id: string;
-    username: string;
-    aiGeneration: number;
-  } {
+  private verifyPlayerToken(token: string): TokenPayloadResponseDto {
     try {
-      const decoded = this.jwtService.verify<PlayerTokenPayloadDto>(token);
+      const decoded = this.jwtService.verify<TokenPayloadDto>(token);
 
       return {
         id: decoded.sub,
@@ -69,13 +63,13 @@ export class PlayerAuthService {
 
     try {
       // Check if user already exists
-      const existingPlayer = await this.usersService.findByUsername(username);
+      const existingPlayer = await this.playersService.findByUsername(username);
       if (existingPlayer) {
         throw new ConflictException('El usuario ya existe');
       }
 
       // Create new player
-      const newPlayer = await this.usersService.create({
+      const newPlayer = await this.playersService.create({
         username,
         password,
       });
@@ -105,7 +99,7 @@ export class PlayerAuthService {
     const { username, password } = loginDto;
 
     try {
-      const player = await this.usersService.findByUsername(username);
+      const player = await this.playersService.findByUsername(username);
 
       if (!player) {
         throw new UnauthorizedException('Usuario no encontrado');

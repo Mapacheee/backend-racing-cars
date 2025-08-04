@@ -17,7 +17,7 @@ export interface TrackLeaderboardEntry {
   wins: number;
 }
 
-export interface UserStatistics {
+export interface PlayerStatistics {
   totalRaces: number;
   totalWins: number;
   bestPosition: number;

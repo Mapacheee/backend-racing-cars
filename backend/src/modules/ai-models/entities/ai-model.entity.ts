@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Player } from '../../users/entities/user.entity';
+import { Player } from '../../players/entities/player.entity';
 
 @Entity('ai_models')
 export class AIModel {

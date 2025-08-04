@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
-import { AdminTokenPayloadDto } from './dto/admin-token-payload.dto';
+import {
+  AdminTokenPayloadDto,
+  AdminTokenPayloadResponseDto,
+} from './dto/admin-token-payload.dto';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class AdminAuthService {
@@ -12,19 +16,17 @@ export class AdminAuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  private generateAdminToken(id: string, username: string): string {
+  private generateAdminToken(admin: AdminTokenPayloadResponseDto): string {
     const payload: AdminTokenPayloadDto = {
-      sub: id,
-      username: username,
+      sub: admin.username,
+      iat: Math.floor(Date.now() / 1000),
+      jti: randomUUID(),
     };
 
     return this.jwtService.sign(payload, { expiresIn: '24h' });
   }
 
-  private verifyAdminToken(token: string): {
-    id: string;
-    username: string;
-  } {
+  private verifyAdminToken(token: string): AdminTokenPayloadResponseDto {
     try {
       const decoded = this.jwtService.verify<AdminTokenPayloadDto>(token);
 
@@ -33,23 +35,22 @@ export class AdminAuthService {
       }
 
       return {
-        id: decoded.sub,
-        username: decoded.username,
+        username: decoded.sub,
       };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('expired')) {
-        throw new UnauthorizedException('Token expired');
+        throw new UnauthorizedException('Token expirado');
       }
       if (
         errorMessage.includes('invalid') ||
         errorMessage.includes('malformed')
       ) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('Token inválido');
       }
-      throw new UnauthorizedException('Token verification failed');
+      throw new UnauthorizedException('La verificación del token falló');
     }
   }
 
@@ -69,15 +70,11 @@ export class AdminAuthService {
       );
     }
 
-    const admin = {
-      id: 'admin-' + Date.now(),
-      username: adminUsername,
-    };
+    const admin = { username: adminUsername };
 
-    const token = this.generateAdminToken(admin.id, admin.username);
+    const token = this.generateAdminToken({ username: admin.username });
 
     return {
-      id: admin.id,
       username: admin.username,
       token,
     };
@@ -87,10 +84,9 @@ export class AdminAuthService {
     try {
       const decoded = this.verifyAdminToken(token);
 
-      const newToken = this.generateAdminToken(decoded.id, decoded.username);
+      const newToken = this.generateAdminToken({ username: decoded.username });
 
       return {
-        id: decoded.id,
         username: decoded.username,
         token: newToken,
       };

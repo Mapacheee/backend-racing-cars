@@ -6,11 +6,11 @@ import { AdminAuthController } from './admin/admin-auth.controller';
 import { PlayerAuthController } from './player/player-auth.controller';
 import { AdminAuthService } from './admin/admin-auth.service';
 import { PlayerAuthService } from './player/player-auth.service';
-import { UsersModule } from '../users/users.module';
+import { PlayersModule } from '../players/player.module';
 
 @Module({
   imports: [
-    UsersModule,
+    PlayersModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

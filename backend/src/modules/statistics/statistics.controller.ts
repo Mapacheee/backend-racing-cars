@@ -21,8 +21,8 @@ export class StatisticsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('user')
-  getUserStatistics(@Request() req) {
-    return this.statisticsService.getUserStatistics(req.user.userId);
+  getPlayerStatistics(@Request() req) {
+    return this.statisticsService.getPlayerStatistics(req.user.userId);
   }
 
   @Get('ai-model/:id')
