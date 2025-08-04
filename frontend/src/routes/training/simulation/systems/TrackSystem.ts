@@ -83,9 +83,11 @@ export function generateRoad(waypoints: Waypoint[]): TrackPiece[] {
 }
 
 export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
-    const walls: Wall[] = []
     const { segmentsPerSection, wallLength } = TRACK_GENERATION
     const roadHalfWidth = ROAD_GEOMETRY.width / 2
+    
+    // Primera pasada: generar muros normales
+    const normalWalls: Wall[] = []
     
     for (let i = 0; i < waypoints.length; i++) {
         const p0 = waypoints[(i - 1 + waypoints.length) % waypoints.length]
@@ -112,7 +114,8 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
             
             const trackHalfWidth = roadHalfWidth
             
-            walls.push({
+            // Muro izquierdo
+            normalWalls.push({
                 start: { 
                     x: x + perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
                     z: z + perpZ * trackHalfWidth - normalizedDz * wallLength * 0.5 
@@ -124,7 +127,8 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
                 side: 'left'
             })
             
-            walls.push({
+            // Muro derecho
+            normalWalls.push({
                 start: { 
                     x: x - perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
                     z: z - perpZ * trackHalfWidth - normalizedDz * wallLength * 0.5 
@@ -138,7 +142,68 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
         }
     }
     
-    return walls
+    // Segunda pasada: llenar espacios grandes entre muros
+    const filledWalls = fillWallGaps(normalWalls)
+    
+    return filledWalls
+}
+
+/**
+ * Función para llenar espacios grandes entre muros del mismo lado
+ */
+function fillWallGaps(walls: Wall[]): Wall[] {
+    const leftWalls = walls.filter(w => w.side === 'left')
+    const rightWalls = walls.filter(w => w.side === 'right')
+    
+    const filledWalls: Wall[] = [...walls]
+    const MAX_GAP_DISTANCE = 2.0  // Máxima distancia permitida entre muros
+    
+    // Llenar espacios en muros izquierdos
+    for (let i = 0; i < leftWalls.length; i++) {
+        const currentWall = leftWalls[i]
+        const nextWall = leftWalls[(i + 1) % leftWalls.length]
+        
+        const distance = getDistanceBetweenPoints(currentWall.end, nextWall.start)
+        
+        if (distance > MAX_GAP_DISTANCE) {
+            // Crear muro puente para llenar el espacio
+            const bridgeWall: Wall = {
+                start: { ...currentWall.end },
+                end: { ...nextWall.start },
+                side: 'left'
+            }
+            filledWalls.push(bridgeWall)
+        }
+    }
+    
+    // Llenar espacios en muros derechos
+    for (let i = 0; i < rightWalls.length; i++) {
+        const currentWall = rightWalls[i]
+        const nextWall = rightWalls[(i + 1) % rightWalls.length]
+        
+        const distance = getDistanceBetweenPoints(currentWall.end, nextWall.start)
+        
+        if (distance > MAX_GAP_DISTANCE) {
+            // Crear muro puente para llenar el espacio
+            const bridgeWall: Wall = {
+                start: { ...currentWall.end },
+                end: { ...nextWall.start },
+                side: 'right'
+            }
+            filledWalls.push(bridgeWall)
+        }
+    }
+    
+    return filledWalls
+}
+
+/**
+ * Calcular distancia entre dos puntos
+ */
+function getDistanceBetweenPoints(p1: { x: number, z: number }, p2: { x: number, z: number }): number {
+    const dx = p2.x - p1.x
+    const dz = p2.z - p1.z
+    return Math.sqrt(dx * dx + dz * dz)
 }
 
 export function getDistanceToWaypoint(carX: number, carZ: number, waypoint: Waypoint): number {

@@ -1,5 +1,5 @@
-import { RigidBody } from '@react-three/rapier'
-import type { Wall } from './TrackSystem'
+import { RigidBody, interactionGroups } from '@react-three/rapier'
+import type { Wall } from '../systems/TrackSystem'
 
 interface TrackWallsProps {
     walls: Wall[]
@@ -23,8 +23,10 @@ export default function TrackWalls({ walls, visible = true }: TrackWallsProps) {
                         type="fixed" 
                         colliders="cuboid"
                         userData={{ type: 'wall' }}
-                        collisionGroups={0x00010002}
-                        solverGroups={0x00010002}
+                        restitution={0.1}
+                        friction={2.0}
+                        collisionGroups={interactionGroups(2, [1])}     // Walls in group 2, collide with group 1 (cars)
+                        solverGroups={interactionGroups(2, [1])}      // Same groups for force calculation
                     >
                         {visible && (
                             <mesh 

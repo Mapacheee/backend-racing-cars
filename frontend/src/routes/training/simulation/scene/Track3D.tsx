@@ -1,5 +1,5 @@
 import { useGLTF } from '@react-three/drei'
-import { RigidBody } from '@react-three/rapier'
+import { RigidBody, interactionGroups } from '@react-three/rapier'
 import type { JSX } from 'react'
 import type { TrackPiece } from '../systems/TrackSystem'
 import { ROAD_GEOMETRY } from '../config/constants'
@@ -14,8 +14,10 @@ function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
             <RigidBody 
                 type="fixed" 
                 colliders="cuboid"
-                collisionGroups={0x00010002} 
-                solverGroups={0x00010002}
+                restitution={0}
+                friction={3.0}
+                collisionGroups={interactionGroups(2, [1])}     // Track in group 2, collides with group 1 (cars)
+                solverGroups={interactionGroups(2, [1])}      // Same groups for force calculation
             >
                 <mesh 
                     position={piece.position}

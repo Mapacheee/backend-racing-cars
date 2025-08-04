@@ -1,21 +1,24 @@
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useCallback } from 'react'
 import type { JSX } from 'react'
 import { OrbitControls, Text } from '@react-three/drei'
-import { Physics, RigidBody } from '@react-three/rapier'
+import { Physics, RigidBody, interactionGroups } from '@react-three/rapier'
 import AICar from '../entities/AICar'
 import Track3D from './Track3D'
 import TrackWalls from './TrackWalls'
 import { TRACKS } from '../systems/TrackSystem'
+import { generateAICars } from '../systems/SpawnSystem'
 import { addWaypoint, moveWaypoint, reorderWaypoints } from '../systems/WaypointEditor'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
 import { useWaypointModal } from '../contexts/WaypointModalContext'
+import type { FitnessMetrics } from '../types/neat'
 
 export default function CarScene(): JSX.Element {
     const { showWaypoints, showWalls, editMode } = useCanvasSettings()
     const { triggerReset } = useRaceReset()
     const { modalState, openModal, closeModal } = useWaypointModal()
     const [, forceUpdate] = useState({})
+    const [fitnessData, setFitnessData] = useState<Map<string, { fitness: number; metrics: FitnessMetrics }>>(new Map())
 
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
@@ -23,6 +26,27 @@ export default function CarScene(): JSX.Element {
         forceUpdate({})
         triggerReset()
     }
+
+    // Generar carros AI con NEAT habilitado - 5 carros para entrenamiento
+    const aiCars = generateAICars({
+        trackId: currentTrack,
+        carCount: 5,  // Aumentado a 5 carros para entrenamiento múltiple
+        colors: ['red', 'blue', 'green', 'yellow', 'purple'],
+        useNEAT: true
+    })
+
+    // Callback para recibir actualizaciones de fitness
+    const handleFitnessUpdate = useCallback((carId: string, fitness: number, metrics: FitnessMetrics) => {
+        setFitnessData(prev => {
+            const newData = new Map(prev)
+            newData.set(carId, { fitness, metrics })
+            
+            // Log de fitness para debug (temporal)
+            console.log(`Car ${carId}: Fitness ${fitness.toFixed(2)}, Distance: ${metrics.distanceTraveled.toFixed(1)}, Checkpoints: ${metrics.checkpointsReached}`)
+            
+            return newData
+        })
+    }, [])
 
     const handleGroundClick = (event: any) => {
         if (!editMode) return
@@ -63,51 +87,6 @@ export default function CarScene(): JSX.Element {
             })
         }
     }
-
-    const firstWaypoint = track.waypoints[0]
-    const secondWaypoint = track.waypoints[1]
-    const baseSpawnPosition = [firstWaypoint.x, 0.5, firstWaypoint.z] as [number, number, number]
-    const dx = secondWaypoint.x - firstWaypoint.x
-    const dz = secondWaypoint.z - firstWaypoint.z
-    const spawnRotation = Math.atan2(dx, dz)
-    
-    const aiCars = [
-        {
-            id: 'ai-1',
-            position: [baseSpawnPosition[0], baseSpawnPosition[1], baseSpawnPosition[2]] as [number, number, number],
-            rotation: spawnRotation,
-            color: 'red',
-            trackId: currentTrack,
-        },
-        {
-            id: 'ai-2',
-            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.1, baseSpawnPosition[2]] as [number, number, number],
-            rotation: spawnRotation,
-            color: 'blue',
-            trackId: currentTrack,
-        },
-        {
-            id: 'ai-3',
-            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.2, baseSpawnPosition[2]] as [number, number, number],
-            rotation: spawnRotation,
-            color: 'green',
-            trackId: currentTrack,
-        },
-        {
-            id: 'ai-4',
-            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.3, baseSpawnPosition[2]] as [number, number, number],
-            rotation: spawnRotation,
-            color: 'yellow',
-            trackId: currentTrack,
-        },
-        {
-            id: 'ai-5',
-            position: [baseSpawnPosition[0], baseSpawnPosition[1] + 0.4, baseSpawnPosition[2]] as [number, number, number],
-            rotation: spawnRotation,
-            color: 'purple',
-            trackId: currentTrack,
-        },
-    ]
 
     const renderTrackWaypoints = () => {
         const track = TRACKS[currentTrack]
@@ -200,18 +179,24 @@ export default function CarScene(): JSX.Element {
     }
 
     return (
-        <Physics gravity={[0, -9.81, 0]}>
+        <Physics gravity={[0, -9.81, 0]} paused={false}>
             <ambientLight intensity={0.7} />
             <directionalLight position={[5, 10, 7]} intensity={1} />
 
-            <RigidBody type="fixed" colliders="cuboid" collisionGroups={0x00010002} solverGroups={0x00010002}>
+            <RigidBody 
+                type="fixed" 
+                colliders="cuboid"
+                restitution={0}           // No bounce to prevent weird physics
+                friction={5.0}            // Very high friction
+                collisionGroups={interactionGroups(2, [1])}     // Ground in group 2, collides with group 1 (cars)
+                solverGroups={interactionGroups(2, [1])}      // Same groups for force calculation
+            >
                 <mesh
-                    rotation={[-Math.PI / 2, 0, 0]}
-                    position={[0, -0.5, 0]}
+                    position={[0, -0.8, 0]}   // Moved further down to avoid overlap
                     receiveShadow
                     {...(editMode && { onClick: handleGroundClick })}
                 >
-                    <planeGeometry args={[80, 80]} />
+                    <boxGeometry args={[200, 0.2, 200]} />  {/* Keep thin but solid ground */}
                     <meshStandardMaterial
                         color={
                             editMode
@@ -232,7 +217,7 @@ export default function CarScene(): JSX.Element {
 
             {aiCars.map(carData => (
                 <Suspense key={carData.id} fallback={null}>
-                    <AICar carData={carData} />
+                    <AICar carData={carData} onFitnessUpdate={handleFitnessUpdate} />
                 </Suspense>
             ))}
 
