@@ -31,11 +31,11 @@ export class PlayersController {
     return this.PlayersService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get(':username')
-  increaseAiGeneration(@Param('username') username: string) {
-    return this.PlayersService.increaseAiGeneration(username);
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @Get(':username')
+  // increaseAiGeneration(@Param('username') username: string) {
+  //   return this.PlayersService.increaseAiGeneration(username);
+  // }
 
   @UseGuards(JwtAuthGuard)
   @Get(':username')

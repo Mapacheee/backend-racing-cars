@@ -41,13 +41,14 @@ export class PlayersService {
     return this.playersRepository.save(player);
   }
 
-  async increaseAiGeneration(username: string): Promise<Player> {
-    const user = await this.findOne(username);
+  // TODO: Don't increase the counter, just count the number of AI models
+  // async increaseAiGeneration(username: string): Promise<Player> {
+  //   const user = await this.findOne(username);
 
-    const increasedAiGeneration = user.aiGeneration + 1;
-    const updatedUser = { ...user, aiGeneration: increasedAiGeneration };
-    return this.playersRepository.save(updatedUser);
-  }
+  //   const increasedAiGeneration = user.aiGeneration + 1;
+  //   const updatedUser = { ...user, aiGeneration: increasedAiGeneration };
+  //   return this.playersRepository.save(updatedUser);
+  // }
 
   async findAll(): Promise<Player[]> {
     return this.playersRepository.find();
