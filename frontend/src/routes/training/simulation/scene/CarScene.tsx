@@ -1,0 +1,227 @@
+import { Suspense, useState, useCallback } from 'react'
+import type { JSX } from 'react'
+import { OrbitControls, Text } from '@react-three/drei'
+import { Physics, RigidBody, interactionGroups } from '@react-three/rapier'
+import AICar from '../entities/AICar'
+import Track3D from './Track3D'
+import TrackWalls from './TrackWalls'
+import { TRACKS } from '../systems/TrackSystem'
+import { generateAICars } from '../systems/SpawnSystem'
+import { addWaypoint, moveWaypoint, reorderWaypoints } from '../systems/WaypointEditor'
+import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
+import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
+import { useWaypointModal } from '../contexts/WaypointModalContext'
+import type { FitnessMetrics } from '../types/neat'
+
+export default function CarScene(): JSX.Element {
+    const { showWaypoints, showWalls, editMode } = useCanvasSettings()
+    const { triggerReset } = useRaceReset()
+    const { modalState, openModal, closeModal } = useWaypointModal()
+    const [, forceUpdate] = useState({})
+    const [fitnessData, setFitnessData] = useState<Map<string, { fitness: number; metrics: FitnessMetrics }>>(new Map())
+
+    const currentTrack = 'main_circuit'
+    const track = TRACKS[currentTrack]
+    const refreshTrack = () => {
+        forceUpdate({})
+        triggerReset()
+    }
+
+    // Generar carros AI con NEAT habilitado - 5 carros para entrenamiento
+    const aiCars = generateAICars({
+        trackId: currentTrack,
+        carCount: 5,  // Aumentado a 5 carros para entrenamiento múltiple
+        colors: ['red', 'blue', 'green', 'yellow', 'purple'],
+        useNEAT: true
+    })
+
+    // Callback para recibir actualizaciones de fitness
+    const handleFitnessUpdate = useCallback((carId: string, fitness: number, metrics: FitnessMetrics) => {
+        setFitnessData(prev => {
+            const newData = new Map(prev)
+            newData.set(carId, { fitness, metrics })
+            
+            // Log de fitness para debug (temporal)
+            console.log(`Car ${carId}: Fitness ${fitness.toFixed(2)}, Distance: ${metrics.distanceTraveled.toFixed(1)}, Checkpoints: ${metrics.checkpointsReached}`)
+            
+            return newData
+        })
+    }, [])
+
+    const handleGroundClick = (event: any) => {
+        if (!editMode) return
+
+        if (modalState.isOpen) {
+            closeModal()
+            return
+        }
+
+        if (modalState.mode === 'move' && modalState.waypointIndex >= 0) {
+            const [x, , z] = event.point
+            moveWaypoint(currentTrack, modalState.waypointIndex, x, z)
+            refreshTrack()
+            closeModal()
+        } else {
+            const [x, , z] = event.point
+            addWaypoint(currentTrack, x, z)
+            refreshTrack()
+        }
+    }
+
+    const handleWaypointClick = (event: any, index: number) => {
+        if (!editMode) return
+        event.stopPropagation()
+
+        if (
+            modalState.mode === 'swap' &&
+            modalState.waypointIndex >= 0 &&
+            modalState.waypointIndex !== index
+        ) {
+            reorderWaypoints(currentTrack, modalState.waypointIndex, index)
+            refreshTrack()
+            closeModal()
+        } else {
+            openModal(index, {
+                x: window.innerWidth / 2,
+                y: window.innerHeight / 2 - 100,
+            })
+        }
+    }
+
+    const renderTrackWaypoints = () => {
+        const track = TRACKS[currentTrack]
+        if (!track || !showWaypoints) return null
+
+        return track.waypoints.map((waypoint, index) => {
+            const nextIndex = (index + 1) % track.waypoints.length
+            const nextWaypoint = track.waypoints[nextIndex]
+            const isStartPoint = index === 0
+            const isHighlighted =
+                modalState.mode === 'swap' &&
+                modalState.waypointIndex >= 0 &&
+                modalState.waypointIndex !== index
+
+            return (
+                <group key={index}>
+                    <mesh
+                        position={[waypoint.x, 0.3, waypoint.z]}
+                        {...(editMode && {
+                            onClick: e => handleWaypointClick(e, index),
+                        })}
+                    >
+                        <sphereGeometry args={[editMode ? 0.5 : 0.3]} />
+                        <meshStandardMaterial
+                            color={
+                                isStartPoint
+                                    ? 'green'
+                                    : isHighlighted
+                                      ? 'cyan'
+                                      : editMode
+                                        ? 'orange'
+                                        : 'red'
+                            }
+                            transparent={editMode}
+                            opacity={isHighlighted ? 1 : editMode ? 0.8 : 1}
+                        />
+                    </mesh>
+
+                    {editMode && (
+                        <Text
+                            position={[waypoint.x, 0.8, waypoint.z]}
+                            fontSize={0.4}
+                            color="black"
+                            anchorX="center"
+                            anchorY="middle"
+                            rotation={[-Math.PI / 2, 0, 0]}
+                        >
+                            {(index + 1).toString()}
+                        </Text>
+                    )}
+
+                    <mesh
+                        position={[
+                            (waypoint.x + nextWaypoint.x) / 2,
+                            0.05,
+                            (waypoint.z + nextWaypoint.z) / 2,
+                        ]}
+                        rotation={[
+                            0,
+                            Math.atan2(
+                                nextWaypoint.x - waypoint.x,
+                                nextWaypoint.z - waypoint.z
+                            ),
+                            0,
+                        ]}
+                    >
+                        <boxGeometry
+                            args={[
+                                0.5,
+                                0.1,
+                                Math.sqrt(
+                                    (nextWaypoint.x - waypoint.x) ** 2 +
+                                        (nextWaypoint.z - waypoint.z) ** 2
+                                ),
+                            ]}
+                        />
+                        <meshStandardMaterial
+                            color="gray"
+                            transparent
+                            opacity={0.6}
+                        />
+                    </mesh>
+                </group>
+            )
+        })
+    }
+
+    const renderTrack3D = () => {
+        return <Track3D pieces={track.pieces} />
+    }
+
+    return (
+        <Physics gravity={[0, -9.81, 0]} paused={false}>
+            <ambientLight intensity={0.7} />
+            <directionalLight position={[5, 10, 7]} intensity={1} />
+
+            <RigidBody 
+                type="fixed" 
+                colliders="cuboid"
+                restitution={0}           // No bounce to prevent weird physics
+                friction={5.0}            // Very high friction
+                collisionGroups={interactionGroups(2, [1])}     // Ground in group 2, collides with group 1 (cars)
+                solverGroups={interactionGroups(2, [1])}      // Same groups for force calculation
+            >
+                <mesh
+                    position={[0, -0.8, 0]}   // Moved further down to avoid overlap
+                    receiveShadow
+                    {...(editMode && { onClick: handleGroundClick })}
+                >
+                    <boxGeometry args={[200, 0.2, 200]} />  {/* Keep thin but solid ground */}
+                    <meshStandardMaterial
+                        color={
+                            editMode
+                                ? modalState.mode === 'move'
+                                    ? 'lightcoral'
+                                    : 'lightblue'
+                                : 'lightgreen'
+                        }
+                        transparent={editMode}
+                        opacity={editMode ? 0.7 : 1}
+                    />
+                </mesh>
+            </RigidBody>
+
+            {renderTrack3D()}
+            <TrackWalls walls={track.walls} visible={showWalls} />
+            {renderTrackWaypoints()}
+
+            {aiCars.map(carData => (
+                <Suspense key={carData.id} fallback={null}>
+                    <AICar carData={carData} onFitnessUpdate={handleFitnessUpdate} />
+                </Suspense>
+            ))}
+
+            <OrbitControls enablePan enableZoom enableRotate />
+        </Physics>
+    )
+}
