@@ -54,19 +54,6 @@ export async function tryLoginPlayer({
     return registerResponse
 }
 
-export async function tryLogoutPlayer(): Promise<void | never> {
-    try {
-        await axios.post(`${API_URL}/auth/player/logout`)
-    } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            throw new Error(
-                error.response.data.message || 'Error al cerrar sesión'
-            )
-        }
-        throw new Error('Error al cerrar sesión')
-    }
-}
-
 export async function tryRefreshPlayerToken(): Promise<Player | never> {
     try {
         const response = await axios.post(`${API_URL}/auth/player/refresh`)

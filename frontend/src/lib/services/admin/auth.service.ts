@@ -24,19 +24,6 @@ export async function tryLoginAdmin({
     }
 }
 
-export async function tryLogoutAdmin(): Promise<void | never> {
-    try {
-        await axios.post(`${API_URL}/auth/admin/logout`)
-    } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            throw new Error(
-                error.response.data.message || 'Error al cerrar sesión'
-            )
-        }
-        throw new Error('Error al cerrar sesión')
-    }
-}
-
 export async function tryRefreshAdminToken(): Promise<Admin | never> {
     try {
         const response = await axios.post(`${API_URL}/auth/admin/refresh`)
