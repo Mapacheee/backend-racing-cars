@@ -1,15 +1,14 @@
 import type { JSX } from 'react/jsx-runtime'
 import { useAuth } from '../../../lib/contexts/AuthContext'
 import type { AdminAuth } from '../../../lib/types/auth'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 export default function AdminMenu(): JSX.Element {
-    const navigate = useNavigate()
     const { auth, clearAuth } = useAuth<AdminAuth>()
 
     function handleLogout() {
         clearAuth()
-        navigate('/admin')
+        window.location.reload()
     }
 
     return (

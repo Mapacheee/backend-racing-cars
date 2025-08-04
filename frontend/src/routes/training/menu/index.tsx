@@ -41,7 +41,7 @@ export default function TrainingMenu() {
 
     function handleLogout() {
         clearAuth()
-        navigate('/')
+        window.location.reload()
     }
 
     return (

@@ -108,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const clearAuth = () => {
-        setAuth(null)
         setError('')
         clearAuthCookies('both')
     }
