@@ -9,7 +9,7 @@ import { createSensorReadings, DEFAULT_SENSOR_CONFIG, type SensorReading } from 
 import type { AICar } from '../types/car'
 import { CAR_MODEL_PATH } from '../config/constants'
 import { CAR_PHYSICS_CONFIG } from '../config/physics'
-import { NEATCarController, CarFitnessTracker, GenomeBuilder, FitnessEvaluator } from '../ai'
+import { NEATCarController, CarFitnessTracker, GenomeBuilder } from '../ai'
 import { DEFAULT_NEAT_CONFIG } from '../ai/neat/NEATConfig'
 import type { FitnessMetrics } from '../types/neat'
 import { useNEATTraining } from '../contexts/NEATTrainingContext'
@@ -81,11 +81,14 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
                 const readings = createSensorReadings(carPosition, heading, track.walls, DEFAULT_SENSOR_CONFIG)
                 setSensorReadings(readings)
                 
+                // Actualizar fitness basado en sensores
+                fitnessTracker.updateSensorFitness(readings)
+                
                 // Usar NEAT para obtener acciones de control
                 const actions = controller.getControlActions(readings)
                 
-                // DEBUG: Log las acciones que se están intentando aplicar
-                if (Math.random() < 0.05) { // 5% de las veces
+                // DEBUG: Log las acciones que se están intentando aplicar (reducido para 50 carros)
+                if (Math.random() < 0.001) { // 0.1% de las veces (era 5%)
                     console.log(`${carData.id} - Actions:`, {
                         throttle: actions.throttle.toFixed(3),
                         steering: actions.steering.toFixed(3),
@@ -102,11 +105,17 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
                 const currentVelocity = new Vector3(velocity.x, velocity.y, velocity.z)
                 fitnessTracker.update(currentPosition, currentVelocity)
                 
-                // Calcular y reportar fitness cada cierto tiempo
-                if (frame % 60 === 0 && onFitnessUpdate) { // Cada segundo aprox
+                // Calcular y reportar fitness aún menos frecuentemente para mejor rendimiento
+                if (frame % 180 === 0 && onFitnessUpdate) { // Cada 3 segundos aprox
                     const metrics = fitnessTracker.getFitnessMetrics()
-                    const fitness = FitnessEvaluator.calculateFitness(metrics)
+                    const fitness = fitnessTracker.calculateFitness()  // Usar el nuevo método
                     onFitnessUpdate(carData.id, fitness, metrics)
+                    
+                    // Verificar timeout y eliminar si es necesario
+                    if (fitnessTracker.hasTimeout() && !isEliminated && onCarElimination) {
+                        console.log(`⏰ Car ${carData.id} timed out - no progress for 8s`)
+                        onCarElimination(carData.id)
+                    }
                 }
             }
             

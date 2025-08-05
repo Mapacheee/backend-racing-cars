@@ -23,13 +23,13 @@ export class NEATCarController {
         let throttle = 0
         let steering = 0
         
-        // OBJETIVO: Ir rápido pero evitar choques
-        if (sensorReadings.center > 0.6) {
-            throttle = 0.8  // ¡Acelerar fuerte cuando hay espacio!
-        } else if (sensorReadings.center < 0.3) {
-            throttle = -0.5  // Frenar cuando hay obstáculo
+        // OBJETIVO: Ir MUY rápido pero evitar choques - comportamiento más agresivo
+        if (sensorReadings.center > 0.5) {
+            throttle = 1.0  // ¡Aceleración completa cuando hay espacio!
+        } else if (sensorReadings.center < 0.2) {
+            throttle = -0.3  // Frenar menos agresivamente
         } else {
-            throttle = 0.4  // Velocidad moderada en casos dudosos
+            throttle = 0.7  // Velocidad alta en casos dudosos
         }
         
         // Direccion más agresiva para evitar paredes
@@ -45,14 +45,14 @@ export class NEATCarController {
             steering = Math.max(-0.8, Math.min(0.8, actions.steering * 3))
         }
         
-        // Dar más control a NEAT gradualmente (pero mantener velocidad)
-        const neatInfluence = 0.5  // 50% influencia de NEAT, 50% lógica básica
+        // Dar MÁS control a NEAT para que aprenda a ir rápido
+        const neatInfluence = 0.7  // AUMENTADO: 70% influencia de NEAT, 30% lógica básica
         throttle = throttle * (1 - neatInfluence) + (actions.throttle * neatInfluence)
         steering = steering * (1 - neatInfluence) + (actions.steering * neatInfluence)
         
-        // Asegurar que siempre haya un poco de velocidad hacia adelante (arcade)
-        if (throttle < 0.1) {
-            throttle = 0.1  // Mínimo de velocidad para mantener movimiento
+        // Asegurar velocidad mínima más alta para mantener avance constante
+        if (throttle < 0.3) {
+            throttle = 0.3  // Velocidad mínima aumentada para mayor avance
         }
         
         // Clamp final values
@@ -133,12 +133,12 @@ export class NEATCarController {
         // Project current velocity onto forward direction
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
-        // Arcade max speed - más alto para diversión
-        const MAX_SPEED = 10  // Aumentado para arcade
+        // Arcade max speed - mucho más alto para mayor velocidad
+        const MAX_SPEED = 15  // Aumentado de 10 a 15 para más velocidad
         if (forwardSpeed >= MAX_SPEED) return
         
-        // Arcade acceleration - más potente
-        const ACCELERATION_FORCE = 3.0  // Más fuerte para arcade
+        // Arcade acceleration - más potente para avance rápido
+        const ACCELERATION_FORCE = 4.5  // Aumentado de 3.0 a 4.5 para más potencia
         
         rigidBody.applyImpulse({
             x: forward.x * ACCELERATION_FORCE,

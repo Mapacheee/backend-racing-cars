@@ -50,8 +50,8 @@ interface NEATTrainingProviderProps {
 
 export function NEATTrainingProvider({ children, onReset }: NEATTrainingProviderProps): JSX.Element {
     // Estados para el entrenamiento NEAT
-    const [generation, setGeneration] = useState(1)
-    const [isTraining, setIsTraining] = useState(false)
+    const [generation, setGeneration] = useState(1)  // Empezar en 1 para mostrar al usuario
+    const [isTraining, setIsTraining] = useState(true)  // ✅ Iniciar automáticamente
     const [carStates, setCarStates] = useState<Map<string, CarState>>(new Map())
     const [population] = useState(() => new Population(DEFAULT_NEAT_CONFIG))
     const [bestFitness, setBestFitness] = useState(0)
@@ -60,10 +60,12 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
     const { triggerReset } = useRaceReset()
 
     // Ref para controlar la simulación
-    const simulationActive = useRef(true)
+    const simulationActive = useRef(true)  // ✅ Iniciar automáticamente
 
     // Callback para recibir actualizaciones de fitness
     const handleFitnessUpdate = useCallback((carId: string, fitness: number, metrics: FitnessMetrics) => {
+        console.log(`📊 Fitness update for ${carId}: ${fitness.toFixed(2)}`)  // ✅ Debug fitness updates
+        
         setCarStates(prev => {
             const newState = new Map(prev)
             const carState = newState.get(carId)
@@ -118,7 +120,7 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
         setIsTraining(true)
         simulationActive.current = true
         setCarStates(new Map())
-        console.log(`Starting generation ${generation}`)
+        console.log(`🚀 Training started for generation ${generation}`)
     }, [generation])
 
     // Parar entrenamiento
@@ -149,13 +151,30 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
 
     // Evolucionar a siguiente generación
     const evolveToNextGeneration = useCallback(() => {
+        console.log('🔥 EVOLVE BUTTON CLICKED! Current generation:', generation)
+        console.log('🔥 Training state:', isTraining)
+        console.log('🔥 Car states count:', carStates.size)
+        
+        // EVOLUCIONAR DIRECTAMENTE sin detener el entrenamiento
+        console.log('🧬 Starting evolution with current fitness data...')
+        performEvolution()
+        
+    }, [isTraining, carStates.size, generation])  // Dependencias para debugging
+    
+    // Función separada para realizar la evolución
+    const performEvolution = useCallback(() => {
+        console.log('🧬 PERFORM EVOLUTION STARTED!')
+        console.log('🧬 Current generation before evolution:', generation)
+        
         // Obtener datos de fitness de todos los carros
         const carStatesArray = Array.from(carStates.values())
         
         if (carStatesArray.length === 0) {
-            console.warn('No fitness data available for evolution')
+            console.warn('⚠️ No fitness data available for evolution')
             return
         }
+
+        console.log(`🧬 Starting evolution with ${carStatesArray.length} cars evaluated`)
 
         // Actualizar fitness en los genomas de la población
         carStatesArray.forEach(carState => {
@@ -174,7 +193,8 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
         console.log(`📊 Generation ${statsBefore.generation} Stats:`, {
             best: statsBefore.bestFitness.toFixed(2),
             average: statsBefore.averageFitness.toFixed(2),
-            species: statsBefore.speciesCount
+            species: statsBefore.speciesCount,
+            evaluated: carStatesArray.length
         })
 
         // ¡EVOLUCIONAR LA POBLACIÓN!
@@ -192,15 +212,25 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
         const currentBest = statsBefore.bestFitness
         setBestFitness(prev => Math.max(prev, currentBest))
 
-        // Avanzar generación (esto triggerará la regeneración de carros en CarScene)
-        setGeneration(prev => prev + 1)
+        // Sincronizar generación con la Population + 1 para UI (Population empieza en 0)
+        const populationGen = population.getGeneration()
+        const newGeneration = populationGen + 1
+        console.log(`🔄 Population generation: ${populationGen}`)
+        console.log(`🔄 Setting UI generation from ${generation} to ${newGeneration}`)
+        console.log(`🔄 Before setGeneration call`)
+        setGeneration(newGeneration)
+        console.log(`🔄 After setGeneration call`)
+        
+        // Reiniciar estado para nueva generación
         setCarStates(new Map())
+        setIsTraining(true)  // ✅ Reiniciar entrenamiento para nueva generación
         simulationActive.current = true
         onReset?.()
 
-        console.log(`✅ Generation ${generation + 1} started with evolved genomes!`)
+        console.log(`✅ Generation ${newGeneration} started with evolved genomes!`)
+        console.log(`🚀 Training restarted for generation ${newGeneration}`)
         console.log(`🏆 Best fitness so far: ${Math.max(bestFitness, currentBest).toFixed(2)}`)
-    }, [carStates, generation, bestFitness, onReset, population])
+    }, [carStates, bestFitness, onReset, population])  // Removido 'generation' de las dependencias
 
     const value: NEATTrainingContextType = {
         generation,

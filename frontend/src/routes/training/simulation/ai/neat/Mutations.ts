@@ -29,11 +29,11 @@ export class Mutations {
     private static mutateWeights(genome: Genome, perturbationRate: number): void {
         genome.connectionGenes.forEach(gene => {
             if (Math.random() < perturbationRate) {
-                // Perturbar peso existente
-                gene.weight += (Math.random() * 0.4) - 0.2 // ±0.2
+                // Perturbar peso existente de forma MÁS GRADUAL
+                gene.weight += (Math.random() * 0.2) - 0.1 // ±0.1 (era ±0.2)
             } else {
-                // Asignar peso completamente nuevo
-                gene.weight = (Math.random() * 4) - 2 // -2 a 2
+                // Asignar peso nuevo más moderado
+                gene.weight = (Math.random() * 2) - 1 // -1 a 1 (era -2 a 2)
             }
         })
     }

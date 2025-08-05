@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useNEATTraining } from '../contexts/NEATTrainingContext'
 import { TRACKS } from '../systems/TrackSystem'
+import { getPopulationSize } from '../ai/neat/NEATConfig'
 
 export default function CanvasSettingsMenu(): JSX.Element {
     const {
@@ -46,8 +47,8 @@ export default function CanvasSettingsMenu(): JSX.Element {
     const navigate = useNavigate()
     const track = TRACKS['main_circuit']
 
-    const aliveCars = 5 - Array.from(carStates.values()).filter(car => car.isEliminated).length
-    const totalCars = 5
+    const totalCars = getPopulationSize()  // Obtener dinámicamente de la configuración NEAT
+    const aliveCars = totalCars - Array.from(carStates.values()).filter(car => car.isEliminated).length
 
     useEffect(() => {
         document.title = 'Entrenamiento de la ia - Carrera neuronal 🏎️🧠'
@@ -79,6 +80,16 @@ export default function CanvasSettingsMenu(): JSX.Element {
                     <div>Generación: <span className="font-medium">{generation}</span></div>
                     <div>Carros Vivos: <span className="font-medium">{aliveCars}/{totalCars}</span></div>
                     <div>Mejor Fitness: <span className="font-medium">{bestFitness.toFixed(2)}</span></div>
+                    
+                    {/* Nueva métrica: Mejor progreso en waypoints */}
+                    {Array.from(carStates.values()).length > 0 && (
+                        <div>
+                            Mejor Progreso: <span className="font-medium text-green-600">
+                                {Math.max(...Array.from(carStates.values()).map(car => car.metrics?.checkpointsReached || 0))}/{track.waypoints.length} waypoints
+                            </span>
+                        </div>
+                    )}
+                    
                     <div className={`${isTraining ? 'text-green-600' : 'text-red-600'}`}>
                         Estado: {isTraining ? 'Entrenando' : 'Detenido'}
                     </div>
@@ -115,8 +126,9 @@ export default function CanvasSettingsMenu(): JSX.Element {
                         <button
                             onClick={evolveToNextGeneration}
                             className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs transition-colors"
+                            title={isTraining ? "Detener entrenamiento y evolucionar" : "Evolucionar a siguiente generación"}
                         >
-                            Evolucionar
+                            {isTraining ? 'Evolucionar' : 'Evolucionar'}
                         </button>
                     </div>
                 </div>
