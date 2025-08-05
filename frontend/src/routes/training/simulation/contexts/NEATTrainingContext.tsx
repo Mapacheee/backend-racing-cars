@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode, type JSX } from 'react'
 import { Population } from '../ai/neat/Population'
 import { DEFAULT_NEAT_CONFIG } from '../ai/neat/NEATConfig'
+import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
 import type { FitnessMetrics } from '../types/neat'
 
 // Estado de los carros durante el entrenamiento
@@ -54,6 +55,9 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
     const [carStates, setCarStates] = useState<Map<string, CarState>>(new Map())
     const [population] = useState(() => new Population(DEFAULT_NEAT_CONFIG))
     const [bestFitness, setBestFitness] = useState(0)
+
+    // Hook para manejar reset de la escena
+    const { triggerReset } = useRaceReset()
 
     // Ref para controlar la simulación
     const simulationActive = useRef(true)
@@ -127,17 +131,21 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
     // Reiniciar generación actual
     const restartGeneration = useCallback(() => {
         console.log(`🔄 Restarting generation ${generation}`)
+        
         setCarStates(new Map())
-        setIsTraining(false)  // Detener entrenamiento
+        setIsTraining(false)  
+        setBestFitness(0)  
         simulationActive.current = false
         
-        // Reset suave - solo resetear estados sin recargar
+        triggerReset()
         setTimeout(() => {
             simulationActive.current = true
             console.log(`Generation ${generation} restarted - all cars reset to starting positions`)
-            onReset?.()
+            if (onReset) {
+                onReset()
+            }
         }, 100)
-    }, [generation, onReset])
+    }, [generation, onReset, triggerReset])
 
     // Evolucionar a siguiente generación
     const evolveToNextGeneration = useCallback(() => {

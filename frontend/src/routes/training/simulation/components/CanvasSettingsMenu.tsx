@@ -104,7 +104,9 @@ export default function CanvasSettingsMenu(): JSX.Element {
 
                     <div className="flex gap-2">
                         <button
-                            onClick={restartGeneration}
+                            onClick={() => {
+                                restartGeneration()
+                            }}
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs transition-colors"
                         >
                             Reiniciar

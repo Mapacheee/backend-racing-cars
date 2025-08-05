@@ -15,7 +15,7 @@ import { useNEATTraining } from '../contexts/NEATTrainingContext'
 
 export default function CarScene(): JSX.Element {
     const { showWaypoints, showWalls, editMode } = useCanvasSettings()
-    const { triggerReset } = useRaceReset()
+    const { triggerReset, resetCounter } = useRaceReset()
     const { modalState, openModal, closeModal } = useWaypointModal()
     const [, forceUpdate] = useState({})
 
@@ -24,7 +24,7 @@ export default function CarScene(): JSX.Element {
 
     // Estado local para los carros que se regenera con cada generación
     const [aiCars, setAiCars] = useState(() => {
-        
+
         // Inicializar con 5 carros usando genomas de la población inicial
         const initialGenomes = population.getGenomes().slice(0, 5)
         return generateAICars({
@@ -40,9 +40,9 @@ export default function CarScene(): JSX.Element {
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
 
-    // Regenerar carros cuando cambia la generación
+    // Regenerar carros cuando cambia la generación o se resetea
     useEffect(() => {
-        console.log(`Generating new cars for generation ${generation}`)
+
         
         // Obtener genomas evolucionados de la población si es generación > 1
         const config: any = {
@@ -56,12 +56,13 @@ export default function CarScene(): JSX.Element {
         if (generation > 1) {
             const evolvedGenomes = population.getGenomes()
             config.genomes = evolvedGenomes
+            console.log(`🧬 Using ${evolvedGenomes.length} evolved genomes for generation ${generation}`)
         }
         
         const newCars = generateAICars(config)
         setAiCars(newCars)
         forceUpdate({})
-    }, [generation, currentTrack, population])
+    }, [generation, currentTrack, population, resetCounter])
 
     const refreshTrack = () => {
         forceUpdate({})
