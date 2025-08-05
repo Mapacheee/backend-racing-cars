@@ -16,10 +16,14 @@ import type { FitnessMetrics } from '../types/neat'
 interface AICarProps {
     carData: AICar
     onFitnessUpdate?: (carId: string, fitness: number, metrics: FitnessMetrics) => void
+    onCarElimination?: (carId: string) => void
+    isEliminated?: boolean
 }
 
-export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Element {
-    const { scene } = useGLTF(CAR_MODEL_PATH)
+export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEliminated }: AICarProps): JSX.Element {
+    // Determinar qué modelo usar según el estado
+    const modelPath = isEliminated ? '/assets/models/raceCarOrange.glb' : CAR_MODEL_PATH
+    const { scene } = useGLTF(modelPath)
     const { showCollisions } = useCanvasSettings()
     const rigidBody = useRef<any>(null)
     const [sensorReadings, setSensorReadings] = useState<SensorReading>({
@@ -45,7 +49,10 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
     
     const [lastCollisionTime, setLastCollisionTime] = useState(0)
 
+    // Efecto para la simulación del carro
     useEffect(() => {
+        if (isEliminated) return // No actualizar si está eliminado
+
         let frame: number
         
         function updateSimulation() {
@@ -106,14 +113,21 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
         
         frame = requestAnimationFrame(updateSimulation)
         return () => cancelAnimationFrame(frame)
-    }, [track, controller, fitnessTracker, carData.id, onFitnessUpdate])
+    }, [track, controller, fitnessTracker, carData.id, onFitnessUpdate, isEliminated])
 
     // Manejar colisiones
     const handleCollision = () => {
         const now = Date.now()
-        if (now - lastCollisionTime > 100) { // Evitar múltiples detecciones rápidas
+        if (now - lastCollisionTime > 100 && !isEliminated) { // Solo procesar si no está eliminado
             fitnessTracker.recordCollision()
             setLastCollisionTime(now)
+
+            // Llamar al callback de eliminación
+            if (onCarElimination) {
+                onCarElimination(carData.id)
+            }
+
+            console.log(`Car ${carData.id} crashed and eliminated!`)
         }
     }
 
@@ -163,6 +177,19 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
         
         return result
     }
+
+    // Efecto para manejar la eliminación del carro
+    useEffect(() => {
+        if (isEliminated) {
+            const rb = rigidBody.current
+            if (rb) {
+                // Detener completamente el carro
+                rb.setLinvel({ x: 0, y: 0, z: 0 })
+                rb.setAngvel({ x: 0, y: 0, z: 0 })
+                // Removed setSleeping as it doesn't exist in this version
+            }
+        }
+    }, [isEliminated])
 
     return (
         <>

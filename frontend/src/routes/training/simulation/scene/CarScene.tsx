@@ -1,4 +1,4 @@
-import { Suspense, useState, useCallback } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import type { JSX } from 'react'
 import { OrbitControls, Text } from '@react-three/drei'
 import { Physics, RigidBody, interactionGroups } from '@react-three/rapier'
@@ -11,44 +11,50 @@ import { addWaypoint, moveWaypoint, reorderWaypoints } from '../systems/Waypoint
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
 import { useWaypointModal } from '../contexts/WaypointModalContext'
-import type { FitnessMetrics } from '../types/neat'
+import { useNEATTraining } from '../contexts/NEATTrainingContext'
 
 export default function CarScene(): JSX.Element {
     const { showWaypoints, showWalls, editMode } = useCanvasSettings()
     const { triggerReset } = useRaceReset()
     const { modalState, openModal, closeModal } = useWaypointModal()
     const [, forceUpdate] = useState({})
-    const [, setFitnessData] = useState<
-        Map<string, { fitness: number; metrics: FitnessMetrics }>
-    >(new Map())
+
+    // Usar el contexto NEAT para el estado del entrenamiento
+    const { generation, carStates, handleFitnessUpdate, handleCarElimination } = useNEATTraining()
+
+    // Estado local para los carros que se regenera con cada generación
+    const [aiCars, setAiCars] = useState(() =>
+        generateAICars({
+            trackId: 'main_circuit',
+            carCount: 5,
+            colors: ['red', 'blue', 'green', 'yellow', 'purple'],
+            useNEAT: true,
+            generation: 0,
+        })
+    )
 
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
+
+    // Regenerar carros cuando cambia la generación
+    useEffect(() => {
+        console.log(`Generating new cars for generation ${generation}`)
+        const newCars = generateAICars({
+            trackId: currentTrack,
+            carCount: 5,
+            colors: ['red', 'blue', 'green', 'yellow', 'purple'],
+            useNEAT: true,
+            generation: generation // Pasar la generación para generar genomas evolucionados
+        })
+        setAiCars(newCars)
+        forceUpdate({})
+    }, [generation, currentTrack])
+
     const refreshTrack = () => {
         forceUpdate({})
         triggerReset()
     }
 
-    // Generar carros AI con NEAT habilitado - 5 carros para entrenamiento
-    const aiCars = generateAICars({
-        trackId: currentTrack,
-        carCount: 5,  // Aumentado a 5 carros para entrenamiento múltiple
-        colors: ['red', 'blue', 'green', 'yellow', 'purple'],
-        useNEAT: true
-    })
-
-    // Callback para recibir actualizaciones de fitness
-    const handleFitnessUpdate = useCallback((carId: string, fitness: number, metrics: FitnessMetrics) => {
-        setFitnessData(prev => {
-            const newData = new Map(prev)
-            newData.set(carId, { fitness, metrics })
-
-            // Log de fitness para debug (temporal)
-            console.log(`Car ${carId}: Fitness ${fitness.toFixed(2)}, Distance: ${metrics.distanceTraveled.toFixed(1)}, Checkpoints: ${metrics.checkpointsReached}`)
-
-            return newData
-        })
-    }, [])
 
     const handleGroundClick = (event: any) => {
         if (!editMode) return
@@ -217,11 +223,21 @@ export default function CarScene(): JSX.Element {
             <TrackWalls walls={track.walls} visible={showWalls} />
             {renderTrackWaypoints()}
 
-            {aiCars.map(carData => (
-                <Suspense key={carData.id} fallback={null}>
-                    <AICar carData={carData} onFitnessUpdate={handleFitnessUpdate} />
-                </Suspense>
-            ))}
+            {aiCars.map(carData => {
+                const carState = carStates.get(carData.id)
+                const isCarEliminated = carState?.isEliminated || false
+
+                return (
+                    <Suspense key={carData.id} fallback={null}>
+                        <AICar
+                            carData={carData}
+                            onFitnessUpdate={handleFitnessUpdate}
+                            onCarElimination={handleCarElimination}
+                            isEliminated={isCarEliminated}
+                        />
+                    </Suspense>
+                )
+            })}
 
             <OrbitControls enablePan enableZoom enableRotate />
         </Physics>

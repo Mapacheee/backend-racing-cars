@@ -3,6 +3,7 @@ import CanvasSettingsMenu from './components/CanvasSettingsMenu'
 import SimulationCanvas from './components/SimulationCanvas'
 import WaypointModal from './components/WaypointModal'
 import { WaypointModalProvider } from './contexts/WaypointModalContext'
+import { NEATTrainingProvider } from './contexts/NEATTrainingContext'
 import { CarProvider } from '../../../lib/contexts/CarContext'
 import { RaceResetProvider } from '../../../lib/contexts/RaceResetContext'
 
@@ -14,7 +15,11 @@ function SimulatorProviders({
     return (
         <WaypointModalProvider>
             <RaceResetProvider>
-                <CarProvider>{children}</CarProvider>
+                <CarProvider>
+                    <NEATTrainingProvider onReset={() => window.location.reload()}>
+                        {children}
+                    </NEATTrainingProvider>
+                </CarProvider>
             </RaceResetProvider>
         </WaypointModalProvider>
     )
