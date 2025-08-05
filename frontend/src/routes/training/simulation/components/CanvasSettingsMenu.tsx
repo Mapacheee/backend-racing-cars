@@ -106,7 +106,6 @@ export default function CanvasSettingsMenu(): JSX.Element {
                         <button
                             onClick={restartGeneration}
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs transition-colors"
-                            disabled={!isTraining}
                         >
                             Reiniciar
                         </button>
@@ -114,7 +113,6 @@ export default function CanvasSettingsMenu(): JSX.Element {
                         <button
                             onClick={evolveToNextGeneration}
                             className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs transition-colors"
-                            disabled={!isTraining}
                         >
                             Evolucionar
                         </button>
