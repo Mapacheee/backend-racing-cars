@@ -12,6 +12,7 @@ import { CAR_PHYSICS_CONFIG } from '../config/physics'
 import { NEATCarController, CarFitnessTracker, GenomeBuilder, FitnessEvaluator } from '../ai'
 import { DEFAULT_NEAT_CONFIG } from '../ai/neat/NEATConfig'
 import type { FitnessMetrics } from '../types/neat'
+import { useNEATTraining } from '../contexts/NEATTrainingContext'
 
 interface AICarProps {
     carData: AICar
@@ -25,6 +26,7 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
     const modelPath = isEliminated ? '/assets/models/raceCarOrange.glb' : CAR_MODEL_PATH
     const { scene } = useGLTF(modelPath)
     const { showCollisions } = useCanvasSettings()
+    const { isTraining } = useNEATTraining() // Obtener estado de entrenamiento
     const rigidBody = useRef<any>(null)
     const [sensorReadings, setSensorReadings] = useState<SensorReading>({
         left: 1,
@@ -51,13 +53,13 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
 
     // Efecto para la simulación del carro
     useEffect(() => {
-        if (isEliminated) return // No actualizar si está eliminado
+        if (isEliminated || !isTraining) return // No actualizar si está eliminado O si no está entrenando
 
         let frame: number
         
         function updateSimulation() {
             const rb = rigidBody.current
-            if (rb && track) {
+            if (rb && track && isTraining) { // Verificar isTraining también aquí
                 const position = rb.translation()
                 const rotation = rb.rotation()
                 const velocity = rb.linvel()
@@ -113,7 +115,7 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
         
         frame = requestAnimationFrame(updateSimulation)
         return () => cancelAnimationFrame(frame)
-    }, [track, controller, fitnessTracker, carData.id, onFitnessUpdate, isEliminated])
+    }, [track, controller, fitnessTracker, carData.id, onFitnessUpdate, isEliminated, isTraining]) // Agregar isTraining a dependencies
 
     // Manejar colisiones
     const handleCollision = () => {
@@ -208,7 +210,7 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
                 enabledRotations={[false, true, false]}
                 ccd={true}                // Continuous collision detection
                 gravityScale={1.0}        // Ensure gravity works properly
-                collisionGroups={interactionGroups(1, [2])}     // Cars in group 1, only collide with group 2 (environment)
+                collisionGroups={interactionGroups(1, [2])}     // Cars in group 1, ONLY collide with group 2 (walls/ground) - NO car-to-car collision
                 solverGroups={interactionGroups(1, [2])}      // Same groups for force calculation
             >
                 <group>

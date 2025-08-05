@@ -37,6 +37,7 @@ export function generateAICars(config: {
     colors: string[]
     useNEAT: boolean
     generation: number
+    genomes?: any[] // Genomas evolucionados opcionales
 }): AICar[] {
     // Use the actual track from config instead of hardcoded values
     const track = TRACKS[config.trackId] || TRACKS['main_circuit']
@@ -45,22 +46,28 @@ export function generateAICars(config: {
     const cars: AICar[] = []
 
     for (let i = 0; i < config.carCount; i++) {
-        // Spawn all cars at the exact same waypoint position
+        // Todos los carros aparecen en la misma posición (son fantasmas entre sí)
         const car: AICar = {
             id: `ai-${i + 1}`,
             position: [
-                position[0], // Same X position (same waypoint)
-                position[1], // Same height (waypoint level)
-                position[2], // Same Z position (same waypoint)
+                position[0],  // Posición X exacta del spawn point
+                position[1],  // Misma altura
+                position[2],  // Posición Z exacta del spawn point
             ],
             rotation,
             color: config.colors[i % config.colors.length] || 'blue',
             trackId: config.trackId,
         }
 
-        // Generar genoma NEAT si está habilitado
+        // Usar genoma evolucionado si está disponible, sino crear uno nuevo
         if (config.useNEAT) {
-            car.genome = GenomeBuilder.createMinimal(DEFAULT_NEAT_CONFIG)
+            if (config.genomes && config.genomes[i]) {
+                car.genome = config.genomes[i]
+                console.log(`🧬 Car ${car.id} using evolved genome from generation ${config.generation}`)
+            } else {
+                car.genome = GenomeBuilder.createMinimal(DEFAULT_NEAT_CONFIG)
+                console.log(`🆕 Car ${car.id} using new random genome`)
+            }
         }
 
         cars.push(car)

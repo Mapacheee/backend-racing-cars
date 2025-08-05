@@ -20,18 +20,22 @@ export default function CarScene(): JSX.Element {
     const [, forceUpdate] = useState({})
 
     // Usar el contexto NEAT para el estado del entrenamiento
-    const { generation, carStates, handleFitnessUpdate, handleCarElimination } = useNEATTraining()
+    const { generation, carStates, handleFitnessUpdate, handleCarElimination, population } = useNEATTraining()
 
     // Estado local para los carros que se regenera con cada generación
-    const [aiCars, setAiCars] = useState(() =>
-        generateAICars({
+    const [aiCars, setAiCars] = useState(() => {
+        
+        // Inicializar con 5 carros usando genomas de la población inicial
+        const initialGenomes = population.getGenomes().slice(0, 5)
+        return generateAICars({
             trackId: 'main_circuit',
             carCount: 5,
             colors: ['red', 'blue', 'green', 'yellow', 'purple'],
             useNEAT: true,
             generation: 0,
+            genomes: initialGenomes
         })
-    )
+    })
 
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
@@ -39,16 +43,25 @@ export default function CarScene(): JSX.Element {
     // Regenerar carros cuando cambia la generación
     useEffect(() => {
         console.log(`Generating new cars for generation ${generation}`)
-        const newCars = generateAICars({
+        
+        // Obtener genomas evolucionados de la población si es generación > 1
+        const config: any = {
             trackId: currentTrack,
             carCount: 5,
             colors: ['red', 'blue', 'green', 'yellow', 'purple'],
             useNEAT: true,
-            generation: generation // Pasar la generación para generar genomas evolucionados
-        })
+            generation: generation,
+        }
+        
+        if (generation > 1) {
+            const evolvedGenomes = population.getGenomes()
+            config.genomes = evolvedGenomes
+        }
+        
+        const newCars = generateAICars(config)
         setAiCars(newCars)
         forceUpdate({})
-    }, [generation, currentTrack])
+    }, [generation, currentTrack, population])
 
     const refreshTrack = () => {
         forceUpdate({})

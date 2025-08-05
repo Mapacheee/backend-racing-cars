@@ -36,6 +36,7 @@ const NEATTrainingContext = createContext<NEATTrainingContextType | null>(null)
 export function useNEATTraining(): NEATTrainingContextType {
     const context = useContext(NEATTrainingContext)
     if (!context) {
+        console.error('useNEATTraining: Context is null. Make sure the component is wrapped in NEATTrainingProvider')
         throw new Error('useNEATTraining must be used within a NEATTrainingProvider')
     }
     return context
@@ -127,36 +128,61 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
     const restartGeneration = useCallback(() => {
         console.log(`🔄 Restarting generation ${generation}`)
         setCarStates(new Map())
-        simulationActive.current = true
-        onReset?.()
-        console.log(`Generation ${generation} restarted - all cars reset to starting positions`)
+        setIsTraining(false)  // Detener entrenamiento
+        simulationActive.current = false
+        
+        // Reset suave - solo resetear estados sin recargar
+        setTimeout(() => {
+            simulationActive.current = true
+            console.log(`Generation ${generation} restarted - all cars reset to starting positions`)
+            onReset?.()
+        }, 100)
     }, [generation, onReset])
 
     // Evolucionar a siguiente generación
     const evolveToNextGeneration = useCallback(() => {
         // Obtener datos de fitness de todos los carros
-        const fitnessData = Array.from(carStates.values()).map(car => ({
-            genome: car.id, // Aquí necesitarás el genoma real
-            fitness: car.fitness
-        }))
-
-        if (fitnessData.length === 0) {
+        const carStatesArray = Array.from(carStates.values())
+        
+        if (carStatesArray.length === 0) {
             console.warn('No fitness data available for evolution')
             return
         }
 
-        // Evolucionar la población
-        console.log(`🧬 Evolving from generation ${generation} to ${generation + 1}`)
-        console.log('Fitness data:', fitnessData.map(d => `${d.genome}: ${d.fitness.toFixed(2)}`))
+        // Actualizar fitness en los genomas de la población
+        carStatesArray.forEach(carState => {
+            // Encontrar el genoma correspondiente en la población
+            const genomes = population.getGenomes()
+            const genomeIndex = parseInt(carState.id.split('-')[1]) - 1 // ai-1 -> index 0, ai-2 -> index 1, etc.
+            
+            if (genomeIndex >= 0 && genomeIndex < genomes.length) {
+                genomes[genomeIndex].fitness = carState.fitness
+                console.log(`🧬 Updated genome ${genomeIndex} fitness: ${carState.fitness.toFixed(2)}`)
+            }
+        })
+
+        // Obtener estadísticas antes de evolucionar
+        const statsBefore = population.getStats()
+        console.log(`📊 Generation ${statsBefore.generation} Stats:`, {
+            best: statsBefore.bestFitness.toFixed(2),
+            average: statsBefore.averageFitness.toFixed(2),
+            species: statsBefore.speciesCount
+        })
+
+        // ¡EVOLUCIONAR LA POBLACIÓN!
+        population.evolve()
+        
+        // Obtener estadísticas después de evolucionar
+        const statsAfter = population.getStats()
+        console.log(`🎉 Evolution complete! Generation ${statsAfter.generation}:`, {
+            best: statsAfter.bestFitness.toFixed(2),
+            average: statsAfter.averageFitness.toFixed(2),
+            species: statsAfter.speciesCount
+        })
 
         // Actualizar mejor fitness histórico
-        const currentBest = Math.max(...fitnessData.map(d => d.fitness))
+        const currentBest = statsBefore.bestFitness
         setBestFitness(prev => Math.max(prev, currentBest))
-
-        // TODO: Aquí implementar la lógica NEAT real:
-        // 1. Seleccionar mejores genomas
-        // 2. Aplicar mutación y crossover
-        // 3. Crear nueva población
 
         // Avanzar generación (esto triggerará la regeneración de carros en CarScene)
         setGeneration(prev => prev + 1)
@@ -165,8 +191,8 @@ export function NEATTrainingProvider({ children, onReset }: NEATTrainingProvider
         onReset?.()
 
         console.log(`✅ Generation ${generation + 1} started with evolved genomes!`)
-        console.log(`Best fitness so far: ${Math.max(bestFitness, currentBest).toFixed(2)}`)
-    }, [carStates, generation, bestFitness, onReset])
+        console.log(`🏆 Best fitness so far: ${Math.max(bestFitness, currentBest).toFixed(2)}`)
+    }, [carStates, generation, bestFitness, onReset, population])
 
     const value: NEATTrainingContextType = {
         generation,

@@ -16,7 +16,22 @@ export default function CanvasSettingsMenu(): JSX.Element {
         setEditMode,
     } = useCanvasSettings()
 
-    // Agregar contexto NEAT
+    // Agregar contexto NEAT con manejo de errores
+    let neatContext
+    try {
+        neatContext = useNEATTraining()
+    } catch (error) {
+        console.error('Failed to get NEAT context:', error)
+        // Render un componente simplificado si no hay contexto
+        return (
+            <div className="absolute top-4 left-4 bg-white/90 rounded shadow-lg p-4 z-50 min-w-[250px]">
+                <div className="text-red-600 text-sm">
+                    Error: NEAT Context not available. Please refresh the page.
+                </div>
+            </div>
+        )
+    }
+
     const {
         generation,
         isTraining,
@@ -26,7 +41,7 @@ export default function CanvasSettingsMenu(): JSX.Element {
         stopTraining,
         restartGeneration,
         evolveToNextGeneration
-    } = useNEATTraining()
+    } = neatContext
 
     const navigate = useNavigate()
     const track = TRACKS['main_circuit']
