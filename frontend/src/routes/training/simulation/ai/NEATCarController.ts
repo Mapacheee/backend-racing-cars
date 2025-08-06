@@ -18,43 +18,10 @@ export class NEATCarController {
     // Procesar sensores y obtener acciones de control
     getControlActions(sensorReadings: SensorReading): NetworkOutput {
         const actions = this.network.activate(sensorReadings)
-        
-        // Comportamiento más arcade y agresivo para completar la pista rápido
-        let throttle = 0
-        let steering = 0
-        
-        // OBJETIVO: Ir MUY rápido pero evitar choques - comportamiento más agresivo
-        if (sensorReadings.center > 0.5) {
-            throttle = 1.0  // ¡Aceleración completa cuando hay espacio!
-        } else if (sensorReadings.center < 0.2) {
-            throttle = -0.3  // Frenar menos agresivamente
-        } else {
-            throttle = 0.7  // Velocidad alta en casos dudosos
-        }
-        
-        // Direccion más agresiva para evitar paredes
-        const leftClearance = sensorReadings.left
-        const rightClearance = sensorReadings.right
-        
-        if (leftClearance < 0.3 && rightClearance > 0.5) {
-            steering = 0.7  // Giro fuerte a la derecha
-        } else if (rightClearance < 0.3 && leftClearance > 0.5) {
-            steering = -0.7  // Giro fuerte a la izquierda
-        } else {
-            // Usar la salida de NEAT más agresivamente
-            steering = Math.max(-0.8, Math.min(0.8, actions.steering * 3))
-        }
-        
-        // Dar MÁS control a NEAT para que aprenda a ir rápido
-        const neatInfluence = 0.7  // AUMENTADO: 70% influencia de NEAT, 30% lógica básica
-        throttle = throttle * (1 - neatInfluence) + (actions.throttle * neatInfluence)
-        steering = steering * (1 - neatInfluence) + (actions.steering * neatInfluence)
-        
-        // Asegurar velocidad mínima más alta para mantener avance constante
-        if (throttle < 0.3) {
-            throttle = 0.3  // Velocidad mínima aumentada para mayor avance
-        }
-        
+                
+        let throttle = actions.throttle
+        let steering = actions.steering
+                
         // Clamp final values
         throttle = Math.max(-1, Math.min(1, throttle))
         steering = Math.max(-1, Math.min(1, steering))
@@ -93,24 +60,21 @@ export class NEATCarController {
         
         const { throttle, steering } = actions
         
-        // VEHICLE CONTROL SYSTEM más suave
-        // Usar umbrales más bajos para acciones más frecuentes
+
         
-        if (throttle > 0.1) {  // Umbral mucho más bajo
+        if (throttle > 0.05) {  
             this.accelerate(rigidBody)
-        } else if (throttle < -0.1) {  // Umbral mucho más bajo
+        } else if (throttle < -0.05) {  
             this.brake(rigidBody)
         }
-        
-        if (steering > 0.15) {  // Umbral más bajo para giros más frecuentes
+
+        if (steering > 0.08) {  
             this.turnRight(rigidBody)
-        } else if (steering < -0.15) {  // Umbral más bajo
+        } else if (steering < -0.08) { 
             this.turnLeft(rigidBody)
         } else {
             this.stabilizeSteering(rigidBody)
-        }
-        
-        // Apply natural resistance
+        }        
         this.applyNaturalResistance(rigidBody)
     }
     
@@ -133,12 +97,10 @@ export class NEATCarController {
         // Project current velocity onto forward direction
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
-        // Arcade max speed - mucho más alto para mayor velocidad
-        const MAX_SPEED = 15  // Aumentado de 10 a 15 para más velocidad
+        const MAX_SPEED = 12  
         if (forwardSpeed >= MAX_SPEED) return
         
-        // Arcade acceleration - más potente para avance rápido
-        const ACCELERATION_FORCE = 4.5  // Aumentado de 3.0 a 4.5 para más potencia
+        const ACCELERATION_FORCE = 5.0  // Aumentado de 4.5 a 5.0 para más potencia
         
         rigidBody.applyImpulse({
             x: forward.x * ACCELERATION_FORCE,
@@ -181,12 +143,11 @@ export class NEATCarController {
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
         // Arcade turning - permitir giros incluso a baja velocidad
-        const MIN_TURN_SPEED = 0.1  // Muy bajo para arcade
+        const MIN_TURN_SPEED = 0.05  
         if (forwardSpeed <= MIN_TURN_SPEED) return
         
-        // Turn force más agresivo para arcade
         const speedFactor = Math.min(forwardSpeed / 8, 1.0)
-        const TURN_FORCE = -1.2 * speedFactor  // Más agresivo para arcade
+        const TURN_FORCE = -1.4 * speedFactor  
         
         rigidBody.applyTorqueImpulse({
             x: 0,
@@ -210,12 +171,12 @@ export class NEATCarController {
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
         // Arcade turning - permitir giros incluso a baja velocidad
-        const MIN_TURN_SPEED = 0.1  // Muy bajo para arcade
+        const MIN_TURN_SPEED = 0.05  // CRÍTICO: Ultra-bajo para máxima sensibilidad
         if (forwardSpeed <= MIN_TURN_SPEED) return
         
-        // Turn force más agresivo para arcade
+        // Turn force más responsivo para mejor control
         const speedFactor = Math.min(forwardSpeed / 8, 1.0)
-        const TURN_FORCE = 1.2 * speedFactor  // Más agresivo para arcade
+        const TURN_FORCE = 1.4 * speedFactor  // CRÍTICO: Más agresivo para respuesta rápida
         
         rigidBody.applyTorqueImpulse({
             x: 0,

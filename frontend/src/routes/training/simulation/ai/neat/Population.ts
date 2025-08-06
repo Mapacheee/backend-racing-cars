@@ -133,20 +133,17 @@ export class Population {
             
             let offspring: Genome
             
-            // 10% genomas completamente aleatorios para diversidad
-            if (Math.random() < 0.1) {
+            if (Math.random() < 0.2) {  
                 offspring = GenomeBuilder.createMinimal(this.config)
-            } else if (Math.random() < 0.7) {
-                // 70% crossover para MÁS diversidad genética
+            } else if (Math.random() < 0.6) {  
                 const parent2 = this.selectParent(totalAdjustedFitness)
                 offspring = GenomeBuilder.crossover(parent1, parent2)
             } else {
-                // 20% asexual reproduction
                 offspring = GenomeBuilder.copy(parent1)
             }
             
             // Mutación adaptativa basada en la generación actual (solo si no es aleatorio)
-            if (Math.random() >= 0.1) {  // No mutar los completamente aleatorios
+            if (Math.random() >= 0.2) {  // No mutar los completamente aleatorios
                 const adaptiveConfig = { ...this.config, mutationRates: getAdaptiveMutationRates(this.generation) }
                 Mutations.mutate(offspring, adaptiveConfig)
             }
