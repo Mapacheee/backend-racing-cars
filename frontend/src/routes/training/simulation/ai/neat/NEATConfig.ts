@@ -6,11 +6,11 @@ export const DEFAULT_NEAT_CONFIG: NEATConfig = {
     outputNodes: 2,        
     
     mutationRates: {
-        addNode: 0.02,           // Reducido: cambios estructurales más graduales 
-        addConnection: 0.05,     // Reducido: nuevas conexiones más graduales
-        weightMutation: 0.6,     // Reducido: menos mutación de pesos (era 0.9)
-        disableConnection: 0.08, // Reducido: menos desactivación de conexiones
-        weightPerturbation: 0.4  // Reducido significativamente: cambios más sutiles (era 0.85)
+        addNode: 0.03,           
+        addConnection: 0.08,    
+        weightMutation: 0.8, 
+        disableConnection: 0.06, 
+        weightPerturbation: 0.5  
     },
     
     speciation: {
@@ -21,29 +21,28 @@ export const DEFAULT_NEAT_CONFIG: NEATConfig = {
     },
     
     survival: {
-        survivalRate: 0.3,  // Reducido: solo 30% sobrevive (6 de 20) para más diversidad
-        eliteSize: 2        // Aumentado: conservar 2 mejores para estabilidad
+        survivalRate: 0.15,  
+        eliteSize: 4     
     }
 }
 
-// Configuración de fitness optimizada para pistas rápidas
+
 export const FITNESS_CONFIG = {
-    // Pesos para diferentes métricas - enfocados en velocidad y completar pista
     weights: {
-        distance: 2.0,           // Aumentado: recompensar distancia
-        speed: 1.5,              // Aumentado: recompensar velocidad
-        time: 0.8,               // Recompensar supervivencia
-        checkpoints: 5.0,        // MUY ALTO: completar la pista es crucial
-        collisionPenalty: -2.0,  // Penalización fuerte por chocar
-        backwardPenalty: -1.0    // Penalizar ir hacia atrás
+        distance: 5.0,          
+        speed: 3.0,           
+        time: 2.0,              
+        checkpoints: 15.0,     
+        collisionPenalty: -1.0, 
+        backwardPenalty: -0.5   
     },
     
     // Valores máximos para normalización
     maxValues: {
         distance: 500,          
-        speed: 15,              
-        time: 30,              
-        checkpoints: 10
+        speed: 20,             
+        time: 40,             
+        checkpoints: 15       
     }
 }
 
@@ -72,18 +71,21 @@ export function getPopulationSize(): number {
     return DEFAULT_NEAT_CONFIG.populationSize
 }
 
-// Función para obtener tasas de mutación adaptativas basadas en la generación
 export function getAdaptiveMutationRates(generation: number): typeof DEFAULT_NEAT_CONFIG.mutationRates {
     const baseRates = DEFAULT_NEAT_CONFIG.mutationRates
     
-    // Factor de escalamiento basado en generación (1.0 a 1.5 en 20 generaciones)
-    const scaleFactor = Math.min(1 + (generation * 0.025), 1.5)
+    let scaleFactor: number
+    if (generation <= 5) {
+        scaleFactor = 4.0 - (generation * 0.2)  
+    } else if (generation <= 10) {
+        scaleFactor = 2.5 - ((generation - 5) * 0.2) 
+    } else { scaleFactor = Math.max(0.6, 1.2 - ((generation - 10) * 0.12)) }
     
     return {
-        addNode: Math.min(baseRates.addNode * scaleFactor, 0.1),
-        addConnection: Math.min(baseRates.addConnection * scaleFactor, 0.15),
-        weightMutation: Math.min(baseRates.weightMutation * scaleFactor, 0.8),
-        disableConnection: Math.min(baseRates.disableConnection * scaleFactor, 0.2),
-        weightPerturbation: Math.min(baseRates.weightPerturbation * scaleFactor, 0.6)
+        addNode: Math.min(baseRates.addNode * scaleFactor, 0.25),         
+        addConnection: Math.min(baseRates.addConnection * scaleFactor, 0.4), 
+        weightMutation: Math.min(baseRates.weightMutation * scaleFactor, 1.0),
+        disableConnection: Math.min(baseRates.disableConnection * scaleFactor, 0.2), 
+        weightPerturbation: Math.min(baseRates.weightPerturbation * scaleFactor, 1.0) 
     }
 }

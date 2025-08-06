@@ -169,32 +169,29 @@ export class CarFitnessTracker {
         return (this.metrics.checkpointsReached / this.waypoints.length) * 100
     }
     
-    // Nueva función: Calcular fitness total con el nuevo sistema
     calculateFitness(): number {
         const now = Date.now()
         const timeAlive = (now - this.startTime) / 1000
         
-        // 1. INCENTIVOS BÁSICOS AUMENTADOS - Recompensar mucho más el movimiento
-        const movementBonus = Math.min(this.metrics.distanceTraveled * 0.3, 15)  // TRIPLICADO: 0.3 punto por unidad, max 15
-        const survivalBonus = Math.min(timeAlive * 0.4, 8)  // DUPLICADO: 0.4 puntos por segundo, max 8  
-        const speedBonus = Math.min(this.metrics.averageSpeed * 5, 20)  // AUMENTADO: 5x velocidad, max 20
-        const sensorBonus = Math.min(this.sensorBonusAccumulator, 15)  // AUMENTADO: Max 15 puntos por sensores
-        
-        // 2. OBJETIVOS PRINCIPALES - Waypoints con MÁS RECOMPENSA
-        const waypointPoints = this.metrics.checkpointsReached * 25  // AUMENTADO: 25 puntos por waypoint (era 15)
+        const movementBonus = Math.min(this.metrics.distanceTraveled * 0.5, 25) 
+        const survivalBonus = Math.min(timeAlive * 0.6, 12)  
+        const speedBonus = Math.min(this.metrics.averageSpeed * 8, 30) 
+        const sensorBonus = Math.min(this.sensorBonusAccumulator, 20)  
+                const waypointPoints = this.metrics.checkpointsReached * 50  
+        const waypointBonus = Math.pow(this.metrics.checkpointsReached, 1.5) * 10 
         
         // 3. BONIFICACIONES AVANZADAS
-        const timeBonus = this.lapCompleted ? Math.max(25 - timeAlive / 3, 0) : 0  // Bonus por completar rápido
+        const timeBonus = this.lapCompleted ? Math.max(50 - timeAlive / 2, 0) : 0 
         
-        // 4. PENALIZACIONES
-        const timeoutPenalty = this.hasTimeout() ? -10 : 0  // Mayor penalización por timeout
-        const collisionPenalty = this.metrics.collisions * -3  // Aumentado: -3 por colisión
-        const inactivityPenalty = this.getInactivityPenalty()  // Nueva penalización por inactividad
+        const timeoutPenalty = this.hasTimeout() ? -5 : 0 
+        const collisionPenalty = this.metrics.collisions * -2  
+        const inactivityPenalty = this.getInactivityPenalty()  
         
-        const totalFitness = movementBonus + survivalBonus + speedBonus + sensorBonus + waypointPoints + 
-                           timeBonus + timeoutPenalty + collisionPenalty + inactivityPenalty
+        const totalFitness = movementBonus + survivalBonus + speedBonus + sensorBonus + 
+                           waypointPoints + waypointBonus + timeBonus + 
+                           timeoutPenalty + collisionPenalty + inactivityPenalty
         
-        return Math.max(0.1, totalFitness)  // Mínimo 0.1 para evitar 0 total
+        return Math.max(1.0, totalFitness)  
     }
     
     // Nueva función: Penalizar inactividad severa
