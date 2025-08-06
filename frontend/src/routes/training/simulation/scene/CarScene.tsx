@@ -18,21 +18,28 @@ export default function CarScene(): JSX.Element {
     const { triggerReset, resetCounter } = useRaceReset()
     const { modalState, openModal, closeModal } = useWaypointModal()
     const [, forceUpdate] = useState({})
+    const neatContext = useNEATTraining()
+    
+    if (!neatContext) {
+        return <div>Loading NEAT context...</div>
+    }
 
-    // Usar el contexto NEAT para el estado del entrenamiento
-    const { generation, carStates, handleFitnessUpdate, handleCarElimination, population } = useNEATTraining()
+    const { generation, carStates, handleFitnessUpdate, handleCarElimination, population } = neatContext
+    console.log('🔍 NEAT Context:', { generation, carStatesSize: carStates.size, populationExists: !!population })
 
     // Estado local para los carros que se regenera con cada generación
     const [aiCars, setAiCars] = useState(() => {
 
-        // Inicializar con 5 carros usando genomas de la población inicial
-        const initialGenomes = population.getGenomes().slice(0, 5)
+        const initialGenomes = population.getGenomes().slice(0, 20)
         return generateAICars({
             trackId: 'main_circuit',
-            carCount: 5,
-            colors: ['red', 'blue', 'green', 'yellow', 'purple'],
+            carCount: 20,
+            colors: ['red', 'blue', 'green', 'yellow', 'purple',
+                   'orange', 'pink', 'cyan', 'magenta', 'lime',
+                   'indigo', 'maroon', 'navy', 'olive', 'teal',
+                   'silver', 'gold', 'coral', 'salmon', 'khaki'],
             useNEAT: true,
-            generation: 0,
+            generation: generation,
             genomes: initialGenomes
         })
     })
@@ -40,25 +47,18 @@ export default function CarScene(): JSX.Element {
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
 
-    // Regenerar carros cuando cambia la generación o se resetea
     useEffect(() => {
-
         
-        // Obtener genomas evolucionados de la población si es generación > 1
+        const allGenomes = population.getGenomes()
         const config: any = {
             trackId: currentTrack,
-            carCount: 5,
-            colors: ['red', 'blue', 'green', 'yellow', 'purple'],
+            carCount: 20,
+            colors: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'magenta', 'lime', 'indigo', 'maroon', 'navy', 'olive', 'teal', 'silver', 'gold', 'coral', 'salmon', 'khaki'],
             useNEAT: true,
             generation: generation,
+            genomes: allGenomes 
         }
-        
-        if (generation > 1) {
-            const evolvedGenomes = population.getGenomes()
-            config.genomes = evolvedGenomes
-            console.log(`🧬 Using ${evolvedGenomes.length} evolved genomes for generation ${generation}`)
-        }
-        
+                
         const newCars = generateAICars(config)
         setAiCars(newCars)
         forceUpdate({})

@@ -21,12 +21,12 @@ interface AICarProps {
     isEliminated?: boolean
 }
 
-export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEliminated }: AICarProps): JSX.Element {
-    // Determinar qué modelo usar según el estado
+export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEliminated }: AICarProps): JSX.Element | null {
     const modelPath = isEliminated ? '/assets/models/raceCarOrange.glb' : CAR_MODEL_PATH
     const { scene } = useGLTF(modelPath)
     const { showCollisions } = useCanvasSettings()
-    const { isTraining } = useNEATTraining() // Obtener estado de entrenamiento
+    const neatContext = useNEATTraining()
+    
     const rigidBody = useRef<any>(null)
     const [sensorReadings, setSensorReadings] = useState<SensorReading>({
         left: 1,
@@ -38,7 +38,6 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
 
     const track = TRACKS[carData.trackId || 'main_circuit']
     
-    // Inicializar controlador NEAT y tracker de fitness
     const [controller] = useState(() => {
         const genome = carData.genome || GenomeBuilder.createMinimal(DEFAULT_NEAT_CONFIG)
         return new NEATCarController(genome)
@@ -50,6 +49,27 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
     })
     
     const [lastCollisionTime, setLastCollisionTime] = useState(0)
+    
+    if (!neatContext) {
+        return null
+    }
+    
+    const { isTraining, generation } = neatContext
+
+    // Reset posición cuando cambia la generación
+    useEffect(() => {
+        const rb = rigidBody.current
+        if (rb) {
+            rb.setTranslation({ x: carData.position[0], y: carData.position[1], z: carData.position[2] }, true)
+            rb.setRotation({ x: 0, y: carData.rotation, z: 0, w: 1 }, true)
+            rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
+            rb.setAngvel({ x: 0, y: 0, z: 0 }, true)
+            
+            // Reset fitness tracker
+            const startPos = new Vector3(...carData.position)
+            fitnessTracker.reset(startPos)
+        }
+    }, [generation, carData.position, carData.rotation, fitnessTracker])
 
     // Efecto para la simulación del carro
     useEffect(() => {

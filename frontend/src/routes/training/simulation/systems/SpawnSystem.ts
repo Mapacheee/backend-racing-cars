@@ -18,9 +18,9 @@ export function calculateSpawnTransform(track: Track): {
     const secondWaypoint = track.waypoints[1]
 
     const position: [number, number, number] = [
-        firstWaypoint.x + 1.5,
+        firstWaypoint.x + 0.5,
         0,
-        firstWaypoint.z - 0.5,
+        firstWaypoint.z - 1,
     ]
 
     // Calcular rotación hacia el segundo waypoint para que miren en la dirección correcta
