@@ -110,7 +110,7 @@ const BaseCar3D = forwardRef<Car3DRef, BaseCar3DProps>(({
             userData={{ type: 'car', id: car.id }}
             {...(onCollision && { onCollisionEnter: onCollision })}
         >
-            {/* car 3d model */}
+
             <primitive
                 object={scene.clone()}
                 scale={1.5}
@@ -118,8 +118,6 @@ const BaseCar3D = forwardRef<Car3DRef, BaseCar3DProps>(({
                     material: { color: car.color }
                 })}
             />
-
-            {/* custom children (sensors, effects, etc) */}
             {children}
         </RigidBody>
     )

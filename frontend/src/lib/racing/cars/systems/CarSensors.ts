@@ -7,16 +7,22 @@ export function createSensorReadings(
     carPosition: Vector3,
     carRotation: number,
     walls: Wall[],
-    config: SensorConfig
+    config: SensorConfig,
+    centerOffset?: { x: number, y: number, z: number }
 ): SensorReading {
+    const offset = centerOffset || { x: 0, y: 0, z: 0 }
+    const basePosition = new Vector3(
+        carPosition.x + Math.sin(carRotation) * offset.z + Math.cos(carRotation) * offset.x,
+        carPosition.y + offset.y,
+        carPosition.z + Math.cos(carRotation) * offset.z - Math.sin(carRotation) * offset.x
+    )
     const readings: SensorReading = {
-        left: getSensorDistance(carPosition, carRotation, config.angles.left, walls, config.maxDistance),
-        leftCenter: getSensorDistance(carPosition, carRotation, config.angles.leftCenter, walls, config.maxDistance),
-        center: getSensorDistance(carPosition, carRotation, config.angles.center, walls, config.maxDistance),
-        rightCenter: getSensorDistance(carPosition, carRotation, config.angles.rightCenter, walls, config.maxDistance),
-        right: getSensorDistance(carPosition, carRotation, config.angles.right, walls, config.maxDistance)
+        left: getSensorDistance(basePosition, carRotation, config.angles.left, walls, config.maxDistance),
+        leftCenter: getSensorDistance(basePosition, carRotation, config.angles.leftCenter, walls, config.maxDistance),
+        center: getSensorDistance(basePosition, carRotation, config.angles.center, walls, config.maxDistance),
+        rightCenter: getSensorDistance(basePosition, carRotation, config.angles.rightCenter, walls, config.maxDistance),
+        right: getSensorDistance(basePosition, carRotation, config.angles.right, walls, config.maxDistance)
     }
-    
     return readings
 }
 
@@ -28,13 +34,12 @@ function getSensorDistance(
     walls: Wall[],
     maxDistance: number
 ): number {
-    const angleRad = (sensorAngle * Math.PI) / 180
-    const totalAngle = carRotation + angleRad
-    
+    const sensorAngleRad = (sensorAngle * Math.PI) / 180
+    const absoluteAngle = carRotation + sensorAngleRad
     const sensorEnd = new Vector3(
-        carPosition.x + Math.sin(totalAngle) * maxDistance,
+        carPosition.x + Math.sin(absoluteAngle) * maxDistance,
         carPosition.y,
-        carPosition.z + Math.cos(totalAngle) * maxDistance
+        carPosition.z + Math.cos(absoluteAngle) * maxDistance
     )
     
     let minDistance = 1.0

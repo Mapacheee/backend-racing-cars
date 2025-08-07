@@ -13,7 +13,7 @@ interface SensorVisualizationProps {
 
 // default visualization configuration
 const DEFAULT_VISUAL_CONFIG: SensorVisualizationConfig = {
-    centerOffset: { x: 0, y: 0.2, z: 1 },
+    centerOffset: { x: -1, y: 0.2, z: 0 }, 
     colors: {
         noObstacle: '#00ff00',
         obstacle: '#ff0000'
@@ -30,8 +30,14 @@ export default function SensorVisualization({
     visible = true
 }: SensorVisualizationProps) {
     const finalVisualConfig = { ...DEFAULT_VISUAL_CONFIG, ...visualConfig }
+    const offset = finalVisualConfig.centerOffset
+    const basePosition = {
+        x: carPosition.x + Math.sin(carRotation) * offset.z + Math.cos(carRotation) * offset.x,
+        y: carPosition.y + offset.y,
+        z: carPosition.z + Math.cos(carRotation) * offset.z - Math.sin(carRotation) * offset.x
+    }
 
-    // calculate sensor line positions and colors
+
     const sensorLines = useMemo(() => {
         if (!visible) return []
 
@@ -44,21 +50,19 @@ export default function SensorVisualization({
         ]
 
         return sensors.map(sensor => {
-            const angleRad = (sensor.angle * Math.PI) / 180
-            const totalAngle = carRotation + angleRad
-            
-            // calculate sensor start position (offset from car center)
-            const startX = carPosition.x + Math.sin(carRotation) * finalVisualConfig.centerOffset.z
-            const startY = carPosition.y + finalVisualConfig.centerOffset.y
-            const startZ = carPosition.z + Math.cos(carRotation) * finalVisualConfig.centerOffset.z
-            
-            // calculate sensor end position based on reading
-            const actualDistance = sensor.reading * config.maxDistance
-            const endX = startX + Math.sin(totalAngle) * actualDistance
+
+            const sensorAngleRad = (sensor.angle * Math.PI) / 180
+            const absoluteAngle = carRotation + sensorAngleRad - Math.PI / 2
+
+            const startX = basePosition.x
+            const startY = basePosition.y
+            const startZ = basePosition.z
+
+            const distance = config.maxDistance * 0.5
+            const endX = startX + Math.sin(absoluteAngle) * distance
             const endY = startY
-            const endZ = startZ + Math.cos(totalAngle) * actualDistance
-            
-            // determine color based on obstacle detection
+            const endZ = startZ + Math.cos(absoluteAngle) * distance
+
             const hasObstacle = sensor.reading < 0.8
             const color = hasObstacle ? finalVisualConfig.colors.obstacle : finalVisualConfig.colors.noObstacle
             
@@ -70,43 +74,31 @@ export default function SensorVisualization({
                 opacity: hasObstacle ? 0.8 : 0.4
             }
         })
-    }, [carPosition, carRotation, sensorReadings, config, finalVisualConfig, visible])
+    }, [carPosition, carRotation, sensorReadings, config, finalVisualConfig, visible, basePosition])
 
     if (!visible) return null
 
     return (
         <group>
-            {sensorLines.map(line => (
-                <group key={line.key}>
-                    {/* sensor line */}
-                    <mesh position={[
-                        (line.start[0] + line.end[0]) / 2,
-                        (line.start[1] + line.end[1]) / 2,
-                        (line.start[2] + line.end[2]) / 2
-                    ]}>
-                        <cylinderGeometry args={[0.02, 0.02, Math.sqrt(
-                            Math.pow(line.end[0] - line.start[0], 2) +
-                            Math.pow(line.end[1] - line.start[1], 2) +
-                            Math.pow(line.end[2] - line.start[2], 2)
-                        )]} />
-                        <meshBasicMaterial
-                            color={line.color}
-                            transparent
-                            opacity={line.opacity}
-                        />
-                    </mesh>
-
-                    {/* sensor endpoint indicator */}
-                    <mesh position={line.end}>
-                        <sphereGeometry args={[0.1]} />
-                        <meshBasicMaterial
-                            color={line.color}
-                            transparent
-                            opacity={line.opacity}
-                        />
-                    </mesh>
-                </group>
-            ))}
+            {sensorLines.map(line => {
+                const positions = new Float32Array([
+                    ...line.start,
+                    ...line.end
+                ])
+                return (
+                    <line key={line.key}>
+                        <bufferGeometry attach="geometry">
+                            <bufferAttribute
+                                attach="attributes-position"
+                                array={positions}
+                                count={2}
+                                itemSize={3}
+                            />
+                        </bufferGeometry>
+                        <lineBasicMaterial color={line.color} />
+                    </line>
+                )
+            })}
         </group>
     )
 }
