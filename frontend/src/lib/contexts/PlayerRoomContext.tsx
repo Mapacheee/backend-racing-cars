@@ -5,6 +5,7 @@ import React, {
     useState,
     useCallback,
 } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { racingWebSocketService } from '../services/racing-websocket'
 import type { PlayerAuth } from '../types/auth'
@@ -23,6 +24,7 @@ interface PlayerRoomContextType {
     // Loading states
     isJoiningRoom: boolean
     isLeavingRoom: boolean
+    isInitializing: boolean
 
     // Error states
     roomError: string | null
@@ -58,6 +60,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
     children,
 }) => {
     const { auth } = useAuth<PlayerAuth>()
+    const location = useLocation()
 
     // Connection state
     const [isConnected, setIsConnected] = useState(false)
@@ -71,11 +74,12 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
     // Loading states
     const [isJoiningRoom, setIsJoiningRoom] = useState(false)
     const [isLeavingRoom, setIsLeavingRoom] = useState(false)
+    const [isInitializing, setIsInitializing] = useState(true)
 
     // Error states
     const [roomError, setRoomError] = useState<string | null>(null)
 
-    // Initialize room state from localStorage
+    // Initialize room state from localStorage (only on mount)
     useEffect(() => {
         const savedRoom = localStorage.getItem('player-current-room')
         if (savedRoom) {
@@ -83,10 +87,15 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
                 const room = JSON.parse(savedRoom) as RaceRoom
                 setCurrentRoom(room)
                 setParticipants(room.participants)
-                setIsInRoom(true)
+                // Check current location at initialization time
+                const isOnRoomPage =
+                    window.location.pathname === '/training/room'
+                setIsInRoom(isOnRoomPage)
                 console.log(
                     '🔄 Restored player room from localStorage:',
-                    room.id
+                    room.id,
+                    'isOnRoomPage:',
+                    isOnRoomPage
                 )
             } catch (error) {
                 console.error(
@@ -96,7 +105,23 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
                 localStorage.removeItem('player-current-room')
             }
         }
-    }, [])
+        // Mark initialization as complete
+        setIsInitializing(false)
+    }, []) // Only run on mount
+
+    // Track route changes for existing rooms
+    useEffect(() => {
+        if (currentRoom && !isInitializing) {
+            const isOnRoomPage = location.pathname === '/training/room'
+            setIsInRoom(isOnRoomPage)
+            console.log(
+                '📍 Route changed:',
+                location.pathname,
+                'isOnRoomPage:',
+                isOnRoomPage
+            )
+        }
+    }, [location.pathname, currentRoom, isInitializing])
 
     // Initialize WebSocket connection when authenticated
     useEffect(() => {
@@ -136,32 +161,75 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
         }
     }, [auth?.token])
 
-    // Check for existing room status when connected
+    // Check for existing room status when connected and on room page
     useEffect(() => {
-        if (isConnected && currentRoom && isInRoom) {
-            // Verify the room still exists on the server
-            racingWebSocketService.getRoomStatus(
-                currentRoom.id,
-                room => {
-                    setCurrentRoom(room)
-                    setParticipants(room.participants)
-                    console.log('🔄 Player room status updated:', room.id)
+        if (
+            isConnected &&
+            currentRoom &&
+            location.pathname === '/training/room' &&
+            auth?.id &&
+            auth?.username
+        ) {
+            // First, try to rejoin the room (in case we got disconnected)
+            console.log('🔄 Attempting to rejoin room:', currentRoom.id)
+            racingWebSocketService.joinRoom(
+                {
+                    roomId: currentRoom.id,
+                    userId: auth.id,
+                    aiGeneration: auth.aiGeneration,
+                    username: auth.username,
+                },
+                response => {
+                    // Successfully rejoined
+                    setCurrentRoom(response.room)
+                    setParticipants(response.room.participants)
+                    setIsInRoom(true)
+                    console.log(
+                        '🏁 Successfully rejoined room:',
+                        response.room.id
+                    )
                 },
                 error => {
-                    console.log('❌ Room no longer exists on server:', error)
-                    // Clear the room from localStorage if it doesn't exist
-                    setCurrentRoom(null)
-                    setParticipants([])
-                    setIsInRoom(false)
-                    localStorage.removeItem('player-current-room')
+                    console.log('❌ Failed to rejoin room:', error)
+                    // If we can't rejoin, try to get room status
+                    racingWebSocketService.getRoomStatus(
+                        currentRoom.id,
+                        room => {
+                            setCurrentRoom(room)
+                            setParticipants(room.participants)
+                            setIsInRoom(true)
+                            console.log(
+                                '🔄 Player room status updated:',
+                                room.id
+                            )
+                        },
+                        statusError => {
+                            console.log(
+                                '❌ Room no longer exists on server:',
+                                statusError
+                            )
+                            // Clear the room from localStorage if it doesn't exist
+                            setCurrentRoom(null)
+                            setParticipants([])
+                            setIsInRoom(false)
+                            localStorage.removeItem('player-current-room')
+                        }
+                    )
                 }
             )
         }
-    }, [isConnected, currentRoom?.id, isInRoom])
+    }, [
+        isConnected,
+        currentRoom?.id,
+        location.pathname,
+        auth?.id,
+        auth?.username,
+        auth?.aiGeneration,
+    ])
 
-    // Save room state to localStorage whenever it changes
+    // Save room state to localStorage whenever room changes (not based on isInRoom)
     useEffect(() => {
-        if (currentRoom && isInRoom) {
+        if (currentRoom) {
             localStorage.setItem(
                 'player-current-room',
                 JSON.stringify(currentRoom)
@@ -169,7 +237,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
         } else {
             localStorage.removeItem('player-current-room')
         }
-    }, [currentRoom, isInRoom])
+    }, [currentRoom])
 
     // Setup room event handlers
     const setupRoomEventHandlers = useCallback(() => {
@@ -333,6 +401,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
         // Loading states
         isJoiningRoom,
         isLeavingRoom,
+        isInitializing,
 
         // Error states
         roomError,

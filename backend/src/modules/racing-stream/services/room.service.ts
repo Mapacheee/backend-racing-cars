@@ -92,12 +92,8 @@ export class RoomService {
 
     room.participants = room.participants.filter((p) => p.userId !== userId);
 
-    // If no participants left, delete room
-    if (room.participants.length === 0) {
-      this.rooms.delete(roomId);
-      return null;
-    }
-
+    // Keep the room open even if no participants remain
+    // Only the admin can explicitly close rooms
     return room;
   }
 
@@ -274,8 +270,9 @@ export class RoomService {
       const shouldCleanup =
         room.createdAt < cutoff &&
         (room.status === RoomStatus.FINISHED ||
-          room.status === RoomStatus.CLOSED ||
-          room.participants.length === 0);
+          room.status === RoomStatus.CLOSED);
+      // Note: No longer automatically cleaning up empty rooms
+      // Only clean up rooms that are explicitly finished or closed
 
       if (shouldCleanup) {
         this.rooms.delete(roomId);
@@ -351,10 +348,8 @@ export class RoomService {
     const initialCount = room.participants.length;
     room.participants = room.participants.filter((p) => p.userId !== userId);
 
-    // If no participants left and room is not actively racing, mark as closed
-    if (room.participants.length === 0 && room.status !== RoomStatus.RACING) {
-      room.status = RoomStatus.CLOSED;
-    }
+    // Keep the room open even if no participants remain
+    // Only the admin can explicitly close rooms
 
     // Return room only if a participant was actually removed
     return room.participants.length < initialCount ? room : null;

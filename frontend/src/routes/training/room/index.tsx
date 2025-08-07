@@ -4,26 +4,45 @@ import { useAuth } from '../../../lib/contexts/AuthContext'
 import { usePlayerRoomContext } from '../../../lib/contexts/PlayerRoomContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
 
-export default function PlayerRoom() {
+function PlayerRoomGuard() {
+    const navigate = useNavigate()
+    const { currentRoom, isInitializing } = usePlayerRoomContext()
+
+    useEffect(() => {
+        // Wait for initialization to complete before checking room
+        if (!isInitializing && !currentRoom) {
+            navigate('/training/menu', { replace: true })
+        }
+    }, [currentRoom, isInitializing, navigate])
+
+    // Show loading while initializing
+    if (isInitializing) {
+        return (
+            <div className="min-h-screen w-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                    <div className="text-lg text-secondary">Cargando...</div>
+                </div>
+            </div>
+        )
+    }
+
+    // Don't render room if no current room (after initialization)
+    if (!currentRoom) {
+        return null
+    }
+
+    return <PlayerRoomContent />
+}
+
+function PlayerRoomContent() {
     const navigate = useNavigate()
     const { auth, clearAuth } = useAuth<PlayerAuth>()
-    const {
-        currentRoom,
-        participants,
-        isInRoom,
-        roomError,
-        leaveRoom,
-        isConnected,
-    } = usePlayerRoomContext()
+    const { currentRoom, participants, roomError, leaveRoom, isConnected } =
+        usePlayerRoomContext()
 
     useEffect(() => {
         document.title = `Sala de Competición - Carrera neuronal 🏎️🧠`
-
-        // If not in a room, redirect to menu
-        if (!isInRoom || !currentRoom) {
-            navigate('/training/menu')
-        }
-    }, [isInRoom, currentRoom, navigate])
+    }, [])
 
     function handleLogout() {
         clearAuth()
@@ -177,4 +196,8 @@ export default function PlayerRoom() {
             </button>
         </div>
     )
+}
+
+export default function PlayerRoom() {
+    return <PlayerRoomGuard />
 }

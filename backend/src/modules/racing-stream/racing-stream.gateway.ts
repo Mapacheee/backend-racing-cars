@@ -28,6 +28,9 @@ import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { PlayerFromJwt } from '../auth/player/interfaces/player-jwt.interface';
 import { AdminTokenPayload } from '../auth/admin/interfaces/admin-token-payload.dto';
 
+// ERROR: adminId (admin name) should not be public exposed
+// current behavior: { id: "2309", participants: [], status: "waiting", createdAt: "2025-08-07T21:47:47.564Z", maxParticipants: 10, adminId: "monsalves" }
+
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/racing-stream',
@@ -154,17 +157,14 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await client.leave(data.roomId);
 
       if (room) {
-        // Notify remaining participants
+        // Notify remaining participants that someone left
         this.server.to(data.roomId).emit('playerLeft', {
           userId: data.userId,
           room,
         });
-      } else {
-        // Room was closed (no participants left)
-        this.server.to(data.roomId).emit('roomClosed', {
-          message: 'Room closed - no participants remaining',
-        });
       }
+      // Note: Rooms are no longer automatically closed when empty
+      // Only the admin can explicitly close rooms
 
       client.emit('roomLeft', { message: 'Successfully left room' });
     } catch (error) {
