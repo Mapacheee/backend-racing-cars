@@ -1,7 +1,7 @@
-import type { Track } from '../types/track'
+import type { Track } from '../../../../lib/racing/track'
 import type { AICar } from '../types/car'
 import { GenomeBuilder, DEFAULT_NEAT_CONFIG } from '../ai'
-import { TRACKS } from './TrackSystem'
+import { TRACKS } from '../../../../lib/racing/track'
 
 export interface SpawnConfig {
     trackId: string
