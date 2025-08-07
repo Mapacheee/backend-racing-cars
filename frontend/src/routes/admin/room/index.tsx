@@ -150,7 +150,7 @@ export default function AdminRoom() {
                             {participants.length === 0 ? (
                                 <div className="p-8 text-center text-secondary">
                                     {!currentRoom
-                                        ? 'Creando sala...'
+                                        ? 'No hay sala activa. Presiona "Nueva Sala" para crear una.'
                                         : 'No hay jugadores en la sala'}
                                 </div>
                             ) : (

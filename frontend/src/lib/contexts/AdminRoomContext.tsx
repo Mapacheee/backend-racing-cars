@@ -77,9 +77,24 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
     // Error states
     const [roomError, setRoomError] = useState<string | null>(null)
 
-    // Auto-create room flag
-    const [hasAttemptedRoomCreation, setHasAttemptedRoomCreation] =
-        useState(false)
+    // Initialize room state from localStorage
+    useEffect(() => {
+        const savedRoom = localStorage.getItem('admin-current-room')
+        if (savedRoom) {
+            try {
+                const room = JSON.parse(savedRoom) as RaceRoom
+                setCurrentRoom(room)
+                setParticipants(room.participants)
+                console.log('🔄 Restored room from localStorage:', room.id)
+            } catch (error) {
+                console.error(
+                    'Failed to restore room from localStorage:',
+                    error
+                )
+                localStorage.removeItem('admin-current-room')
+            }
+        }
+    }, [])
 
     // Initialize WebSocket connection when authenticated
     useEffect(() => {
@@ -117,23 +132,39 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
         }
     }, [auth.token])
 
-    // Auto-create room when connected
+    // Check for existing room status when connected
     useEffect(() => {
-        if (
-            isConnected &&
-            !currentRoom &&
-            !hasAttemptedRoomCreation &&
-            !isCreatingRoom
-        ) {
-            console.log('🔄 Auto-creating room for admin...')
-            setHasAttemptedRoomCreation(true)
-            createRoom(10).catch(error => {
-                console.error('❌ Auto room creation failed:', error)
-                // Reset the flag so user can manually retry
-                setHasAttemptedRoomCreation(false)
-            })
+        if (isConnected && currentRoom) {
+            // Verify the room still exists on the server
+            racingWebSocketService.getRoomStatus(
+                currentRoom.id,
+                room => {
+                    setCurrentRoom(room)
+                    setParticipants(room.participants)
+                    console.log('🔄 Room status updated:', room.id)
+                },
+                error => {
+                    console.log('❌ Room no longer exists on server:', error)
+                    // Clear the room from localStorage if it doesn't exist
+                    setCurrentRoom(null)
+                    setParticipants([])
+                    localStorage.removeItem('admin-current-room')
+                }
+            )
         }
-    }, [isConnected, currentRoom, hasAttemptedRoomCreation, isCreatingRoom])
+    }, [isConnected, currentRoom?.id])
+
+    // Save room state to localStorage whenever it changes
+    useEffect(() => {
+        if (currentRoom) {
+            localStorage.setItem(
+                'admin-current-room',
+                JSON.stringify(currentRoom)
+            )
+        } else {
+            localStorage.removeItem('admin-current-room')
+        }
+    }, [currentRoom])
 
     // Setup room event handlers
     const setupRoomEventHandlers = useCallback(() => {
@@ -142,6 +173,10 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
             if (data.room) {
                 setCurrentRoom(data.room)
                 setParticipants(data.room.participants)
+                localStorage.setItem(
+                    'admin-current-room',
+                    JSON.stringify(data.room)
+                )
                 console.log(
                     `👤 Player ${data.participant.username} joined room`
                 )
@@ -153,6 +188,10 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
             if (data.room) {
                 setCurrentRoom(data.room)
                 setParticipants(data.room.participants)
+                localStorage.setItem(
+                    'admin-current-room',
+                    JSON.stringify(data.room)
+                )
                 console.log(`👤 Player left room`)
             }
         })
@@ -169,7 +208,7 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
             setCurrentRoom(null)
             setParticipants([])
             setRacePackage(null)
-            setHasAttemptedRoomCreation(false) // Allow creating a new room
+            localStorage.removeItem('admin-current-room')
             console.log(`🚪 Room closed: ${data.message}`)
         })
     }, [])
@@ -191,6 +230,11 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
                         setCurrentRoom(response.room)
                         setParticipants(response.room.participants)
                         setIsCreatingRoom(false)
+                        // Save room to localStorage for persistence
+                        localStorage.setItem(
+                            'admin-current-room',
+                            JSON.stringify(response.room)
+                        )
                         console.log(
                             '🏁 Room created successfully:',
                             response.room.id
@@ -295,7 +339,7 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
                     setCurrentRoom(null)
                     setParticipants([])
                     setRacePackage(null)
-                    setHasAttemptedRoomCreation(false) // Allow creating a new room
+                    localStorage.removeItem('admin-current-room')
                     setIsClosingRoom(false)
                     console.log('🚪 Room closed successfully')
                     resolve()
@@ -356,7 +400,7 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
         setCurrentRoom(null)
         setParticipants([])
         setRacePackage(null)
-        setHasAttemptedRoomCreation(false)
+        localStorage.removeItem('admin-current-room')
     }, [])
 
     const value = {
