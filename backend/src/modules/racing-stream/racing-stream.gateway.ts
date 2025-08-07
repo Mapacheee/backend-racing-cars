@@ -111,6 +111,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const room = this.roomService.joinRoom(
         data.roomId,
         data.userId,
+        data.aiGeneration,
         data.username,
         client.id,
       );

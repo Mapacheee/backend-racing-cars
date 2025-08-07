@@ -27,6 +27,9 @@ export class JoinRoomDto {
   @IsString()
   userId: string;
 
+  @IsNumber()
+  aiGeneration: number;
+
   @IsString()
   username: string;
 }

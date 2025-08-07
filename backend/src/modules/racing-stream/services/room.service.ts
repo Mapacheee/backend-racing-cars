@@ -47,6 +47,7 @@ export class RoomService {
   joinRoom(
     roomId: string,
     userId: string,
+    aiGeneration: number,
     username: string,
     socketId: string,
   ): RaceRoom | null {
@@ -76,6 +77,7 @@ export class RoomService {
     const participant: RoomParticipant = {
       userId,
       username,
+      aiGeneration,
       connectedAt: new Date(),
       socketId,
     };

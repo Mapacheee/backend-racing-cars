@@ -12,6 +12,7 @@ export interface RaceRoom {
 export interface RoomParticipant {
   userId: string;
   username: string;
+  aiGeneration: number;
   connectedAt: Date;
   socketId: string;
 }
