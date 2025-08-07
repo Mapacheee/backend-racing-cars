@@ -41,8 +41,7 @@ import type {
 
 class RacingWebSocketService {
     private socket: Socket | null = null
-    private readonly baseUrl =
-        import.meta.env['VITE_API_URL'] || 'http://localhost:3001'
+    private readonly baseUrl = import.meta.env['VITE_BACKEND_URL']
     private readonly namespace = '/racing-stream'
 
     /**
@@ -54,6 +53,7 @@ class RacingWebSocketService {
      * @param token - JWT authentication token (required for all WebSocket operations)
      */
     connect(token: string): Socket {
+        console.log(this.baseUrl)
         if (this.socket?.connected) {
             return this.socket
         }
