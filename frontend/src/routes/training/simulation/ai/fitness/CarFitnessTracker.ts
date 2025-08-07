@@ -9,13 +9,13 @@ export class CarFitnessTracker {
     private startTime: number
     private totalDistance: number = 0
     private speedSamples: number[] = []
-    private currentWaypointIndex: number = 0 
+    private currentWaypointIndex: number = 0
     private waypoints: Waypoint[]
-    private lastProgressTime: number  
-    private waypointTimes: number[] = []  
+    private lastProgressTime: number
+    private waypointTimes: number[] = []
     private lapCompleted: boolean = false
-    private sensorBonusAccumulator: number = 0  
-    
+    private sensorBonusAccumulator: number = 0
+
     constructor(startPosition: Vector3, waypoints: Waypoint[]) {
         this.metrics = {
             distanceTraveled: 0,
@@ -30,7 +30,7 @@ export class CarFitnessTracker {
         this.startTime = Date.now()
         this.lastProgressTime = this.startTime
         this.waypoints = waypoints
-        this.sensorBonusAccumulator = 0  // Inicializar acumulador
+        this.sensorBonusAccumulator = 0
     }
     
     update(currentPosition: Vector3, velocity: Vector3): void {
@@ -44,10 +44,10 @@ export class CarFitnessTracker {
         const positionDelta = currentPosition.distanceTo(this.lastPosition)
         this.totalDistance += positionDelta
         this.metrics.distanceTraveled = this.totalDistance
-        
-        // NUEVO: Actualizar progreso por movimiento significativo
-        if (positionDelta > 0.05) {  // Si se movió más de 0.05 unidades
-            this.lastProgressTime = now  // Resetear timeout por cualquier movimiento
+
+        // Actualizar progreso por movimiento significativo
+        if (positionDelta > 0.05) {  
+            this.lastProgressTime = now 
         }
         
         // Calcular velocidad actual
@@ -73,7 +73,7 @@ export class CarFitnessTracker {
             }
         }
         
-        // Verificar checkpoints
+        // check main waypoints
         this.updateCheckpoints(currentPosition)
         
         this.lastPosition = currentPosition.clone()
@@ -83,61 +83,51 @@ export class CarFitnessTracker {
         this.metrics.collisions++
     }
     
-    // FUNCIÓN MEJORADA: Actualizar fitness basado en sensores con MÁS RECOMPENSAS
     updateSensorFitness(sensorReadings: SensorReading): void {
-        // Calcular fitness por tener sensores libres (no detectar paredes)
         const sensorSum = sensorReadings.left + sensorReadings.leftCenter + 
                          sensorReadings.center + sensorReadings.rightCenter + 
                          sensorReadings.right
         
-        // Factor aumentado para recompensar posición libre
-        const sensorBonus = (sensorSum / 5) * 0.03  // TRIPLICADO: 0.03 puntos por frame (era 0.01)
+        const sensorBonus = (sensorSum / 5) * 0.03  
         this.sensorBonusAccumulator += sensorBonus
         
-        // Bonus especial AUMENTADO si el sensor central está muy libre (buena posición)
         if (sensorReadings.center > 0.8) {
-            this.sensorBonusAccumulator += 0.02  // CUADRUPLICADO: 0.02 bonus extra (era 0.005)
+            this.sensorBonusAccumulator += 0.02  
         }
         
-        // NUEVO: Bonus adicional por tener TODOS los sensores relativamente libres
-        if (sensorSum > 4.0) {  // Si la suma es mayor a 4 (promedio >0.8)
-            this.sensorBonusAccumulator += 0.01  // Bonus extra por excelente posicionamiento
+        if (sensorSum > 4.0) { 
+            this.sensorBonusAccumulator += 0.01  
         }
     }
     
+    // checks if the car reached the next main waypoint (ignores first for scoring)
     private updateCheckpoints(position: Vector3): void {
-        // Verificar si alcanzó el waypoint actual (secuencial)
-        const currentWaypoint = this.waypoints[this.currentWaypointIndex]
-        
+        const currentWaypoint = this.waypoints[this.currentWaypointIndex];
         if (currentWaypoint) {
             const distance = Math.sqrt(
-                Math.pow(position.x - currentWaypoint.x, 2) + 
+                Math.pow(position.x - currentWaypoint.x, 2) +
                 Math.pow(position.z - currentWaypoint.z, 2)
-            )
-            
-            // Radio más generoso para facilitar progreso inicial
-            const waypointRadius = Math.max(currentWaypoint.radius || 3.0, 4.0)
-            
-            // Si está dentro del radio del waypoint actual
+            );
+            const waypointRadius = Math.max(currentWaypoint.radius || 3.0, 4.0);
             if (distance < waypointRadius) {
-                const now = Date.now()
-                this.waypointTimes.push(now - this.startTime)
-                this.lastProgressTime = now  // Progreso real por waypoint
-                this.metrics.checkpointsReached++
-                
-                console.log(`🎯 Car reached waypoint ${this.currentWaypointIndex + 1}/${this.waypoints.length} (distance: ${distance.toFixed(2)})`)
-                
-                // Avanzar al siguiente waypoint
-                this.currentWaypointIndex++
-                
-                // Verificar si completó la vuelta
+                const now = Date.now();
+                this.waypointTimes.push(now - this.startTime);
+                this.lastProgressTime = now;
+                // only give points if not the first waypoint
+                if (this.currentWaypointIndex > 0) {
+                    this.metrics.checkpointsReached++;
+                    // log for debug
+                    console.log(`🎯 Car reached waypoint ${this.currentWaypointIndex + 1}/${this.waypoints.length} (distance: ${distance.toFixed(2)})`);
+                }
+                this.currentWaypointIndex++;
                 if (this.currentWaypointIndex >= this.waypoints.length) {
-                    this.lapCompleted = true
-                    console.log(`🏁 Car completed lap in ${(now - this.startTime) / 1000}s`)
+                    this.lapCompleted = true;
+                    console.log(`🏁 Car completed lap in ${(now - this.startTime) / 1000}s`);
                 }
             }
         }
     }
+
     
     private getForwardDirection(currentPosition: Vector3): Vector3 {
         // Calcular dirección hacia el siguiente waypoint (secuencial)
@@ -165,7 +155,6 @@ export class CarFitnessTracker {
     }
     
     getProgress(): number {
-        // Progreso como porcentaje del circuito completado
         return (this.metrics.checkpointsReached / this.waypoints.length) * 100
     }
     
@@ -180,7 +169,6 @@ export class CarFitnessTracker {
                 const waypointPoints = this.metrics.checkpointsReached * 50  
         const waypointBonus = Math.pow(this.metrics.checkpointsReached, 1.5) * 10 
         
-        // 3. BONIFICACIONES AVANZADAS
         const timeBonus = this.lapCompleted ? Math.max(50 - timeAlive / 2, 0) : 0 
         
         const timeoutPenalty = this.hasTimeout() ? -5 : 0 
@@ -194,27 +182,23 @@ export class CarFitnessTracker {
         return Math.max(1.0, totalFitness)  
     }
     
-    // Nueva función: Penalizar inactividad severa
     private getInactivityPenalty(): number {
         const now = Date.now()
         const timeSinceProgress = (now - this.lastProgressTime) / 1000
         
-        // Penalización progresiva por inactividad
-        if (timeSinceProgress > 6) return -5  // Muy parado
-        if (timeSinceProgress > 4) return -2  // Algo parado
-        if (timeSinceProgress > 2) return -0.5  // Poco movimiento
+        if (timeSinceProgress > 6) return -5 
+        if (timeSinceProgress > 4) return -2  
+        if (timeSinceProgress > 2) return -0.5 
         
-        return 0  // Sin penalización si se mueve regularmente
+        return 0  
     }
     
-    // Nueva función: Verificar si el carro ha hecho timeout
     hasTimeout(): boolean {
         const now = Date.now()
         const timeSinceProgress = (now - this.lastProgressTime) / 1000
-        return timeSinceProgress > 8  // 8 segundos sin progreso = timeout
+        return timeSinceProgress > 3
     }
     
-    // Nueva función: Verificar si completó la vuelta
     isLapCompleted(): boolean {
         return this.lapCompleted
     }
@@ -234,9 +218,9 @@ export class CarFitnessTracker {
         this.lastProgressTime = this.startTime
         this.totalDistance = 0
         this.speedSamples = []
-        this.currentWaypointIndex = 0  // Empezar desde el primer waypoint
+        this.currentWaypointIndex = 0  
         this.waypointTimes = []
         this.lapCompleted = false
-        this.sensorBonusAccumulator = 0  // Resetear bonus de sensores
+        this.sensorBonusAccumulator = 0  
     }
 }
