@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
-import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
+import { AdminLoginResponse } from './interfaces/admin-login-response.dto';
 
 @Controller('auth/admin')
 export class AdminAuthController {
@@ -9,13 +9,13 @@ export class AdminAuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() loginDto: AdminLoginDto): AdminLoginResponseDto {
+  login(@Body() loginDto: AdminLoginDto): AdminLoginResponse {
     return this.adminAuthService.login(loginDto);
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  refresh(@Body() body: { token: string }): AdminLoginResponseDto {
+  refresh(@Body() body: { token: string }): AdminLoginResponse {
     return this.adminAuthService.refreshToken(body.token);
   }
 }

@@ -2,11 +2,11 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AdminLoginDto } from './dto/admin-login.dto';
-import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
+import { AdminLoginResponse } from './interfaces/admin-login-response.dto';
 import {
-  AdminTokenPayloadDto,
-  AdminTokenPayloadResponseDto,
-} from './dto/admin-token-payload.dto';
+  AdminTokenPayload,
+  AdminTokenPayloadResponse,
+} from './interfaces/admin-token-payload.dto';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
@@ -16,8 +16,8 @@ export class AdminAuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  private generateAdminToken(admin: AdminTokenPayloadResponseDto): string {
-    const payload: AdminTokenPayloadDto = {
+  private generateAdminToken(admin: AdminTokenPayloadResponse): string {
+    const payload: AdminTokenPayload = {
       sub: admin.username,
       iat: Math.floor(Date.now() / 1000),
       jti: randomUUID(),
@@ -26,9 +26,9 @@ export class AdminAuthService {
     return this.jwtService.sign(payload, { expiresIn: '24h' });
   }
 
-  private verifyAdminToken(token: string): AdminTokenPayloadResponseDto {
+  private verifyAdminToken(token: string): AdminTokenPayloadResponse {
     try {
-      const decoded = this.jwtService.verify<AdminTokenPayloadDto>(token);
+      const decoded = this.jwtService.verify<AdminTokenPayload>(token);
 
       if ('aiGeneration' in decoded) {
         throw new UnauthorizedException('Invalid token for admin');
@@ -54,7 +54,7 @@ export class AdminAuthService {
     }
   }
 
-  login(loginDto: AdminLoginDto): AdminLoginResponseDto {
+  login(loginDto: AdminLoginDto): AdminLoginResponse {
     const { username, password } = loginDto;
 
     const adminUsername = this.configService.get<string>(
@@ -80,7 +80,7 @@ export class AdminAuthService {
     };
   }
 
-  refreshToken(token: string): AdminLoginResponseDto {
+  refreshToken(token: string): AdminLoginResponse {
     try {
       const decoded = this.verifyAdminToken(token);
 
