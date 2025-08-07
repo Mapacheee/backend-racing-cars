@@ -33,6 +33,7 @@ export async function tryLoginPlayer({
             username,
             password,
         })
+        console.log(response)
         return response.data
     } catch (error) {
         if (

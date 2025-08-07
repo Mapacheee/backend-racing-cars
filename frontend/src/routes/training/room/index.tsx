@@ -1,45 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
+import { usePlayerRoomContext } from '../../../lib/contexts/PlayerRoomContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
-
-// Fake data for players in the room
-const fakePlayersData = [
-    { id: 1, name: 'JuanCarlos23' },
-    { id: 2, name: 'MariaGamer' },
-    { id: 3, name: 'AlexRunner' },
-    { id: 4, name: 'SofiaSpeed' },
-    { id: 5, name: 'DiegoRacer' },
-    { id: 6, name: 'LuciaFast' },
-    { id: 7, name: 'CarlosVelocity' },
-    { id: 8, name: 'AnaQuick' },
-    { id: 9, name: 'MiguelTurbo' },
-    { id: 10, name: 'ValentinaRush' },
-    { id: 11, name: 'RobertoSpeed' },
-    { id: 12, name: 'CamilaRace' },
-]
 
 export default function PlayerRoom() {
     const navigate = useNavigate()
     const { auth, clearAuth } = useAuth<PlayerAuth>()
-    const [players] = useState(fakePlayersData)
-    const [roomNumber] = useState('2345') // Fake room number
+    const {
+        currentRoom,
+        participants,
+        isInRoom,
+        roomError,
+        leaveRoom,
+        isConnected,
+    } = usePlayerRoomContext()
 
     useEffect(() => {
         document.title = `Sala de Competición - Carrera neuronal 🏎️🧠`
-    }, [])
+
+        // If not in a room, redirect to menu
+        if (!isInRoom || !currentRoom) {
+            navigate('/training')
+        }
+    }, [isInRoom, currentRoom, navigate])
 
     function handleLogout() {
         clearAuth()
         navigate('/')
     }
 
-    function handleBackToMenu() {
-        navigate('/training/menu')
+    async function handleLeaveRoom() {
+        try {
+            await leaveRoom()
+            navigate('/training')
+        } catch (error) {
+            console.error('Failed to leave room:', error)
+            // Force navigation even if leave fails
+            navigate('/training')
+        }
     }
 
     return (
         <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-background relative">
+            {/* Room Error */}
+            {roomError && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md">
+                    <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-md shadow-lg">
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium">Error:</span>
+                            <span className="text-sm">{roomError}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Title */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-primary text-center">
@@ -52,11 +67,16 @@ export default function PlayerRoom() {
                 {/* Header */}
                 <div className="bg-background border-b border-accent p-6 text-center">
                     <h2 className="text-2xl font-bold text-primary mb-2">
-                        Sala: {roomNumber}
+                        Sala: {currentRoom?.id || 'Cargando...'}
                     </h2>
                     <p className="text-secondary">
-                        {players.length} jugadores conectados
+                        {participants.length} jugadores conectados
                     </p>
+                    {currentRoom && (
+                        <p className="text-xs text-secondary mt-1">
+                            Estado: {currentRoom.status}
+                        </p>
+                    )}
                 </div>
 
                 {/* Players List */}
@@ -67,49 +87,85 @@ export default function PlayerRoom() {
 
                     <div className="max-h-80 overflow-y-auto border border-accent rounded-md bg-background">
                         <div className="p-4 space-y-3">
-                            {players.map((player, index) => (
-                                <div
-                                    key={player.id}
-                                    className="flex items-center justify-between p-3 bg-white/60 rounded-md border border-accent hover:bg-white/80 transition-colors"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <span className="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                            {index + 1}
-                                        </span>
-                                        <span className="font-medium text-primary">
-                                            {player.name}
-                                        </span>
-                                        {player.name === auth.username && (
-                                            <span className="px-2 py-1 bg-accent text-secondary text-xs rounded-full font-medium">
-                                                Tú
-                                            </span>
-                                        )}
-                                    </div>
+                            {participants.length === 0 ? (
+                                <div className="text-center text-secondary py-8">
+                                    {!currentRoom
+                                        ? 'Cargando sala...'
+                                        : 'No hay otros jugadores en la sala'}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Waiting Status */}
-                    <div className="mt-6 text-center">
-                        <div className="p-4 rounded-md">
-                            <p className="text-info font-medium">
-                                Esperando a que el administrador inicie la
-                                carrera...
-                            </p>
+                            ) : (
+                                participants.map(
+                                    (participant: any, index: number) => (
+                                        <div
+                                            key={participant.userId}
+                                            className="flex items-center justify-between p-3 bg-white/60 rounded-md border border-accent hover:bg-white/80 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <span className="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                    {index + 1}
+                                                </span>
+                                                <span className="font-medium text-primary">
+                                                    {participant.username}
+                                                </span>
+                                                {participant.username ===
+                                                    auth.username && (
+                                                    <span className="px-2 py-1 bg-accent text-secondary text-xs rounded-full font-medium">
+                                                        Tú
+                                                    </span>
+                                                )}
+                                                {participant.aiGeneration && (
+                                                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
+                                                        Gen{' '}
+                                                        {
+                                                            participant.aiGeneration
+                                                        }
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                )
+                            )}
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Back to Menu Button */}
-            <div className="mt-6 flex justify-center">
-                <button
-                    onClick={handleBackToMenu}
-                    className="rounded-md px-4 py-2 font-medium text-sm text-secondary bg-white/60 border border-accent shadow-sm hover:bg-white/80 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
-                >
-                    Salir de la sala
-                </button>
+                {/* Action Buttons */}
+                <div className="bg-background border-t border-accent p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                        <button
+                            onClick={handleLeaveRoom}
+                            disabled={!isConnected}
+                            className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium 
+                                     hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Salir de la Sala
+                        </button>
+
+                        {!isConnected && (
+                            <div className="flex items-center gap-2 text-orange-600">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                <span className="text-sm">Reconectando...</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Info Footer */}
+                <div className="bg-accent/30 px-6 py-3">
+                    <p className="text-center text-xs text-secondary">
+                        Estado de conexión:{' '}
+                        {isConnected ? (
+                            <span className="text-green-600 font-medium">
+                                Conectado
+                            </span>
+                        ) : (
+                            <span className="text-red-600 font-medium">
+                                Desconectado
+                            </span>
+                        )}
+                    </p>
+                </div>
             </div>
 
             {/* Logout Button Fixed to Lower Right */}

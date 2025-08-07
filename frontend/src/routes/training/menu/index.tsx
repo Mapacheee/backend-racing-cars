@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../lib/contexts/AuthContext'
+import { usePlayerRoomContext } from '../../../lib/contexts/PlayerRoomContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
 import { useFormik } from 'formik'
 import { useEffect, useState } from 'react'
@@ -7,11 +8,27 @@ import { useEffect, useState } from 'react'
 export default function TrainingMenu() {
     const navigate = useNavigate()
     const { auth, clearAuth } = useAuth<PlayerAuth>()
-    const [isJoiningRoom, setIsJoiningRoom] = useState(false)
+    const {
+        isConnected,
+        connectionError,
+        currentRoom,
+        isInRoom,
+        isJoiningRoom,
+        roomError,
+        joinRoom,
+        clearErrors,
+    } = usePlayerRoomContext()
+
+    const [localJoiningState, setLocalJoiningState] = useState(false)
 
     useEffect(() => {
         document.title = 'Sala de Entrenamiento - Carrera neuronal 🏎️🧠'
-    }, [])
+
+        // If already in a room, navigate to room page
+        if (isInRoom && currentRoom) {
+            navigate('/training/room')
+        }
+    }, [isInRoom, currentRoom, navigate])
 
     const roomFormik = useFormik({
         initialValues: { roomNumber: '' },
@@ -23,11 +40,14 @@ export default function TrainingMenu() {
             return errors
         },
         onSubmit: async ({ roomNumber }) => {
-            setIsJoiningRoom(true)
-            await new Promise(res => setTimeout(res, 800)) // Simulate API call
-            console.log('Joining room:', roomNumber)
-            // Navigate to room
-            navigate('/training/room')
+            try {
+                clearErrors()
+                await joinRoom(roomNumber)
+                // Navigation will happen automatically via useEffect above
+            } catch (error) {
+                console.error('Failed to join room:', error)
+                // Error is already set in the context
+            }
         },
         validateOnChange: true,
         validateOnBlur: true,
@@ -46,6 +66,32 @@ export default function TrainingMenu() {
 
     return (
         <div className="min-h-screen w-screen flex items-center justify-center bg-background relative">
+            {/* Connection Error */}
+            {connectionError && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md">
+                    <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-md shadow-lg">
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                                Error de conexión:
+                            </span>
+                            <span className="text-sm">{connectionError}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Room Error */}
+            {roomError && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md">
+                    <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-md shadow-lg">
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium">Error:</span>
+                            <span className="text-sm">{roomError}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="w-full max-w-3xl bg-white/80 rounded-xl shadow-lg border border-accent flex flex-col md:flex-row overflow-hidden">
                 {/* User Info Column */}
                 <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 border-b md:border-b-0 md:border-r border-accent bg-background">
@@ -95,7 +141,7 @@ export default function TrainingMenu() {
                                 value={roomFormik.values.roomNumber}
                                 onChange={handleRoomNumberChange}
                                 onBlur={roomFormik.handleBlur}
-                                disabled={isJoiningRoom}
+                                disabled={isJoiningRoom || !isConnected}
                             />
                             <button
                                 type="submit"
@@ -103,7 +149,8 @@ export default function TrainingMenu() {
                                 disabled={
                                     !roomFormik.isValid ||
                                     !roomFormik.values.roomNumber ||
-                                    isJoiningRoom
+                                    isJoiningRoom ||
+                                    !isConnected
                                 }
                             >
                                 {isJoiningRoom ? '...' : 'Entrar'}

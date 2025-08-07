@@ -7,6 +7,7 @@ import {
 import TrainingMenu from './routes/training/menu/index.tsx'
 import ProtectedRoute from './lib/components/ProtectedRoute.tsx'
 import { AdminRoomProvider } from './lib/contexts/AdminRoomContext.tsx'
+import { PlayerRoomProvider } from './lib/contexts/PlayerRoomContext.tsx'
 import type { JSX } from 'react'
 import Home from './routes/index.tsx'
 import AdminHome from './routes/admin/index.tsx'
@@ -31,11 +32,27 @@ export default function App(): JSX.Element {
 
                 {/* Private routes */}
                 <Route element={<ProtectedRoute />}>
-                    <Route path="/training/menu" element={<TrainingMenu />} />
-                    <Route path="/training/room" element={<PlayerRoom />} />
+                    {/* Training routes wrapped with PlayerRoomProvider */}
                     <Route
-                        path="/training/simulation"
-                        element={<TrainingSimulation />}
+                        path="/training/*"
+                        element={
+                            <PlayerRoomProvider>
+                                <Routes>
+                                    <Route
+                                        path="menu"
+                                        element={<TrainingMenu />}
+                                    />
+                                    <Route
+                                        path="room"
+                                        element={<PlayerRoom />}
+                                    />
+                                    <Route
+                                        path="simulation"
+                                        element={<TrainingSimulation />}
+                                    />
+                                </Routes>
+                            </PlayerRoomProvider>
+                        }
                     />
 
                     {/* Admin routes wrapped with AdminRoomProvider */}
