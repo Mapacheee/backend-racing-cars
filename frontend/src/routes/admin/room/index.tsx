@@ -90,7 +90,7 @@ export default function AdminRoom() {
             {/* Title */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-primary text-center">
-                    Administración de Sala
+                    Administración de sala
                 </h1>
             </div>
 
@@ -172,6 +172,12 @@ export default function AdminRoom() {
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        {
+                                            void console.log(
+                                                'participants',
+                                                participants
+                                            )
+                                        }
                                         {participants.map(
                                             (participant, index) => (
                                                 <tr

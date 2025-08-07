@@ -50,6 +50,16 @@ export default function App(): JSX.Element {
                                         path="simulation"
                                         element={<TrainingSimulation />}
                                     />
+                                    {/* Default redirect to menu */}
+                                    <Route
+                                        path="*"
+                                        element={
+                                            <Navigate
+                                                to="/training/menu"
+                                                replace
+                                            />
+                                        }
+                                    />
                                 </Routes>
                             </PlayerRoomProvider>
                         }
@@ -81,6 +91,16 @@ export default function App(): JSX.Element {
                                     <Route
                                         path="dashboard"
                                         element={<AdminDashboard />}
+                                    />
+                                    {/* Default redirect to menu */}
+                                    <Route
+                                        path="*"
+                                        element={
+                                            <Navigate
+                                                to="/admin/menu"
+                                                replace
+                                            />
+                                        }
                                     />
                                 </Routes>
                             </AdminRoomProvider>

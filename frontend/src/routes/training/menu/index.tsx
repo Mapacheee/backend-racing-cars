@@ -3,7 +3,7 @@ import { useAuth } from '../../../lib/contexts/AuthContext'
 import { usePlayerRoomContext } from '../../../lib/contexts/PlayerRoomContext'
 import type { PlayerAuth } from '../../../lib/types/auth'
 import { useFormik } from 'formik'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 export default function TrainingMenu() {
     const navigate = useNavigate()
@@ -18,8 +18,6 @@ export default function TrainingMenu() {
         joinRoom,
         clearErrors,
     } = usePlayerRoomContext()
-
-    const [localJoiningState, setLocalJoiningState] = useState(false)
 
     useEffect(() => {
         document.title = 'Sala de Entrenamiento - Carrera neuronal 🏎️🧠'

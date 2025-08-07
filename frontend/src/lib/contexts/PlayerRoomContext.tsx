@@ -245,6 +245,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
                     {
                         roomId,
                         userId: auth.id,
+                        aiGeneration: auth.aiGeneration,
                         username: auth.username,
                     },
                     response => {

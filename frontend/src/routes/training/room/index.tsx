@@ -21,7 +21,7 @@ export default function PlayerRoom() {
 
         // If not in a room, redirect to menu
         if (!isInRoom || !currentRoom) {
-            navigate('/training')
+            navigate('/training/menu')
         }
     }, [isInRoom, currentRoom, navigate])
 
@@ -33,11 +33,11 @@ export default function PlayerRoom() {
     async function handleLeaveRoom() {
         try {
             await leaveRoom()
-            navigate('/training')
+            navigate('/training/menu')
         } catch (error) {
             console.error('Failed to leave room:', error)
             // Force navigation even if leave fails
-            navigate('/training')
+            navigate('/training/menu')
         }
     }
 
@@ -58,7 +58,7 @@ export default function PlayerRoom() {
             {/* Title */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-primary text-center">
-                    Sala de Entrenamiento
+                    Sala de competición
                 </h1>
             </div>
 

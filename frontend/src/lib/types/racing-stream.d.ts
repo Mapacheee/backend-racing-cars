@@ -12,6 +12,7 @@ export type RoomStatus = 'waiting' | 'configured' | 'racing' | 'finished'
 export interface RoomParticipant {
     userId: string
     username: string
+    aiGeneration: number
     socketId: string
     aiGeneration: number
 }
@@ -70,6 +71,7 @@ export interface CreateRoomData {
 export interface JoinRoomData {
     roomId: string
     userId: string
+    aiGeneration: number
     username: string
 }
 
