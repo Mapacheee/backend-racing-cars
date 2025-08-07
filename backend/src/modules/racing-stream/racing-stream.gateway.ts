@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { RoomService } from './services/room.service';
 import { RacePackageService } from './services/race-package.service';
 import {
@@ -25,6 +26,7 @@ import {
 import { RoomStatus } from './interfaces/racing-stream.interface';
 import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { PlayerFromJwt } from '../auth/player/interfaces/player-jwt.interface';
+import { AdminTokenPayload } from '../auth/admin/interfaces/admin-token-payload.dto';
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -42,6 +44,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly roomService: RoomService,
     private readonly racePackageService: RacePackageService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   handleConnection(client: Socket): void {
@@ -54,31 +57,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.handleClientDisconnect(client);
   }
 
-  @SubscribeMessage('hello')
-  handleHello(@ConnectedSocket() client: Socket): string {
-    const user = this.getUserFromSocket(client);
-    console.log(
-      `Hello from authenticated user: ${user?.username || 'unknown'}`,
-    );
-
-    // Send a message every second
-    let counter = 0;
-    const interval = setInterval(() => {
-      counter++;
-      client.emit(
-        'hello',
-        `Hello ${user?.username || 'user'} - Message ${counter} at ${new Date().toLocaleTimeString()}`,
-      );
-
-      // Stop after 10 messages to prevent infinite spam
-      if (counter >= 10) {
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    return 'hello';
-  }
-
   @SubscribeMessage('createRoom')
   async handleCreateRoom(
     @MessageBody() data: CreateRoomDto,
@@ -87,6 +65,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       // Verify admin authentication via JWT token
       const adminUsername = this.getAdminFromToken(client);
+
       if (!adminUsername || adminUsername !== data.adminUsername) {
         client.emit('error', {
           message: 'Unauthorized: Only authenticated admin can create rooms',
@@ -479,10 +458,11 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return false;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const payload = this.jwtService.verify(token);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return payload?.sub === this.ADMIN_USERNAME;
+      const jwtSecret = this.configService.get<string>('JWT_SECRET') as string;
+      const payload = this.jwtService.verify<AdminTokenPayload>(token, {
+        secret: jwtSecret,
+      });
+      return payload.sub === this.ADMIN_USERNAME;
     } catch {
       return false;
     }
@@ -498,9 +478,10 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return null;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const payload = this.jwtService.verify(token);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      const payload = this.jwtService.verify<AdminTokenPayload>(token, {
+        secret: jwtSecret,
+      });
       if (payload?.sub === this.ADMIN_USERNAME) {
         return this.ADMIN_USERNAME;
       }

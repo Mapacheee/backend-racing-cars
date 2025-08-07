@@ -66,7 +66,7 @@ export class WsJwtAuthGuard implements CanActivate {
         secret: jwtSecret,
       });
 
-      if (!payload.sub || !payload.username) {
+      if (!payload.sub) {
         throw new WsException('Invalid token payload');
       }
 

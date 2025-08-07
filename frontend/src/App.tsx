@@ -6,6 +6,7 @@ import {
 } from 'react-router-dom'
 import TrainingMenu from './routes/training/menu/index.tsx'
 import ProtectedRoute from './lib/components/ProtectedRoute.tsx'
+import { AdminRoomProvider } from './lib/contexts/AdminRoomContext.tsx'
 import type { JSX } from 'react'
 import Home from './routes/index.tsx'
 import AdminHome from './routes/admin/index.tsx'
@@ -37,14 +38,36 @@ export default function App(): JSX.Element {
                         element={<TrainingSimulation />}
                     />
 
-                    <Route path="/admin/menu" element={<AdminMenu />} />
-                    <Route path="/admin/room" element={<AdminRoom />} />
-                    <Route path="/admin/list" element={<RaceList />} />
-                    <Route path="/admin/create" element={<CreateRaceForm />} />
-                    <Route path="/admin/:id" element={<RaceDetail />} />
+                    {/* Admin routes wrapped with AdminRoomProvider */}
                     <Route
-                        path="/admin/dashboard"
-                        element={<AdminDashboard />}
+                        path="/admin/*"
+                        element={
+                            <AdminRoomProvider>
+                                <Routes>
+                                    <Route
+                                        path="menu"
+                                        element={<AdminMenu />}
+                                    />
+                                    <Route
+                                        path="room"
+                                        element={<AdminRoom />}
+                                    />
+                                    <Route path="list" element={<RaceList />} />
+                                    <Route
+                                        path="create"
+                                        element={<CreateRaceForm />}
+                                    />
+                                    <Route
+                                        path=":id"
+                                        element={<RaceDetail />}
+                                    />
+                                    <Route
+                                        path="dashboard"
+                                        element={<AdminDashboard />}
+                                    />
+                                </Routes>
+                            </AdminRoomProvider>
+                        }
                     />
 
                     {/* Default route */}

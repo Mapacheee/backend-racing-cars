@@ -4,6 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { PlayersService } from '../../players/player.service';
 import { PlayerLoginDto, PlayerLoginResponseDto } from './dto/player-login.dto';
 import { PlayerRegisterDto } from './dto/player-register.dto';
@@ -17,6 +18,7 @@ import * as bcrypt from 'bcrypt';
 export class PlayerAuthService {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly playersService: PlayersService,
   ) {}
 
@@ -27,12 +29,19 @@ export class PlayerAuthService {
       aiGeneration: player.aiGeneration,
     };
 
-    return this.jwtService.sign(payload, { expiresIn: '24h' });
+    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+    return this.jwtService.sign(payload, {
+      secret: jwtSecret,
+      expiresIn: '24h',
+    });
   }
 
   private verifyPlayerToken(token: string): PlayerFromJwt {
     try {
-      const decoded = this.jwtService.verify<JwtPlayerPayload>(token);
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      const decoded = this.jwtService.verify<JwtPlayerPayload>(token, {
+        secret: jwtSecret,
+      });
 
       return {
         id: decoded.sub,

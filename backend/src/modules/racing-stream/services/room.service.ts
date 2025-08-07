@@ -245,14 +245,11 @@ export class RoomService {
   }
 
   private generateRoomId(): string {
-    // Generate a 6-character room code
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += characters.charAt(
-        Math.floor(Math.random() * characters.length),
-      );
-    }
+    // Generate a 4-digit room code (1000-9999)
+    const min = 1000;
+    const max = 9999;
+    const roomId = Math.floor(Math.random() * (max - min + 1)) + min;
+    const result = roomId.toString();
 
     // Ensure uniqueness
     if (this.rooms.has(result)) {

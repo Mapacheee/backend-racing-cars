@@ -23,12 +23,19 @@ export class AdminAuthService {
       jti: randomUUID(),
     };
 
-    return this.jwtService.sign(payload, { expiresIn: '24h' });
+    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+    return this.jwtService.sign(payload, {
+      secret: jwtSecret,
+      expiresIn: '24h',
+    });
   }
 
   private verifyAdminToken(token: string): AdminTokenPayloadResponse {
     try {
-      const decoded = this.jwtService.verify<AdminTokenPayload>(token);
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      const decoded = this.jwtService.verify<AdminTokenPayload>(token, {
+        secret: jwtSecret,
+      });
 
       if ('aiGeneration' in decoded) {
         throw new UnauthorizedException('Invalid token for admin');
