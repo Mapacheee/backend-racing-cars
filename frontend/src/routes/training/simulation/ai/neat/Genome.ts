@@ -28,18 +28,27 @@ export class GenomeBuilder {
         // Crear conexiones iniciales aleatorias (no todas las entradas conectadas)
         const innovationCounter = InnovationCounter.getInstance()
         
-        // Conectar TODAS las entradas a TODAS las salidas para testing inicial
-        for (let input = 0; input < config.inputNodes; input++) {
-            for (let output = 0; output < config.outputNodes; output++) {
-                const outputNodeId = config.inputNodes + output
+        
+        for (let output = 0; output < config.outputNodes; output++) {
+            const outputNodeId = config.inputNodes + output
+            
+            const connectionsPerOutput = 2 + Math.floor(Math.random() * 3) // 2-4 conexiones
+            const inputsToConnect = new Set<number>()
+            
+            while (inputsToConnect.size < Math.min(connectionsPerOutput, config.inputNodes)) {
+                const randomInput = Math.floor(Math.random() * config.inputNodes)
+                inputsToConnect.add(randomInput)
+            }
+            
+            inputsToConnect.forEach(inputId => {
                 connectionGenes.push({
                     innovation: innovationCounter.getNext(),
-                    from: input,
+                    from: inputId,
                     to: outputNodeId,
-                    weight: (Math.random() * 2) - 1, // Peso entre -1 y 1 (más conservador)
+                    weight: (Math.random() * 6) - 3, 
                     enabled: true
                 })
-            }
+            })
         }
         
         // Ya no necesitamos esto porque conectamos todo arriba

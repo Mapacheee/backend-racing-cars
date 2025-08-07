@@ -18,43 +18,17 @@ export class NEATCarController {
     // Procesar sensores y obtener acciones de control
     getControlActions(sensorReadings: SensorReading): NetworkOutput {
         const actions = this.network.activate(sensorReadings)
-        
-        // TEMPORAL: Amplificar mucho las salidas para que sean detectables
-        let amplifiedThrottle = actions.throttle * 8  // Amplificación muy alta
-        let amplifiedSteering = actions.steering * 8  // Amplificación muy alta
-        
-        // Comportamiento más agresivo basado en sensores
-        if (sensorReadings.center > 0.8) {
-            amplifiedThrottle = 0.8  // Acelerar cuando el camino esté libre
-        } else if (sensorReadings.center < 0.3) {
-            amplifiedThrottle = -0.6  // Reversa cuando haya obstáculo
-        }
-        
-        // Giro más agresivo basado en sensores laterales
-        if (sensorReadings.left < 0.4 && sensorReadings.right > 0.6) {
-            amplifiedSteering = 0.7  // Girar derecha
-        } else if (sensorReadings.right < 0.4 && sensorReadings.left > 0.6) {
-            amplifiedSteering = -0.7  // Girar izquierda
-        }
-        
-        // Clamp values
-        amplifiedThrottle = Math.max(-1, Math.min(1, amplifiedThrottle))
-        amplifiedSteering = Math.max(-1, Math.min(1, amplifiedSteering))
-        
-        // Debug temporal - ver qué está generando la red
-        if (Math.random() < 0.01) { // Log cada ~100 frames
-            console.log('NEAT Output:', {
-                original_throttle: actions.throttle.toFixed(3),
-                amplified_throttle: amplifiedThrottle.toFixed(3),
-                original_steering: actions.steering.toFixed(3),
-                amplified_steering: amplifiedSteering.toFixed(3),
-                center_sensor: sensorReadings.center.toFixed(2)
-            })
-        }
+                
+        let throttle = actions.throttle
+        let steering = actions.steering
+                
+        // Clamp final values
+        throttle = Math.max(-1, Math.min(1, throttle))
+        steering = Math.max(-1, Math.min(1, steering))
         
         return {
-            throttle: amplifiedThrottle,
-            steering: amplifiedSteering
+            throttle,
+            steering
         }
     }
     
@@ -65,25 +39,10 @@ export class NEATCarController {
             return
         }
         
-        // AI CONTROL DELAY: Wait 1 second before AI takes control
+        // AI CONTROL DELAY: Sin delay para arcade - ¡acción inmediata!
         const elapsedTime = Date.now() - this.startTime
-        if (elapsedTime < 1000) { // 1000ms = 1 second
+        if (elapsedTime < 100) { // Solo 100ms para estabilizar física
             this.isControlActive = false
-            // Keep car stable during waiting period
-            const angularVelocity = rigidBody.angvel()
-            
-            // Apply light stabilization during wait
-            if (Math.abs(angularVelocity.y) > 0.1) {
-                rigidBody.setAngvel({
-                    x: 0,
-                    y: angularVelocity.y * 0.95,
-                    z: 0
-                }, true)
-            }
-            
-            if (Math.random() < 0.02) {
-                console.log(`⏱️ AI Control activates in ${((1000 - elapsedTime) / 1000).toFixed(1)}s`)
-            }
             return
         }
         
@@ -101,39 +60,28 @@ export class NEATCarController {
         
         const { throttle, steering } = actions
         
-        // Debug temporal - verificar si estamos recibiendo acciones
-        if (Math.random() < 0.05) {
-            console.log('NEAT Actions:', { 
-                throttle: throttle.toFixed(3), 
-                steering: steering.toFixed(3)
-            })
-        }
 
-        // VEHICLE CONTROL SYSTEM
-        // Interpret NEAT outputs as discrete commands with realistic thresholds
         
-        if (throttle > 0.3) {
+        if (throttle > 0.05) {  
             this.accelerate(rigidBody)
-        } else if (throttle < -0.3) {
+        } else if (throttle < -0.05) {  
             this.brake(rigidBody)
         }
-        
-        if (steering > 0.4) {
+
+        if (steering > 0.08) {  
             this.turnRight(rigidBody)
-        } else if (steering < -0.4) {
+        } else if (steering < -0.08) { 
             this.turnLeft(rigidBody)
         } else {
             this.stabilizeSteering(rigidBody)
-        }
-        
-        // Apply natural resistance
+        }        
         this.applyNaturalResistance(rigidBody)
     }
     
     // VEHICLE CONTROL FUNCTIONS - Real car physics constraints
     
     /**
-     * Accelerate like a real car - only forward/backward along the car's direction
+     * Accelerate like an arcade racer - rápido y divertido!
      */
     private accelerate(rigidBody: any): void {
         const rotation = rigidBody.rotation()
@@ -146,25 +94,19 @@ export class NEATCarController {
             z: Math.cos(rotation.y)
         }
         
-        // Project current velocity onto forward direction (like real car)
+        // Project current velocity onto forward direction
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
-        // Real car max speed limit
-        const MAX_SPEED = 8  // Reduced from 12
+        const MAX_SPEED = 12  
         if (forwardSpeed >= MAX_SPEED) return
         
-        // Real car acceleration - very gentle
-        const ACCELERATION_FORCE = 2.0  // Reduced from 3.5
+        const ACCELERATION_FORCE = 5.0  // Aumentado de 4.5 a 5.0 para más potencia
         
         rigidBody.applyImpulse({
             x: forward.x * ACCELERATION_FORCE,
             y: 0,
             z: forward.z * ACCELERATION_FORCE
         }, true)
-        
-        if (Math.random() < 0.01) {
-            console.log('🚗 Accelerating')
-        }
     }
     
     /**
@@ -175,85 +117,72 @@ export class NEATCarController {
         const currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
         
         // Only brake if moving
-        if (currentSpeed <= 0.3) return
+        if (currentSpeed <= 0.2) return
         
-        // Real car braking - strong but not instant
-        const BRAKE_FORCE = 0.80  // Realistic braking friction
+        // Real car braking - más suave
+        const BRAKE_FORCE = 0.85
         rigidBody.setLinvel({
             x: velocity.x * BRAKE_FORCE,
             y: velocity.y,
             z: velocity.z * BRAKE_FORCE
         }, true)
-        
-        if (Math.random() < 0.01) {
-            console.log('🛑 Braking')
-        }
     }
     
     /**
-     * Turn left like a real car - only when moving forward
+     * Turn left like an arcade racer - ¡giros rápidos y divertidos!
      */
     private turnLeft(rigidBody: any): void {
         const velocity = rigidBody.linvel()
         const rotation = rigidBody.rotation()
         
-        // Calculate forward speed (not total speed)
+        // Calculate forward speed
         const forward = {
             x: Math.sin(rotation.y),
             z: Math.cos(rotation.y)
         }
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
-        // Real cars only turn effectively when moving forward
-        const MIN_TURN_SPEED = 2.0
+        // Arcade turning - permitir giros incluso a baja velocidad
+        const MIN_TURN_SPEED = 0.05  
         if (forwardSpeed <= MIN_TURN_SPEED) return
         
-        // Turn force proportional to speed (like real steering)
         const speedFactor = Math.min(forwardSpeed / 8, 1.0)
-        const TURN_FORCE = -1.0 * speedFactor  // Much gentler turning
+        const TURN_FORCE = -1.4 * speedFactor  
         
         rigidBody.applyTorqueImpulse({
             x: 0,
             y: TURN_FORCE,
             z: 0
         }, true)
-        
-        if (Math.random() < 0.01) {
-            console.log('⬅️ Turning left')
-        }
     }
     
     /**
-     * Turn right like a real car - only when moving forward
+     * Turn right like an arcade racer - ¡giros rápidos y divertidos!
      */
     private turnRight(rigidBody: any): void {
         const velocity = rigidBody.linvel()
         const rotation = rigidBody.rotation()
         
-        // Calculate forward speed (not total speed)
+        // Calculate forward speed
         const forward = {
             x: Math.sin(rotation.y),
             z: Math.cos(rotation.y)
         }
         const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
         
-        // Real cars only turn effectively when moving forward
-        const MIN_TURN_SPEED = 2.0
+        // Arcade turning - permitir giros incluso a baja velocidad
+        const MIN_TURN_SPEED = 0.05  // CRÍTICO: Ultra-bajo para máxima sensibilidad
         if (forwardSpeed <= MIN_TURN_SPEED) return
         
-        // Turn force proportional to speed (like real steering)
+        // Turn force más responsivo para mejor control
         const speedFactor = Math.min(forwardSpeed / 8, 1.0)
-        const TURN_FORCE = 1.0 * speedFactor  // Much gentler turning
+        const TURN_FORCE = 1.4 * speedFactor  // CRÍTICO: Más agresivo para respuesta rápida
         
         rigidBody.applyTorqueImpulse({
             x: 0,
             y: TURN_FORCE,
             z: 0
         }, true)
-        
-        if (Math.random() < 0.01) {
-            console.log('➡️ Turning right')
-        }
     }
     
     /**
@@ -263,8 +192,8 @@ export class NEATCarController {
         const angularVelocity = rigidBody.angvel()
         const velocity = rigidBody.linvel()
         
-        // Real cars naturally straighten out due to wheel alignment
-        const STABILIZATION_FACTOR = 0.88
+        // Real cars naturally straighten out due to wheel alignment - más suave
+        const STABILIZATION_FACTOR = 0.92  // Más suave
         if (Math.abs(angularVelocity.y) > 0.02) {
             rigidBody.setAngvel({
                 x: 0,
@@ -275,10 +204,6 @@ export class NEATCarController {
         
         // Prevent sideways sliding (like real tires have grip)
         this.preventSidewaysSliding(rigidBody, velocity)
-        
-        if (Math.random() < 0.002) {
-            console.log('⚖️ Stabilizing')
-        }
     }
     
     /**
@@ -351,6 +276,6 @@ export class NEATCarController {
     
     getControlDelay(): number {
         const elapsedTime = Date.now() - this.startTime
-        return Math.max(0, 1000 - elapsedTime)
+        return Math.max(0, 100 - elapsedTime)  // Actualizado a 100ms para arcade
     }
 }

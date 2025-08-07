@@ -1,10 +1,8 @@
 import { Vector3 } from 'three'
-import type { Wall } from '../types/track'
-import type { SensorReading, SensorConfig } from '../types/sensors'
-import { DEFAULT_SENSOR_CONFIG } from '../config/constants'
-export { DEFAULT_SENSOR_CONFIG }
-export type { SensorReading, SensorConfig }
+import type { Wall } from '../../track'
+import type { SensorReading, SensorConfig } from '../types'
 
+// car sensor system for obstacle detection and AI input
 export function createSensorReadings(
     carPosition: Vector3,
     carRotation: number,
@@ -22,6 +20,7 @@ export function createSensorReadings(
     return readings
 }
 
+// calculate distance to nearest obstacle in given direction
 function getSensorDistance(
     carPosition: Vector3,
     carRotation: number,
@@ -61,6 +60,7 @@ function getSensorDistance(
     return minDistance
 }
 
+// calculate intersection point between two line segments
 function getLineIntersection(
     x1: number, y1: number, x2: number, y2: number,
     x3: number, y3: number, x4: number, y4: number
@@ -79,4 +79,26 @@ function getLineIntersection(
     }
     
     return null
+}
+
+// convert sensor readings to normalized array for AI input
+export function sensorReadingsToArray(readings: SensorReading): number[] {
+    return [
+        readings.left,
+        readings.leftCenter, 
+        readings.center,
+        readings.rightCenter,
+        readings.right
+    ]
+}
+
+// create default sensor readings (no obstacles detected)
+export function createDefaultSensorReadings(): SensorReading {
+    return {
+        left: 1.0,
+        leftCenter: 1.0,
+        center: 1.0,
+        rightCenter: 1.0,
+        right: 1.0
+    }
 }

@@ -1,7 +1,7 @@
 import type { Genome, Species, NEATConfig } from '../../types/neat'
 import { GenomeBuilder, GenomeUtils } from './Genome'
 import { Mutations } from './Mutations'
-import { DEFAULT_NEAT_CONFIG } from './NEATConfig'
+import { DEFAULT_NEAT_CONFIG, getAdaptiveMutationRates } from './NEATConfig'
 
 export class Population {
     private genomes: Genome[] = []
@@ -28,6 +28,11 @@ export class Population {
         return [...this.genomes]
     }
     
+    // Obtener la generación actual
+    getGeneration(): number {
+        return this.generation
+    }
+    
     // Avanzar a la próxima generación
     evolve(): void {
         // 1. Especiación
@@ -40,6 +45,16 @@ export class Population {
         this.createNextGeneration()
         
         this.generation++
+        
+        // Logging de evolución adaptativa
+        if (this.generation % 5 === 0) {
+            const rates = getAdaptiveMutationRates(this.generation)
+            console.log(`🧬 Generation ${this.generation} - Adaptive mutation rates:`, {
+                weightMutation: rates.weightMutation.toFixed(3),
+                addNode: rates.addNode.toFixed(3),
+                addConnection: rates.addConnection.toFixed(3)
+            })
+        }
     }
     
     private speciate(): void {
@@ -111,24 +126,27 @@ export class Population {
             newGenomes.push(GenomeBuilder.copy(genome))
         })
         
-        // Llenar el resto de la población
+        // Llenar el resto de la población con más diversidad genética
         while (newGenomes.length < this.config.populationSize) {
             // Selección por torneo o proporcional al fitness
             const parent1 = this.selectParent(totalAdjustedFitness)
             
             let offspring: Genome
             
-            if (Math.random() < 0.25) {
-                // 25% crossover
+            if (Math.random() < 0.2) {  
+                offspring = GenomeBuilder.createMinimal(this.config)
+            } else if (Math.random() < 0.6) {  
                 const parent2 = this.selectParent(totalAdjustedFitness)
                 offspring = GenomeBuilder.crossover(parent1, parent2)
             } else {
-                // 75% asexual reproduction
                 offspring = GenomeBuilder.copy(parent1)
             }
             
-            // Mutación
-            Mutations.mutate(offspring, this.config)
+            // Mutación adaptativa basada en la generación actual (solo si no es aleatorio)
+            if (Math.random() >= 0.2) {  // No mutar los completamente aleatorios
+                const adaptiveConfig = { ...this.config, mutationRates: getAdaptiveMutationRates(this.generation) }
+                Mutations.mutate(offspring, adaptiveConfig)
+            }
             
             newGenomes.push(offspring)
         }

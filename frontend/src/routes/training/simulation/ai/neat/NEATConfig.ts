@@ -1,49 +1,48 @@
 import type { NEATConfig } from '../../types/neat'
 
 export const DEFAULT_NEAT_CONFIG: NEATConfig = {
-    populationSize: 100,
-    inputNodes: 5,    // 5 sensores del carro
-    outputNodes: 2,   // throttle y steering
+    populationSize: 20,       // numero de autillos
+    inputNodes: 5,           
+    outputNodes: 2,        
     
     mutationRates: {
-        addNode: 0.03,
-        addConnection: 0.05,
-        weightMutation: 0.8,
-        disableConnection: 0.1,
-        weightPerturbation: 0.9
+        addNode: 0.03,           
+        addConnection: 0.08,    
+        weightMutation: 0.8, 
+        disableConnection: 0.06, 
+        weightPerturbation: 0.5  
     },
     
     speciation: {
-        compatibilityThreshold: 3.0,
+        compatibilityThreshold: 2.5,  
         c1: 1.0,  // Excess genes
         c2: 1.0,  // Disjoint genes
         c3: 0.4   // Weight differences
     },
     
     survival: {
-        survivalRate: 0.2,  // 20% sobrevive
-        eliteSize: 2        // Los 2 mejores siempre sobreviven
+        survivalRate: 0.15,  
+        eliteSize: 4     
     }
 }
 
-// Configuración de fitness
+
 export const FITNESS_CONFIG = {
-    // Pesos para diferentes métricas
     weights: {
-        distance: 1.0,
-        speed: 0.5,
-        time: 0.3,
-        checkpoints: 2.0,
-        collisionPenalty: -0.5,
-        backwardPenalty: -0.2
+        distance: 5.0,          
+        speed: 3.0,           
+        time: 2.0,              
+        checkpoints: 15.0,     
+        collisionPenalty: -1.0, 
+        backwardPenalty: -0.5   
     },
     
     // Valores máximos para normalización
     maxValues: {
-        distance: 1000,
-        speed: 10,
-        time: 60,
-        checkpoints: 10
+        distance: 500,          
+        speed: 20,             
+        time: 40,             
+        checkpoints: 15       
     }
 }
 
@@ -65,5 +64,28 @@ export class InnovationCounter {
     
     reset(): void {
         this.counter = 0
+    }
+}
+
+export function getPopulationSize(): number {
+    return DEFAULT_NEAT_CONFIG.populationSize
+}
+
+export function getAdaptiveMutationRates(generation: number): typeof DEFAULT_NEAT_CONFIG.mutationRates {
+    const baseRates = DEFAULT_NEAT_CONFIG.mutationRates
+    
+    let scaleFactor: number
+    if (generation <= 5) {
+        scaleFactor = 4.0 - (generation * 0.2)  
+    } else if (generation <= 10) {
+        scaleFactor = 2.5 - ((generation - 5) * 0.2) 
+    } else { scaleFactor = Math.max(0.6, 1.2 - ((generation - 10) * 0.12)) }
+    
+    return {
+        addNode: Math.min(baseRates.addNode * scaleFactor, 0.25),         
+        addConnection: Math.min(baseRates.addConnection * scaleFactor, 0.4), 
+        weightMutation: Math.min(baseRates.weightMutation * scaleFactor, 1.0),
+        disableConnection: Math.min(baseRates.disableConnection * scaleFactor, 0.2), 
+        weightPerturbation: Math.min(baseRates.weightPerturbation * scaleFactor, 1.0) 
     }
 }

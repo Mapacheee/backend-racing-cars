@@ -1,13 +1,15 @@
 import { useGLTF } from '@react-three/drei'
 import { RigidBody, interactionGroups } from '@react-three/rapier'
 import type { JSX } from 'react'
-import type { TrackPiece } from '../systems/TrackSystem'
-import { ROAD_GEOMETRY } from '../config/constants'
+import type { TrackPiece } from '../types/index'
+import { ROAD_GEOMETRY } from '../systems/TrackSystem'
 
 interface Track3DProps {
     pieces: TrackPiece[]
+    visible?: boolean
 }
 
+// individual track piece component with physics collision
 function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
     if (piece.model === 'road_segment') {
         return (
@@ -16,8 +18,8 @@ function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
                 colliders="cuboid"
                 restitution={0}
                 friction={3.0}
-                collisionGroups={interactionGroups(2, [1])}     // Track in group 2, collides with group 1 (cars)
-                solverGroups={interactionGroups(2, [1])}      // Same groups for force calculation
+                collisionGroups={interactionGroups(2, [1])}     // track in group 2, collides with cars (group 1)
+                solverGroups={interactionGroups(2, [1])}        // physics interaction groups
             >
                 <mesh 
                     position={piece.position}
@@ -29,12 +31,13 @@ function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
             </RigidBody>
         )
     }
-    const { scene } = useGLTF(`/src/assets/models/${piece.model}`)
     
+    // for custom 3d models (future expansion)
+    const { scene } = useGLTF(`/assets/models/${piece.model}`)
     return (
         <RigidBody type="fixed" colliders="trimesh">
-            <primitive 
-                object={scene.clone()} 
+            <primitive
+                object={scene.clone()}
                 position={piece.position}
                 rotation={piece.rotation}
                 scale={1}
@@ -43,11 +46,14 @@ function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
     )
 }
 
-export default function Track3D({ pieces }: Track3DProps): JSX.Element {
+// main track 3d component - renders all track pieces with physics
+export default function Track3D({ pieces, visible = true }: Track3DProps): JSX.Element {
+    if (!visible) return <></>
+    
     return (
         <>
             {pieces.map((piece, index) => (
-                <TrackPieceComponent key={index} piece={piece} />
+                <TrackPieceComponent key={`track-piece-${index}`} piece={piece} />
             ))}
         </>
     )

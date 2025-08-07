@@ -1,4 +1,4 @@
-import type { TrackGeometry } from '../types/track'
+import type { TrackGeometry } from '../../../../lib/racing/track'
 import type { SensorConfig } from '../types/sensors'
 
 export const ROAD_GEOMETRY: TrackGeometry = {
@@ -24,4 +24,4 @@ export const TRACK_GENERATION = {
     minimumWaypoints: 3
 }
 
-export const CAR_MODEL_PATH = '/src/assets/models/raceCarRed.glb'
+export const CAR_MODEL_PATH = '/assets/models/raceCarRed.glb'

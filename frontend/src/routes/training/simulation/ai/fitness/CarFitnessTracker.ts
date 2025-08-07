@@ -1,6 +1,7 @@
 import { Vector3 } from 'three'
 import type { FitnessMetrics } from '../../types/neat'
-import type { Waypoint } from '../../types/track'
+import type { Waypoint } from '../../../../../lib/racing/track'
+import type { SensorReading } from '../../types/sensors'
 
 export class CarFitnessTracker {
     private metrics: FitnessMetrics
@@ -8,8 +9,12 @@ export class CarFitnessTracker {
     private startTime: number
     private totalDistance: number = 0
     private speedSamples: number[] = []
-    private lastCheckpointIndex: number = -1
+    private currentWaypointIndex: number = 0 
     private waypoints: Waypoint[]
+    private lastProgressTime: number  
+    private waypointTimes: number[] = []  
+    private lapCompleted: boolean = false
+    private sensorBonusAccumulator: number = 0  
     
     constructor(startPosition: Vector3, waypoints: Waypoint[]) {
         this.metrics = {
@@ -23,7 +28,9 @@ export class CarFitnessTracker {
         
         this.lastPosition = startPosition.clone()
         this.startTime = Date.now()
+        this.lastProgressTime = this.startTime
         this.waypoints = waypoints
+        this.sensorBonusAccumulator = 0  // Inicializar acumulador
     }
     
     update(currentPosition: Vector3, velocity: Vector3): void {
@@ -38,6 +45,11 @@ export class CarFitnessTracker {
         this.totalDistance += positionDelta
         this.metrics.distanceTraveled = this.totalDistance
         
+        // NUEVO: Actualizar progreso por movimiento significativo
+        if (positionDelta > 0.05) {  // Si se movió más de 0.05 unidades
+            this.lastProgressTime = now  // Resetear timeout por cualquier movimiento
+        }
+        
         // Calcular velocidad actual
         const currentSpeed = velocity.length()
         this.speedSamples.push(currentSpeed)
@@ -50,13 +62,13 @@ export class CarFitnessTracker {
         // Calcular velocidad promedio
         this.metrics.averageSpeed = this.speedSamples.reduce((a, b) => a + b, 0) / this.speedSamples.length
         
-        // Detectar movimiento hacia atrás
+        // Detectar movimiento hacia atrás (menos estricto)
         const forwardDirection = this.getForwardDirection(currentPosition)
         const movementDirection = currentPosition.clone().sub(this.lastPosition).normalize()
         
-        if (positionDelta > 0.01) { // Solo si se movió significativamente
+        if (positionDelta > 0.02) { // Reducido el threshold
             const dot = forwardDirection.dot(movementDirection)
-            if (dot < -0.5) { // Moviéndose hacia atrás
+            if (dot < -0.7) { // Menos estricto: solo penalizar movimiento muy hacia atrás
                 this.metrics.backwardMovement += positionDelta
             }
         }
@@ -71,35 +83,71 @@ export class CarFitnessTracker {
         this.metrics.collisions++
     }
     
-    private updateCheckpoints(position: Vector3): void {
-        // Verificar si pasó por el siguiente checkpoint
-        const nextCheckpointIndex = (this.lastCheckpointIndex + 1) % this.waypoints.length
-        const nextWaypoint = this.waypoints[nextCheckpointIndex]
+    // FUNCIÓN MEJORADA: Actualizar fitness basado en sensores con MÁS RECOMPENSAS
+    updateSensorFitness(sensorReadings: SensorReading): void {
+        // Calcular fitness por tener sensores libres (no detectar paredes)
+        const sensorSum = sensorReadings.left + sensorReadings.leftCenter + 
+                         sensorReadings.center + sensorReadings.rightCenter + 
+                         sensorReadings.right
         
-        if (nextWaypoint) {
+        // Factor aumentado para recompensar posición libre
+        const sensorBonus = (sensorSum / 5) * 0.03  // TRIPLICADO: 0.03 puntos por frame (era 0.01)
+        this.sensorBonusAccumulator += sensorBonus
+        
+        // Bonus especial AUMENTADO si el sensor central está muy libre (buena posición)
+        if (sensorReadings.center > 0.8) {
+            this.sensorBonusAccumulator += 0.02  // CUADRUPLICADO: 0.02 bonus extra (era 0.005)
+        }
+        
+        // NUEVO: Bonus adicional por tener TODOS los sensores relativamente libres
+        if (sensorSum > 4.0) {  // Si la suma es mayor a 4 (promedio >0.8)
+            this.sensorBonusAccumulator += 0.01  // Bonus extra por excelente posicionamiento
+        }
+    }
+    
+    private updateCheckpoints(position: Vector3): void {
+        // Verificar si alcanzó el waypoint actual (secuencial)
+        const currentWaypoint = this.waypoints[this.currentWaypointIndex]
+        
+        if (currentWaypoint) {
             const distance = Math.sqrt(
-                Math.pow(position.x - nextWaypoint.x, 2) + 
-                Math.pow(position.z - nextWaypoint.z, 2)
+                Math.pow(position.x - currentWaypoint.x, 2) + 
+                Math.pow(position.z - currentWaypoint.z, 2)
             )
             
-            // Si está dentro del radio del checkpoint
-            if (distance < nextWaypoint.radius) {
-                this.lastCheckpointIndex = nextCheckpointIndex
+            // Radio más generoso para facilitar progreso inicial
+            const waypointRadius = Math.max(currentWaypoint.radius || 3.0, 4.0)
+            
+            // Si está dentro del radio del waypoint actual
+            if (distance < waypointRadius) {
+                const now = Date.now()
+                this.waypointTimes.push(now - this.startTime)
+                this.lastProgressTime = now  // Progreso real por waypoint
                 this.metrics.checkpointsReached++
+                
+                console.log(`🎯 Car reached waypoint ${this.currentWaypointIndex + 1}/${this.waypoints.length} (distance: ${distance.toFixed(2)})`)
+                
+                // Avanzar al siguiente waypoint
+                this.currentWaypointIndex++
+                
+                // Verificar si completó la vuelta
+                if (this.currentWaypointIndex >= this.waypoints.length) {
+                    this.lapCompleted = true
+                    console.log(`🏁 Car completed lap in ${(now - this.startTime) / 1000}s`)
+                }
             }
         }
     }
     
     private getForwardDirection(currentPosition: Vector3): Vector3 {
-        // Calcular dirección hacia el siguiente waypoint
-        const nextCheckpointIndex = (this.lastCheckpointIndex + 1) % this.waypoints.length
-        const nextWaypoint = this.waypoints[nextCheckpointIndex]
+        // Calcular dirección hacia el siguiente waypoint (secuencial)
+        const targetWaypoint = this.waypoints[this.currentWaypointIndex]
         
-        if (nextWaypoint) {
+        if (targetWaypoint) {
             const direction = new Vector3(
-                nextWaypoint.x - currentPosition.x,
+                targetWaypoint.x - currentPosition.x,
                 0,
-                nextWaypoint.z - currentPosition.z
+                targetWaypoint.z - currentPosition.z
             ).normalize()
             
             return direction
@@ -113,12 +161,62 @@ export class CarFitnessTracker {
     }
     
     getCurrentCheckpoint(): number {
-        return this.lastCheckpointIndex
+        return this.currentWaypointIndex
     }
     
     getProgress(): number {
         // Progreso como porcentaje del circuito completado
         return (this.metrics.checkpointsReached / this.waypoints.length) * 100
+    }
+    
+    calculateFitness(): number {
+        const now = Date.now()
+        const timeAlive = (now - this.startTime) / 1000
+        
+        const movementBonus = Math.min(this.metrics.distanceTraveled * 0.5, 25) 
+        const survivalBonus = Math.min(timeAlive * 0.6, 12)  
+        const speedBonus = Math.min(this.metrics.averageSpeed * 8, 30) 
+        const sensorBonus = Math.min(this.sensorBonusAccumulator, 20)  
+                const waypointPoints = this.metrics.checkpointsReached * 50  
+        const waypointBonus = Math.pow(this.metrics.checkpointsReached, 1.5) * 10 
+        
+        // 3. BONIFICACIONES AVANZADAS
+        const timeBonus = this.lapCompleted ? Math.max(50 - timeAlive / 2, 0) : 0 
+        
+        const timeoutPenalty = this.hasTimeout() ? -5 : 0 
+        const collisionPenalty = this.metrics.collisions * -2  
+        const inactivityPenalty = this.getInactivityPenalty()  
+        
+        const totalFitness = movementBonus + survivalBonus + speedBonus + sensorBonus + 
+                           waypointPoints + waypointBonus + timeBonus + 
+                           timeoutPenalty + collisionPenalty + inactivityPenalty
+        
+        return Math.max(1.0, totalFitness)  
+    }
+    
+    // Nueva función: Penalizar inactividad severa
+    private getInactivityPenalty(): number {
+        const now = Date.now()
+        const timeSinceProgress = (now - this.lastProgressTime) / 1000
+        
+        // Penalización progresiva por inactividad
+        if (timeSinceProgress > 6) return -5  // Muy parado
+        if (timeSinceProgress > 4) return -2  // Algo parado
+        if (timeSinceProgress > 2) return -0.5  // Poco movimiento
+        
+        return 0  // Sin penalización si se mueve regularmente
+    }
+    
+    // Nueva función: Verificar si el carro ha hecho timeout
+    hasTimeout(): boolean {
+        const now = Date.now()
+        const timeSinceProgress = (now - this.lastProgressTime) / 1000
+        return timeSinceProgress > 8  // 8 segundos sin progreso = timeout
+    }
+    
+    // Nueva función: Verificar si completó la vuelta
+    isLapCompleted(): boolean {
+        return this.lapCompleted
     }
     
     reset(startPosition: Vector3): void {
@@ -133,8 +231,12 @@ export class CarFitnessTracker {
         
         this.lastPosition = startPosition.clone()
         this.startTime = Date.now()
+        this.lastProgressTime = this.startTime
         this.totalDistance = 0
         this.speedSamples = []
-        this.lastCheckpointIndex = -1
+        this.currentWaypointIndex = 0  // Empezar desde el primer waypoint
+        this.waypointTimes = []
+        this.lapCompleted = false
+        this.sensorBonusAccumulator = 0  // Resetear bonus de sensores
     }
 }

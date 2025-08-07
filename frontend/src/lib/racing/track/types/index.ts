@@ -1,3 +1,4 @@
+// shared track types for both training and admin modules
 export interface Waypoint {
     x: number
     z: number
@@ -29,4 +30,18 @@ export interface TrackGeometry {
     width: number
     height: number
     length: number
+}
+
+// track editing and interaction types
+export interface TrackEditMode {
+    enabled: boolean
+    mode: 'add' | 'move' | 'remove' | 'swap'
+    selectedWaypoint?: number
+}
+
+export interface TrackViewSettings {
+    showWaypoints: boolean
+    showWalls: boolean
+    showTrack: boolean
+    editMode: boolean
 }

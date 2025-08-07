@@ -1,27 +1,34 @@
-import { useGLTF } from '@react-three/drei'
-import type { JSX } from 'react'
 import { useRef, useEffect, useState } from 'react'
 import { Vector3 } from 'three'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
-import { RigidBody, interactionGroups } from '@react-three/rapier'
-import { TRACKS } from '../systems/TrackSystem'
-import { createSensorReadings, DEFAULT_SENSOR_CONFIG, type SensorReading } from './CarSensors'
-import type { AICar } from '../types/car'
-import { CAR_MODEL_PATH } from '../config/constants'
-import { CAR_PHYSICS_CONFIG } from '../config/physics'
-import { NEATCarController, CarFitnessTracker, GenomeBuilder, FitnessEvaluator } from '../ai'
+import { TRACKS } from '../../../../lib/racing/track'
+import { 
+    BaseCar3D, 
+    SensorVisualization, 
+    createSensorReadings, 
+    DEFAULT_SENSOR_CONFIG, 
+    CAR_MODELS,
+    type Car3DRef,
+    type SensorReading,
+    type AICar as AICarType
+} from '../../../../lib/racing/cars'
+import { NEATCarController, CarFitnessTracker, GenomeBuilder } from '../ai'
 import { DEFAULT_NEAT_CONFIG } from '../ai/neat/NEATConfig'
 import type { FitnessMetrics } from '../types/neat'
+import { useNEATTraining } from '../contexts/NEATTrainingContext'
 
 interface AICarProps {
-    carData: AICar
+    carData: AICarType
     onFitnessUpdate?: (carId: string, fitness: number, metrics: FitnessMetrics) => void
+    onCarElimination?: (carId: string) => void
+    isEliminated?: boolean
 }
 
-export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Element {
-    const { scene } = useGLTF(CAR_MODEL_PATH)
+export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEliminated }: AICarProps) {
+    const carRef = useRef<Car3DRef>(null)
     const { showCollisions } = useCanvasSettings()
-    const rigidBody = useRef<any>(null)
+    const neatContext = useNEATTraining()
+    
     const [sensorReadings, setSensorReadings] = useState<SensorReading>({
         left: 1,
         leftCenter: 1,
@@ -29,10 +36,12 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
         rightCenter: 1,
         right: 1
     })
+    
+    const [carPosition, setCarPosition] = useState<Vector3>(new Vector3(...carData.position))
+    const [carHeading, setCarHeading] = useState<number>(carData.rotation || 0)
 
     const track = TRACKS[carData.trackId || 'main_circuit']
     
-    // Inicializar controlador NEAT y tracker de fitness
     const [controller] = useState(() => {
         const genome = carData.genome || GenomeBuilder.createMinimal(DEFAULT_NEAT_CONFIG)
         return new NEATCarController(genome)
@@ -44,13 +53,35 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
     })
     
     const [lastCollisionTime, setLastCollisionTime] = useState(0)
+    
+    if (!neatContext) {
+        return null
+    }
+    
+    const { isTraining, generation } = neatContext
 
+    // Reset posición cuando cambia la generación
     useEffect(() => {
-        let frame: number
+        if (carRef.current) {
+            carRef.current.resetPosition(carData.position, [0, carData.rotation || 0, 0])
+            
+            // Reset fitness tracker
+            const startPos = new Vector3(...carData.position)
+            fitnessTracker.reset(startPos)
+        }
+    }, [generation, carData.position, carData.rotation, fitnessTracker])
+
+    // Efecto para la simulación del carro
+    useEffect(() => {
+        if (isEliminated || !isTraining) return
+
+        let frame = 0
         
         function updateSimulation() {
-            const rb = rigidBody.current
-            if (rb && track) {
+            const car = carRef.current
+            
+            if (car?.rigidBody && track && isTraining) {
+                const rb = car.rigidBody
                 const position = rb.translation()
                 const rotation = rb.rotation()
                 const velocity = rb.linvel()
@@ -68,15 +99,22 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
                 
                 const carPosition = new Vector3(realCenterX, position.y, realCenterZ)
                 
+                // update state for sensor visualization
+                setCarPosition(carPosition)
+                setCarHeading(heading)
+                
                 // Actualizar sensores
                 const readings = createSensorReadings(carPosition, heading, track.walls, DEFAULT_SENSOR_CONFIG)
                 setSensorReadings(readings)
                 
+                // Actualizar fitness basado en sensores
+                fitnessTracker.updateSensorFitness(readings)
+                
                 // Usar NEAT para obtener acciones de control
                 const actions = controller.getControlActions(readings)
                 
-                // DEBUG: Log las acciones que se están intentando aplicar
-                if (Math.random() < 0.05) { // 5% de las veces
+                // DEBUG: Log las acciones que se están intentando aplicar (reducido para 50 carros)
+                if (Math.random() < 0.001) { // 0.1% de las veces (era 5%)
                     console.log(`${carData.id} - Actions:`, {
                         throttle: actions.throttle.toFixed(3),
                         steering: actions.steering.toFixed(3),
@@ -93,113 +131,90 @@ export default function AICar({ carData, onFitnessUpdate }: AICarProps): JSX.Ele
                 const currentVelocity = new Vector3(velocity.x, velocity.y, velocity.z)
                 fitnessTracker.update(currentPosition, currentVelocity)
                 
-                // Calcular y reportar fitness cada cierto tiempo
-                if (frame % 60 === 0 && onFitnessUpdate) { // Cada segundo aprox
+                // Calcular y reportar fitness aún menos frecuentemente para mejor rendimiento
+                if (frame % 180 === 0 && onFitnessUpdate) { // Cada 3 segundos aprox
                     const metrics = fitnessTracker.getFitnessMetrics()
-                    const fitness = FitnessEvaluator.calculateFitness(metrics)
+                    const fitness = fitnessTracker.calculateFitness()  // Usar el nuevo método
                     onFitnessUpdate(carData.id, fitness, metrics)
+                    
+                    // Verificar timeout y eliminar si es necesario
+                    if (fitnessTracker.hasTimeout() && !isEliminated && onCarElimination) {
+                        console.log(`⏰ Car ${carData.id} timed out - no progress for 8s`)
+                        onCarElimination(carData.id)
+                    }
                 }
             }
             
+            frame++
             frame = requestAnimationFrame(updateSimulation)
         }
         
         frame = requestAnimationFrame(updateSimulation)
         return () => cancelAnimationFrame(frame)
-    }, [track, controller, fitnessTracker, carData.id, onFitnessUpdate])
+    }, [track, controller, fitnessTracker, carData.id, onFitnessUpdate, isEliminated, isTraining]) // Agregar isTraining a dependencies
 
     // Manejar colisiones
     const handleCollision = () => {
         const now = Date.now()
-        if (now - lastCollisionTime > 100) { // Evitar múltiples detecciones rápidas
+        if (now - lastCollisionTime > 100 && !isEliminated) { // Solo procesar si no está eliminado
             fitnessTracker.recordCollision()
             setLastCollisionTime(now)
+
+            // Llamar al callback de eliminación
+            if (onCarElimination) {
+                onCarElimination(carData.id)
+            }
+
+            console.log(`Car ${carData.id} crashed and eliminated!`)
         }
     }
 
-    const renderSensorLines = () => {
-        if (!showCollisions) return null
-        
-        const centerX = -0.5
-        const centerY = 0.5
-        const centerZ = -1
-        
-        const sensors = [
-            { angle: DEFAULT_SENSOR_CONFIG.angles.left, reading: sensorReadings.left },
-            { angle: DEFAULT_SENSOR_CONFIG.angles.leftCenter, reading: sensorReadings.leftCenter },
-            { angle: DEFAULT_SENSOR_CONFIG.angles.center, reading: sensorReadings.center },
-            { angle: DEFAULT_SENSOR_CONFIG.angles.rightCenter, reading: sensorReadings.rightCenter },
-            { angle: DEFAULT_SENSOR_CONFIG.angles.right, reading: sensorReadings.right }
-        ]
-
-        const result = sensors.map((sensor, index) => {
-            const angleRad = sensor.angle * Math.PI / 180
-            const distance = sensor.reading * DEFAULT_SENSOR_CONFIG.maxDistance
-            const endX = centerX + Math.sin(angleRad) * distance
-            const endZ = centerZ + Math.cos(angleRad) * distance
-            const color = sensor.reading > 0.8 ? 'green' : 'red'
-            
-            return (
-                <line key={`sensor-${carData.id}-${index}`}>
-                    <bufferGeometry>
-                        <bufferAttribute
-                            attach="attributes-position"
-                            count={2}
-                            array={new Float32Array([
-                                centerX, centerY, centerZ,
-                                endX, centerY, endZ
-                            ])}
-                            itemSize={3}
-                            args={[new Float32Array([
-                                centerX, centerY, centerZ,
-                                endX, centerY, endZ
-                            ]), 3]}
-                        />
-                    </bufferGeometry>
-                    <lineBasicMaterial color={color} />
-                </line>
-            )
-        })
-        
-        return result
-    }
+    // Efecto para manejar la eliminación del carro
+    useEffect(() => {
+        if (isEliminated && carRef.current?.rigidBody) {
+            const rb = carRef.current.rigidBody
+            rb.setLinvel({ x: 0, y: 0, z: 0 })
+            rb.setAngvel({ x: 0, y: 0, z: 0 })
+        }
+    }, [isEliminated])
 
     return (
-        <>
-            <RigidBody
-                ref={rigidBody}
-                colliders="cuboid"
-                position={carData.position}
-                rotation={carData.rotation ? [0, carData.rotation, 0] : undefined}
-                angularDamping={CAR_PHYSICS_CONFIG.angularDamping}
-                linearDamping={CAR_PHYSICS_CONFIG.linearDamping}
-                onCollisionEnter={handleCollision}
-                mass={1.5}                // Reasonable mass
-                restitution={0}           // No bounce 
-                friction={3.0}            // High friction
-                canSleep={false}
-                enabledRotations={[false, true, false]}
-                ccd={true}                // Continuous collision detection
-                gravityScale={1.0}        // Ensure gravity works properly
-                collisionGroups={interactionGroups(1, [2])}     // Cars in group 1, only collide with group 2 (environment)
-                solverGroups={interactionGroups(1, [2])}      // Same groups for force calculation
-            >
-                <group>
-                    <primitive object={scene.clone()} scale={1.5} />
-                    {showCollisions && (
-                        <mesh position={[-0.5, 0.2, -1]}>
-                            <boxGeometry args={[1, 0.4, 2]} />
-                            <meshBasicMaterial
-                                color={carData.color || "blue"}
-                                wireframe
-                                transparent
-                                opacity={0.5}
-                            />
-                        </mesh>
-                    )}
-                    {renderSensorLines()}
-                </group>
-            </RigidBody>
-        </>
+        <BaseCar3D
+            ref={carRef}
+            car={carData}
+            modelPath={isEliminated ? CAR_MODELS.eliminated : CAR_MODELS.default}
+            onCollision={handleCollision}
+            physics={{
+                mass: 1.5,
+                friction: 3.0,
+                restitution: 0,
+                angularDamping: 3.0,
+                linearDamping: 0.12
+            }}
+        >
+            {/* sensor visualization for debugging */}
+            {showCollisions && (
+                <SensorVisualization
+                    carPosition={carPosition}
+                    carRotation={carHeading}
+                    sensorReadings={sensorReadings}
+                    config={DEFAULT_SENSOR_CONFIG}
+                    visible={showCollisions}
+                />
+            )}
+
+            {/* collision debug visualization */}
+            {showCollisions && (
+                <mesh position={[-0.5, 0.2, -1]}>
+                    <boxGeometry args={[1, 0.4, 2]} />
+                    <meshBasicMaterial
+                        color={carData.color || "blue"}
+                        wireframe
+                        transparent
+                        opacity={0.5}
+                    />
+                </mesh>
+            )}
+        </BaseCar3D>
     )
 }

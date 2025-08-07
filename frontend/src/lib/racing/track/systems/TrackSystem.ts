@@ -1,11 +1,23 @@
-import type { Waypoint, Track, TrackPiece, Wall } from '../types/track'
-import { ROAD_GEOMETRY, TRACK_GENERATION } from '../config/constants'
+import type { Waypoint, Track, TrackPiece, Wall } from '../types/index'
 
-export type { Waypoint, Track, TrackPiece, Wall } from '../types/track'
+// track geometry configuration
+export const ROAD_GEOMETRY = {
+    width: 2.9,
+    height: 1.2,
+    length: 4
+} as const
 
+// track generation settings
+export const TRACK_GENERATION = {
+    segmentsPerSection: 16,
+    wallLength: 2.0,
+    minimumWaypoints: 3
+} as const
+
+// main track definition - can be extended with more tracks
 const MAIN_TRACK: Track = {
     id: 'main_circuit',
-    name: 'circuito 1',
+    name: 'main circuit',
     waypoints: [
         { x: 0, z: 0, radius: 6 }, 
         { x: 15, z: 0, radius: 6 },  
@@ -23,13 +35,16 @@ const MAIN_TRACK: Track = {
     length: 200
 }
 
+// initialize track pieces and walls on load
 MAIN_TRACK.pieces = generateRoad(MAIN_TRACK.waypoints)
 MAIN_TRACK.walls = generateTrackWalls(MAIN_TRACK.waypoints)
 
+// exported tracks registry
 export const TRACKS: Record<string, Track> = {
     main_circuit: MAIN_TRACK
 }
 
+// catmull-rom spline interpolation for smooth track curves
 function catmullRom(t: number, p0: number, p1: number, p2: number, p3: number): number {
     const t2 = t * t
     const t3 = t2 * t
@@ -41,6 +56,7 @@ function catmullRom(t: number, p0: number, p1: number, p2: number, p3: number): 
     )
 }
 
+// derivative of catmull-rom for calculating tangent direction
 function catmullRomDerivative(t: number, p0: number, p1: number, p2: number, p3: number): number {
     const t2 = t * t
     return 0.5 * (
@@ -50,6 +66,7 @@ function catmullRomDerivative(t: number, p0: number, p1: number, p2: number, p3:
     )
 }
 
+// generate road segments along waypoints using catmull-rom splines
 export function generateRoad(waypoints: Waypoint[]): TrackPiece[] {
     if (waypoints.length < TRACK_GENERATION.minimumWaypoints) return []
     
@@ -82,11 +99,11 @@ export function generateRoad(waypoints: Waypoint[]): TrackPiece[] {
     return pieces
 }
 
+// generate collision walls along both sides of the track
 export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
     const { segmentsPerSection, wallLength } = TRACK_GENERATION
     const roadHalfWidth = ROAD_GEOMETRY.width / 2
     
-    // Primera pasada: generar muros normales
     const normalWalls: Wall[] = []
     
     for (let i = 0; i < waypoints.length; i++) {
@@ -114,7 +131,7 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
             
             const trackHalfWidth = roadHalfWidth
             
-            // Muro izquierdo
+            // left wall
             normalWalls.push({
                 start: { 
                     x: x + perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
@@ -127,7 +144,7 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
                 side: 'left'
             })
             
-            // Muro derecho
+            // right wall
             normalWalls.push({
                 start: { 
                     x: x - perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
@@ -142,23 +159,18 @@ export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
         }
     }
     
-    // Segunda pasada: llenar espacios grandes entre muros
-    const filledWalls = fillWallGaps(normalWalls)
-    
-    return filledWalls
+    return fillWallGaps(normalWalls)
 }
 
-/**
- * Función para llenar espacios grandes entre muros del mismo lado
- */
+// fill large gaps between walls to prevent cars from escaping track boundaries
 function fillWallGaps(walls: Wall[]): Wall[] {
     const leftWalls = walls.filter(w => w.side === 'left')
     const rightWalls = walls.filter(w => w.side === 'right')
     
     const filledWalls: Wall[] = [...walls]
-    const MAX_GAP_DISTANCE = 2.0  // Máxima distancia permitida entre muros
+    const MAX_GAP_DISTANCE = 2.0
     
-    // Llenar espacios en muros izquierdos
+    // fill left wall gaps
     for (let i = 0; i < leftWalls.length; i++) {
         const currentWall = leftWalls[i]
         const nextWall = leftWalls[(i + 1) % leftWalls.length]
@@ -166,17 +178,15 @@ function fillWallGaps(walls: Wall[]): Wall[] {
         const distance = getDistanceBetweenPoints(currentWall.end, nextWall.start)
         
         if (distance > MAX_GAP_DISTANCE) {
-            // Crear muro puente para llenar el espacio
-            const bridgeWall: Wall = {
+            filledWalls.push({
                 start: { ...currentWall.end },
                 end: { ...nextWall.start },
                 side: 'left'
-            }
-            filledWalls.push(bridgeWall)
+            })
         }
     }
     
-    // Llenar espacios en muros derechos
+    // fill right wall gaps
     for (let i = 0; i < rightWalls.length; i++) {
         const currentWall = rightWalls[i]
         const nextWall = rightWalls[(i + 1) % rightWalls.length]
@@ -184,22 +194,18 @@ function fillWallGaps(walls: Wall[]): Wall[] {
         const distance = getDistanceBetweenPoints(currentWall.end, nextWall.start)
         
         if (distance > MAX_GAP_DISTANCE) {
-            // Crear muro puente para llenar el espacio
-            const bridgeWall: Wall = {
+            filledWalls.push({
                 start: { ...currentWall.end },
                 end: { ...nextWall.start },
                 side: 'right'
-            }
-            filledWalls.push(bridgeWall)
+            })
         }
     }
     
     return filledWalls
 }
 
-/**
- * Calcular distancia entre dos puntos
- */
+// utility functions for track navigation and waypoint calculations
 function getDistanceBetweenPoints(p1: { x: number, z: number }, p2: { x: number, z: number }): number {
     const dx = p2.x - p1.x
     const dz = p2.z - p1.z

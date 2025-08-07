@@ -1,8 +1,10 @@
 import type { JSX, ReactNode } from 'react'
+import { useState, useCallback } from 'react'
 import CanvasSettingsMenu from './components/CanvasSettingsMenu'
 import SimulationCanvas from './components/SimulationCanvas'
 import WaypointModal from './components/WaypointModal'
 import { WaypointModalProvider } from './contexts/WaypointModalContext'
+import { NEATTrainingProvider } from './contexts/NEATTrainingContext'
 import { CarProvider } from '../../../lib/contexts/CarContext'
 import { RaceResetProvider } from '../../../lib/contexts/RaceResetContext'
 
@@ -11,10 +13,22 @@ function SimulatorProviders({
 }: {
     children: ReactNode
 }): JSX.Element {
+    // Estado para forzar re-render sin recargar la página
+    const [resetKey, setResetKey] = useState(0)
+    
+    const handleReset = useCallback(() => {
+        console.log('🔄 Soft reset triggered')
+        setResetKey((prev: number) => prev + 1)
+    }, [])
+
     return (
         <WaypointModalProvider>
             <RaceResetProvider>
-                <CarProvider>{children}</CarProvider>
+                <CarProvider>
+                    <NEATTrainingProvider key={resetKey} onReset={handleReset}>
+                        {children}
+                    </NEATTrainingProvider>
+                </CarProvider>
             </RaceResetProvider>
         </WaypointModalProvider>
     )
