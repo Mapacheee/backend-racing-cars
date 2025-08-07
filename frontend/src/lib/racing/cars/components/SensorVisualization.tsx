@@ -8,6 +8,7 @@ interface SensorVisualizationProps {
     sensorReadings: SensorReading
     config: SensorConfig
     visualConfig?: Partial<SensorVisualizationConfig>
+    showCollisions?: boolean
     visible?: boolean
 }
 
@@ -27,6 +28,7 @@ export default function SensorVisualization({
     sensorReadings,
     config,
     visualConfig = {},
+    showCollisions = true,
     visible = true
 }: SensorVisualizationProps) {
     const finalVisualConfig = { ...DEFAULT_VISUAL_CONFIG, ...visualConfig }
@@ -50,7 +52,6 @@ export default function SensorVisualization({
         ]
 
         return sensors.map(sensor => {
-
             const sensorAngleRad = (sensor.angle * Math.PI) / 180
             const absoluteAngle = carRotation + sensorAngleRad - Math.PI / 2
 
@@ -64,17 +65,21 @@ export default function SensorVisualization({
             const endZ = startZ + Math.cos(absoluteAngle) * distance
 
             const hasObstacle = sensor.reading < 0.8
-            const color = hasObstacle ? finalVisualConfig.colors.obstacle : finalVisualConfig.colors.noObstacle
-            
+            let color = hasObstacle ? finalVisualConfig.colors.obstacle : finalVisualConfig.colors.noObstacle
+            let opacity = hasObstacle ? 0.8 : 0.4
+            if (!showCollisions) {
+                color = '#ffffff'
+                opacity = 0.0
+            }
             return {
                 key: sensor.key,
                 start: [startX, startY, startZ] as [number, number, number],
                 end: [endX, endY, endZ] as [number, number, number],
                 color,
-                opacity: hasObstacle ? 0.8 : 0.4
+                opacity
             }
         })
-    }, [carPosition, carRotation, sensorReadings, config, finalVisualConfig, visible, basePosition])
+    }, [carPosition, carRotation, sensorReadings, config, finalVisualConfig, visible, basePosition, showCollisions])
 
     if (!visible) return null
 
@@ -95,7 +100,7 @@ export default function SensorVisualization({
                                 itemSize={3}
                             />
                         </bufferGeometry>
-                        <lineBasicMaterial color={line.color} />
+                        <lineBasicMaterial color={line.color} transparent opacity={line.opacity} />
                     </line>
                 )
             })}

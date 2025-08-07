@@ -33,8 +33,8 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
     }
     
     const { isTraining, generation } = neatContext    
-    const carPositionRef = useRef<Vector3>(new Vector3(...carData.position))
-    const carHeadingRef = useRef<number>(carData.rotation || 0)
+    const [carPosition, setCarPosition] = useState<Vector3>(new Vector3(...carData.position))
+    const [carHeading, setCarHeading] = useState<number>(carData.rotation || 0)
 
     const track = TRACKS[carData.trackId || 'main_circuit']
     
@@ -59,6 +59,8 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
         }
     }, [generation, carData.position, carData.rotation, fitnessTracker])
 
+    const SENSOR_CENTER_OFFSET = { x: 0, y: 0.2, z: -1 }
+
     useEffect(() => {
         if (isEliminated || !isTraining) return
 
@@ -76,11 +78,10 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
                     1 - 2 * (rotation.y * rotation.y + rotation.z * rotation.z)
                 )
 
-                const carPosition = new Vector3(position.x, position.y, position.z)
-                carPositionRef.current = carPosition
-                carHeadingRef.current = heading
-                const centerOffset = { x: -1, y: 0.2, z: 0 }
-                const readings = createSensorReadings(carPosition, heading, track.walls, DEFAULT_SENSOR_CONFIG, centerOffset)
+                const newCarPosition = new Vector3(position.x, position.y, position.z)
+                setCarPosition(newCarPosition)
+                setCarHeading(heading)
+                const readings = createSensorReadings(newCarPosition, heading, track.walls, DEFAULT_SENSOR_CONFIG, SENSOR_CENTER_OFFSET)
                 fitnessTracker.updateSensorFitness(readings)
                 const actions = controller.getControlActions(readings)
                 if (Math.random() < 0.001) { 
@@ -134,15 +135,18 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
         }
     }, [isEliminated])
 
-    const centerOffset = { x: 0, y: 0.2, z: -1 }
-    const currentPosition = carPositionRef.current
-    const currentRotation = carHeadingRef.current
+    const [sensorUpdateKey, setSensorUpdateKey] = useState(0)
+
+    useEffect(() => {
+        setSensorUpdateKey(k => k + 1)
+    }, [showCollisions])
+
     const currentSensorReadings = createSensorReadings(
-        currentPosition,
-        currentRotation,
+        carPosition,
+        carHeading,
         track.walls,
         DEFAULT_SENSOR_CONFIG,
-        centerOffset
+        SENSOR_CENTER_OFFSET
     )
     return (
         <BaseCar3D
@@ -159,12 +163,13 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
             }}
         >
             <SensorVisualization
-                carPosition={currentPosition}
-                carRotation={currentRotation}
+                carPosition={carPosition}
+                carRotation={carHeading}
                 sensorReadings={currentSensorReadings}
                 config={DEFAULT_SENSOR_CONFIG}
-                visualConfig={{ centerOffset }}
-                visible={showCollisions}
+                visualConfig={{ centerOffset: SENSOR_CENTER_OFFSET }}
+                showCollisions={showCollisions}
+                visible={true}
             />
 
             {showCollisions && (
