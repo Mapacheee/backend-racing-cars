@@ -35,7 +35,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(RaceGateway.name);
-  private readonly ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'monsalves';
+  private readonly ADMIN_USERNAME = process.env.ADMIN_USERNAME as string;
 
   constructor(
     private readonly roomService: RoomService,
