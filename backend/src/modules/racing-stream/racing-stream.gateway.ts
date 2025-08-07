@@ -23,13 +23,14 @@ import {
   RemoveParticipantDto,
 } from './dto/racing-stream.dto';
 import { RoomStatus } from './interfaces/racing-stream.interface';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
+import { PlayerFromJwt } from '../auth/player/interfaces/player-jwt.interface';
 
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/racing-stream',
 })
-@UseGuards(JwtAuthGuard)
+@UseGuards(WsJwtAuthGuard)
 export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -51,6 +52,31 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client disconnected: ${client.id}`);
     // Handle room cleanup on disconnect
     await this.handleClientDisconnect(client);
+  }
+
+  @SubscribeMessage('hello')
+  handleHello(@ConnectedSocket() client: Socket): string {
+    const user = this.getUserFromSocket(client);
+    console.log(
+      `Hello from authenticated user: ${user?.username || 'unknown'}`,
+    );
+
+    // Send a message every second
+    let counter = 0;
+    const interval = setInterval(() => {
+      counter++;
+      client.emit(
+        'hello',
+        `Hello ${user?.username || 'user'} - Message ${counter} at ${new Date().toLocaleTimeString()}`,
+      );
+
+      // Stop after 10 messages to prevent infinite spam
+      if (counter >= 10) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return 'hello';
   }
 
   @SubscribeMessage('createRoom')
@@ -431,6 +457,12 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         );
       }
     }
+  }
+
+  private getUserFromSocket(client: Socket): PlayerFromJwt | null {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const user = client.data?.user;
+    return user as PlayerFromJwt | null;
   }
 
   private getUserIdFromSocket(client: Socket): string {

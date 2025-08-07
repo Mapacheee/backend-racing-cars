@@ -8,6 +8,7 @@ import { TracksModule } from './modules/tracks/tracks.module';
 import { RacesModule } from './modules/races/races.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { getDatabaseConfig } from './config/database.config';
+import { RacingModule } from './modules/racing-stream/racing-stream.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { getDatabaseConfig } from './config/database.config';
     TracksModule,
     RacesModule,
     StatisticsModule,
+    RacingModule,
   ],
   controllers: [],
   providers: [],

@@ -39,16 +39,10 @@ export class LeaveRoomDto {
   userId: string;
 }
 
-export class ConfigureRaceDto {
-  @IsString()
-  roomId: string;
-
-  @IsString()
-  adminUsername: string;
-
-  @ValidateNested()
-  @Type(() => RaceConfigurationDto)
-  raceConfig: RaceConfigurationDto;
+export class RaceSettingsDto {
+  @IsOptional()
+  @IsNumber()
+  timeLimit: number;
 }
 
 export class RaceConfigurationDto {
@@ -64,10 +58,16 @@ export class RaceConfigurationDto {
   raceSettings: RaceSettingsDto;
 }
 
-export class RaceSettingsDto {
-  @IsOptional()
-  @IsNumber()
-  timeLimit: number;
+export class ConfigureRaceDto {
+  @IsString()
+  roomId: string;
+
+  @IsString()
+  adminUsername: string;
+
+  @ValidateNested()
+  @Type(() => RaceConfigurationDto)
+  raceConfig: RaceConfigurationDto;
 }
 
 export class StartRaceDto {
@@ -96,28 +96,6 @@ export class PositionUpdateDto {
   timestamp: number;
 }
 
-export class CarPositionDto {
-  @IsString()
-  carId: string;
-
-  @ValidateNested()
-  @Type(() => PositionDto)
-  position: PositionDto;
-
-  @ValidateNested()
-  @Type(() => VelocityDto)
-  velocity: VelocityDto;
-
-  @IsNumber()
-  lapProgress: number;
-
-  @IsNumber()
-  currentLap: number;
-
-  @IsNumber()
-  racePosition: number;
-}
-
 export class PositionDto {
   @IsNumber()
   x: number;
@@ -143,13 +121,26 @@ export class VelocityDto {
   speed: number;
 }
 
-export class RaceEventDto {
+export class CarPositionDto {
   @IsString()
-  roomId: string;
+  carId: string;
 
   @ValidateNested()
-  @Type(() => RaceEventDataDto)
-  event: RaceEventDataDto;
+  @Type(() => PositionDto)
+  position: PositionDto;
+
+  @ValidateNested()
+  @Type(() => VelocityDto)
+  velocity: VelocityDto;
+
+  @IsNumber()
+  lapProgress: number;
+
+  @IsNumber()
+  currentLap: number;
+
+  @IsNumber()
+  racePosition: number;
 }
 
 export class RaceEventDataDto {
@@ -165,6 +156,59 @@ export class RaceEventDataDto {
 
   @IsOptional()
   data?: any;
+}
+
+export class RaceEventDto {
+  @IsString()
+  roomId: string;
+
+  @ValidateNested()
+  @Type(() => RaceEventDataDto)
+  event: RaceEventDataDto;
+}
+
+export class ParticipantResponseDto {
+  @IsString()
+  userId: string;
+
+  @IsString()
+  username: string;
+
+  @IsDate()
+  @Type(() => Date)
+  connectedAt: Date;
+
+  @IsString()
+  socketId: string;
+}
+
+// Complex response DTOs for room and participant data
+export class RoomResponseDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  adminId: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ParticipantResponseDto)
+  participants: ParticipantResponseDto[];
+
+  @IsEnum(['waiting', 'preparing', 'racing', 'paused', 'finished', 'closed'])
+  status: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RaceConfigurationDto)
+  raceConfig?: RaceConfigurationDto;
+
+  @IsDate()
+  @Type(() => Date)
+  createdAt: Date;
+
+  @IsNumber()
+  maxParticipants: number;
 }
 
 // Response DTOs
@@ -245,64 +289,19 @@ export class ErrorResponseDto {
   error?: string;
 }
 
-// Complex response DTOs for room and participant data
-export class RoomResponseDto {
-  @IsString()
-  id: string;
-
-  @IsString()
-  adminId: string;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ParticipantResponseDto)
-  participants: ParticipantResponseDto[];
-
-  @IsEnum(['waiting', 'preparing', 'racing', 'paused', 'finished', 'closed'])
-  status: string;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => RaceConfigurationDto)
-  raceConfig?: RaceConfigurationDto;
-
-  @IsDate()
-  @Type(() => Date)
-  createdAt: Date;
+export class TrackMetadataResponseDto {
+  @IsNumber()
+  length: number;
 
   @IsNumber()
-  maxParticipants: number;
-}
+  width: number;
 
-export class ParticipantResponseDto {
+  @IsNumber()
+  checkpoints: number;
+
+  @IsOptional()
   @IsString()
-  userId: string;
-
-  @IsString()
-  username: string;
-
-  @IsDate()
-  @Type(() => Date)
-  connectedAt: Date;
-
-  @IsString()
-  socketId: string;
-}
-
-// Race package response DTOs
-export class RacePackageResponseDto {
-  @ValidateNested()
-  @Type(() => TrackDataResponseDto)
-  trackData: TrackDataResponseDto;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AIModelDataResponseDto)
-  aiModels: AIModelDataResponseDto[];
-
-  @ValidateNested()
-  @Type(() => RaceConfigurationDto)
-  raceConfig: RaceConfigurationDto;
+  description?: string;
 }
 
 export class TrackDataResponseDto {
@@ -322,6 +321,22 @@ export class TrackDataResponseDto {
   metadata: TrackMetadataResponseDto;
 }
 
+// Race package response DTOs
+export class RacePackageResponseDto {
+  @ValidateNested()
+  @Type(() => TrackDataResponseDto)
+  trackData: TrackDataResponseDto;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AIModelDataResponseDto)
+  aiModels: AIModelDataResponseDto[];
+
+  @ValidateNested()
+  @Type(() => RaceConfigurationDto)
+  raceConfig: RaceConfigurationDto;
+}
+
 export class TrackPointResponseDto {
   @IsNumber()
   x: number;
@@ -336,19 +351,16 @@ export class TrackPointResponseDto {
   type: string;
 }
 
-export class TrackMetadataResponseDto {
+export class AIArchitectureResponseDto {
   @IsNumber()
-  length: number;
+  inputs: number;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  hiddenLayers: number[];
 
   @IsNumber()
-  width: number;
-
-  @IsNumber()
-  checkpoints: number;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
+  outputs: number;
 }
 
 export class AIModelDataResponseDto {
@@ -367,18 +379,6 @@ export class AIModelDataResponseDto {
   @ValidateNested()
   @Type(() => AIArchitectureResponseDto)
   architecture: AIArchitectureResponseDto;
-}
-
-export class AIArchitectureResponseDto {
-  @IsNumber()
-  inputs: number;
-
-  @IsArray()
-  @IsNumber({}, { each: true })
-  hiddenLayers: number[];
-
-  @IsNumber()
-  outputs: number;
 }
 
 // Admin-specific DTOs
