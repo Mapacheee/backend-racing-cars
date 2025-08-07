@@ -1,13 +1,10 @@
 import { Suspense, useState, useEffect } from 'react'
 import type { JSX } from 'react'
-import { OrbitControls, Text } from '@react-three/drei'
-import { Physics, RigidBody, interactionGroups } from '@react-three/rapier'
 import AICar from '../entities/AICar'
-import Track3D from './Track3D'
-import TrackWalls from './TrackWalls'
-import { TRACKS } from '../systems/TrackSystem'
+import { TrackScene } from '../../../../lib/racing/track'
+import { TRACKS } from '../../../../lib/racing/track'
+import { addWaypoint, moveWaypoint, reorderWaypoints } from '../../../../lib/racing/track'
 import { generateAICars } from '../systems/SpawnSystem'
-import { addWaypoint, moveWaypoint, reorderWaypoints } from '../systems/WaypointEditor'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
 import { useWaypointModal } from '../contexts/WaypointModalContext'
@@ -25,11 +22,9 @@ export default function CarScene(): JSX.Element {
     }
 
     const { generation, carStates, handleFitnessUpdate, handleCarElimination, population } = neatContext
-    console.log('🔍 NEAT Context:', { generation, carStatesSize: carStates.size, populationExists: !!population })
 
-    // Estado local para los carros que se regenera con cada generación
+    // regenerate cars when generation changes
     const [aiCars, setAiCars] = useState(() => {
-
         const initialGenomes = population.getGenomes().slice(0, 20)
         return generateAICars({
             trackId: 'main_circuit',
@@ -47,8 +42,8 @@ export default function CarScene(): JSX.Element {
     const currentTrack = 'main_circuit'
     const track = TRACKS[currentTrack]
 
+    // update cars when generation changes
     useEffect(() => {
-        
         const allGenomes = population.getGenomes()
         const config: any = {
             trackId: currentTrack,
@@ -69,7 +64,7 @@ export default function CarScene(): JSX.Element {
         triggerReset()
     }
 
-
+    // handle ground clicks for waypoint editing
     const handleGroundClick = (event: any) => {
         if (!editMode) return
 
@@ -90,7 +85,8 @@ export default function CarScene(): JSX.Element {
         }
     }
 
-    const handleWaypointClick = (event: any, index: number) => {
+    // handle waypoint clicks for editing
+    const handleWaypointClick = (index: number, event: any) => {
         if (!editMode) return
         event.stopPropagation()
 
@@ -110,133 +106,30 @@ export default function CarScene(): JSX.Element {
         }
     }
 
-    const renderTrackWaypoints = () => {
-        const track = TRACKS[currentTrack]
-        if (!track || !showWaypoints) return null
-
-        return track.waypoints.map((waypoint, index) => {
-            const nextIndex = (index + 1) % track.waypoints.length
-            const nextWaypoint = track.waypoints[nextIndex]
-            const isStartPoint = index === 0
-            const isHighlighted =
-                modalState.mode === 'swap' &&
-                modalState.waypointIndex >= 0 &&
-                modalState.waypointIndex !== index
-
-            return (
-                <group key={index}>
-                    <mesh
-                        position={[waypoint.x, 0.3, waypoint.z]}
-                        {...(editMode && {
-                            onClick: e => handleWaypointClick(e, index),
-                        })}
-                    >
-                        <sphereGeometry args={[editMode ? 0.5 : 0.3]} />
-                        <meshStandardMaterial
-                            color={
-                                isStartPoint
-                                    ? 'green'
-                                    : isHighlighted
-                                        ? 'cyan'
-                                        : editMode
-                                            ? 'orange'
-                                            : 'red'
-                            }
-                            transparent={editMode}
-                            opacity={isHighlighted ? 1 : editMode ? 0.8 : 1}
-                        />
-                    </mesh>
-
-                    {editMode && (
-                        <Text
-                            position={[waypoint.x, 0.8, waypoint.z]}
-                            fontSize={0.4}
-                            color="black"
-                            anchorX="center"
-                            anchorY="middle"
-                            rotation={[-Math.PI / 2, 0, 0]}
-                        >
-                            {(index + 1).toString()}
-                        </Text>
-                    )}
-
-                    <mesh
-                        position={[
-                            (waypoint.x + nextWaypoint.x) / 2,
-                            0.05,
-                            (waypoint.z + nextWaypoint.z) / 2,
-                        ]}
-                        rotation={[
-                            0,
-                            Math.atan2(
-                                nextWaypoint.x - waypoint.x,
-                                nextWaypoint.z - waypoint.z
-                            ),
-                            0,
-                        ]}
-                    >
-                        <boxGeometry
-                            args={[
-                                0.5,
-                                0.1,
-                                Math.sqrt(
-                                    (nextWaypoint.x - waypoint.x) ** 2 +
-                                    (nextWaypoint.z - waypoint.z) ** 2
-                                ),
-                            ]}
-                        />
-                        <meshStandardMaterial
-                            color="gray"
-                            transparent
-                            opacity={0.6}
-                        />
-                    </mesh>
-                </group>
-            )
-        })
-    }
-
-    const renderTrack3D = () => {
-        return <Track3D pieces={track.pieces} />
+    // determine highlighted waypoint based on modal state
+    const getHighlightedWaypoint = () => {
+        if (modalState.mode === 'swap' && modalState.waypointIndex >= 0) {
+            return modalState.waypointIndex
+        }
+        return -1
     }
 
     return (
-        <Physics gravity={[0, -9.81, 0]} paused={false}>
-            <ambientLight intensity={0.7} />
-            <directionalLight position={[5, 10, 7]} intensity={1} />
-
-            <RigidBody
-                type="fixed"
-                colliders="cuboid"
-                restitution={0}           // No bounce to prevent weird physics
-                friction={5.0}            // Very high friction
-                collisionGroups={interactionGroups(2, [1])}     // Ground in group 2, collides with group 1 (cars)
-                solverGroups={interactionGroups(2, [1])}      // Same groups for force calculation
-            >
-                <mesh
-                    position={[0, -0.8, 0]}   // Moved further down to avoid overlap
-                    receiveShadow
-                    {...(editMode && { onClick: handleGroundClick })}
-                >
-                    <boxGeometry args={[200, 0.2, 200]} />  {/* Keep thin but solid ground */}
-                    <meshStandardMaterial
-                        color={
-                            editMode
-                                ? modalState.mode === 'move'
-                                    ? 'lightcoral'
-                                    : 'lightblue'
-                                : 'lightgreen'
-                        }
-                        transparent={editMode}
-                        opacity={editMode ? 0.7 : 1}
-                    />
-                </mesh>
-            </RigidBody>
-
-            {renderTrack3D()}
-            <TrackWalls walls={track.walls} visible={showWalls} />
-            {renderTrackWaypoints()}
-
+        <TrackScene
+            track={track}
+            settings={{
+                showWaypoints,
+                showWalls,
+                showTrack: true,
+                editMode
+            }}
+            onGroundClick={handleGroundClick}
+            onWaypointClick={handleWaypointClick}
+            highlightedWaypoint={getHighlightedWaypoint()}
+            enablePhysics={true}
+            enableControls={true}
+        >
+            {/* render ai cars */}
             {aiCars.map(carData => {
                 const carState = carStates.get(carData.id)
                 const isCarEliminated = carState?.isEliminated || false
@@ -252,8 +145,6 @@ export default function CarScene(): JSX.Element {
                     </Suspense>
                 )
             })}
-
-            <OrbitControls enablePan enableZoom enableRotate />
-        </Physics>
+        </TrackScene>
     )
 }

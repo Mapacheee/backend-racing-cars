@@ -1,6 +1,6 @@
 import { useWaypointModal } from '../contexts/WaypointModalContext'
-import { TRACKS } from '../systems/TrackSystem'
-import { removeWaypoint } from '../systems/WaypointEditor'
+import { TRACKS } from '../../../../lib/racing/track'
+import { removeWaypoint } from '../../../../lib/racing/track'
 import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
 
 export default function WaypointModal() {

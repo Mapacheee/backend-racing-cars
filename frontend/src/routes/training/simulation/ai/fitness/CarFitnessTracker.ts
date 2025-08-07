@@ -1,6 +1,6 @@
 import { Vector3 } from 'three'
 import type { FitnessMetrics } from '../../types/neat'
-import type { Waypoint } from '../../types/track'
+import type { Waypoint } from '../../../../../lib/racing/track'
 import type { SensorReading } from '../../types/sensors'
 
 export class CarFitnessTracker {

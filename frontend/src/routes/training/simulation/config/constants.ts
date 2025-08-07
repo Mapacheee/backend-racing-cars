@@ -1,4 +1,4 @@
-import type { TrackGeometry } from '../types/track'
+import type { TrackGeometry } from '../../../../lib/racing/track'
 import type { SensorConfig } from '../types/sensors'
 
 export const ROAD_GEOMETRY: TrackGeometry = {

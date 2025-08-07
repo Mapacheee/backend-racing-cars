@@ -2,7 +2,7 @@ import { useEffect, type JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useNEATTraining } from '../contexts/NEATTrainingContext'
-import { TRACKS } from '../systems/TrackSystem'
+import { TRACKS } from '../../../../lib/racing/track'
 import { getPopulationSize } from '../ai/neat/NEATConfig'
 
 export default function CanvasSettingsMenu(): JSX.Element {
