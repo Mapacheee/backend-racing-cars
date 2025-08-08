@@ -19,6 +19,8 @@ import { RaceList } from './routes/admin/races/RaceList.tsx'
 import { AdminDashboard } from './routes/admin/dashboard/index.tsx'
 import AdminRoom from './routes/admin/room/index.tsx'
 import PlayerRoom from './routes/training/room/index.tsx'
+import TrackEditor from './routes/admin/track-editor/index.tsx'
+import RacingCompetition from './routes/admin/racing-competition/index.tsx'
 
 export default function App(): JSX.Element {
     return (
@@ -51,6 +53,15 @@ export default function App(): JSX.Element {
                     <Route element={<AdminRoomProvider />}>
                         <Route path="/admin/menu" element={<AdminMenu />} />
                         <Route path="/admin/room" element={<AdminRoom />} />
+                        <Route
+                            path="/admin/track-editor"
+                            element={<TrackEditor />}
+                        />
+                        <Route
+                            path="/admin/racing-competition"
+                            element={<RacingCompetition />}
+                        />
+
                         <Route path="/admin/list" element={<RaceList />} />
                         <Route
                             path="/admin/create"

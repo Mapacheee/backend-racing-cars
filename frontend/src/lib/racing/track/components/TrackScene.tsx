@@ -26,7 +26,7 @@ export default function TrackScene({
     highlightedWaypoint = -1,
     children,
     enablePhysics = true,
-    enableControls = true
+    enableControls = true,
 }: TrackSceneProps) {
     const sceneContent = (
         <>
@@ -34,36 +34,59 @@ export default function TrackScene({
             <ambientLight intensity={0.7} />
             <directionalLight position={[5, 10, 7]} intensity={1} />
 
-            {/* ground plane with physics */}
-            <RigidBody
-                type="fixed"
-                colliders="cuboid"
-                restitution={0}
-                friction={5.0}
-                collisionGroups={interactionGroups(2, [1])}
-                solverGroups={interactionGroups(2, [1])}
-            >
+            {/* ground plane with or without physics */}
+            {enablePhysics ? (
+                <RigidBody
+                    type="fixed"
+                    colliders="cuboid"
+                    restitution={0}
+                    friction={5.0}
+                    collisionGroups={interactionGroups(2, [1])}
+                    solverGroups={interactionGroups(2, [1])}
+                >
+                    <mesh
+                        position={[0, -0.8, 0]}
+                        receiveShadow
+                        {...(settings.editMode &&
+                            onGroundClick && { onClick: onGroundClick })}
+                    >
+                        <boxGeometry args={[200, 0.2, 200]} />
+                        <meshStandardMaterial
+                            color={
+                                settings.editMode ? 'lightblue' : 'lightgreen'
+                            }
+                            transparent={settings.editMode}
+                            opacity={settings.editMode ? 0.7 : 1}
+                        />
+                    </mesh>
+                </RigidBody>
+            ) : (
                 <mesh
                     position={[0, -0.8, 0]}
                     receiveShadow
-                    {...(settings.editMode && onGroundClick && { onClick: onGroundClick })}
+                    {...(settings.editMode &&
+                        onGroundClick && { onClick: onGroundClick })}
                 >
                     <boxGeometry args={[200, 0.2, 200]} />
                     <meshStandardMaterial
-                        color={
-                            settings.editMode
-                                ? 'lightblue'
-                                : 'lightgreen'
-                        }
+                        color={settings.editMode ? 'lightblue' : 'lightgreen'}
                         transparent={settings.editMode}
                         opacity={settings.editMode ? 0.7 : 1}
                     />
                 </mesh>
-            </RigidBody>
+            )}
 
             {/* track components */}
-            <Track3D pieces={track.pieces} visible={settings.showTrack} />
-            <TrackWalls walls={track.walls} visible={settings.showWalls} />
+            <Track3D
+                pieces={track.pieces}
+                visible={settings.showTrack}
+                enablePhysics={enablePhysics}
+            />
+            <TrackWalls
+                walls={track.walls}
+                visible={settings.showWalls}
+                enablePhysics={enablePhysics}
+            />
             <TrackWaypoints
                 waypoints={track.waypoints}
                 visible={settings.showWaypoints}
@@ -76,7 +99,9 @@ export default function TrackScene({
             {children}
 
             {/* camera controls */}
-            {enableControls && <OrbitControls enablePan enableZoom enableRotate />}
+            {enableControls && (
+                <OrbitControls enablePan enableZoom enableRotate />
+            )}
         </>
     )
 

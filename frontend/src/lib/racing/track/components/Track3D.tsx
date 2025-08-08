@@ -7,53 +7,83 @@ import { ROAD_GEOMETRY } from '../systems/TrackSystem'
 interface Track3DProps {
     pieces: TrackPiece[]
     visible?: boolean
+    enablePhysics?: boolean
 }
 
-// individual track piece component with physics collision
-function TrackPieceComponent({ piece }: { piece: TrackPiece }): JSX.Element {
+// individual track piece component with optional physics collision
+function TrackPieceComponent({
+    piece,
+    enablePhysics = true,
+}: {
+    piece: TrackPiece
+    enablePhysics?: boolean
+}): JSX.Element {
     if (piece.model === 'road_segment') {
-        return (
-            <RigidBody 
-                type="fixed" 
+        const roadMesh = (
+            <mesh position={piece.position} rotation={piece.rotation}>
+                <boxGeometry
+                    args={[
+                        ROAD_GEOMETRY.width,
+                        ROAD_GEOMETRY.height,
+                        ROAD_GEOMETRY.length,
+                    ]}
+                />
+                <meshStandardMaterial color="#444444" />
+            </mesh>
+        )
+
+        return enablePhysics ? (
+            <RigidBody
+                type="fixed"
                 colliders="cuboid"
                 restitution={0}
                 friction={3.0}
-                collisionGroups={interactionGroups(2, [1])}     // track in group 2, collides with cars (group 1)
-                solverGroups={interactionGroups(2, [1])}        // physics interaction groups
+                collisionGroups={interactionGroups(2, [1])} // track in group 2, collides with cars (group 1)
+                solverGroups={interactionGroups(2, [1])} // physics interaction groups
             >
-                <mesh 
-                    position={piece.position}
-                    rotation={piece.rotation}
-                >
-                    <boxGeometry args={[ROAD_GEOMETRY.width, ROAD_GEOMETRY.height, ROAD_GEOMETRY.length]} />
-                    <meshStandardMaterial color="#444444" />
-                </mesh>
+                {roadMesh}
             </RigidBody>
+        ) : (
+            roadMesh
         )
     }
-    
+
     // for custom 3d models (future expansion)
     const { scene } = useGLTF(`/assets/models/${piece.model}`)
-    return (
+    const modelPrimitive = (
+        <primitive
+            object={scene.clone()}
+            position={piece.position}
+            rotation={piece.rotation}
+            scale={1}
+        />
+    )
+
+    return enablePhysics ? (
         <RigidBody type="fixed" colliders="trimesh">
-            <primitive
-                object={scene.clone()}
-                position={piece.position}
-                rotation={piece.rotation}
-                scale={1}
-            />
+            {modelPrimitive}
         </RigidBody>
+    ) : (
+        modelPrimitive
     )
 }
 
-// main track 3d component - renders all track pieces with physics
-export default function Track3D({ pieces, visible = true }: Track3DProps): JSX.Element {
+// main track 3d component - renders all track pieces with optional physics
+export default function Track3D({
+    pieces,
+    visible = true,
+    enablePhysics = true,
+}: Track3DProps): JSX.Element {
     if (!visible) return <></>
-    
+
     return (
         <>
             {pieces.map((piece, index) => (
-                <TrackPieceComponent key={`track-piece-${index}`} piece={piece} />
+                <TrackPieceComponent
+                    key={`track-piece-${index}`}
+                    piece={piece}
+                    enablePhysics={enablePhysics}
+                />
             ))}
         </>
     )

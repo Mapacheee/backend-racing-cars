@@ -68,16 +68,16 @@ export default function AdminMenu(): JSX.Element {
                 {/* Actions Column */}
                 <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
                     <Link
-                        to="/admin/menu"
+                        to="/admin/track-editor"
                         className="w-full text-center rounded-md px-4 py-3 font-medium bg-primary text-white hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
                     >
-                        Administrar mapa
+                        🛠️ Editor de Pista
                     </Link>
                     <Link
                         to="/admin/room"
                         className="w-full text-center rounded-md px-4 py-3 font-medium border border-secondary bg-transparent text-secondary hover:bg-secondary hover:text-background transition-colors focus:outline-none focus:ring-2 focus:ring-secondary"
                     >
-                        Administrar sala
+                        🏁 Administrar Sala
                     </Link>
                     {/* <Link
                         to="/admin/dashboard"
