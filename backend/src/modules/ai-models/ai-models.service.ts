@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AIModel } from './entities/ai-model.entity';
+import { Player } from '../players/entities/player.entity';
 import {
   CreateAIModelDto,
   UpdateAIModelDto,
@@ -17,7 +18,23 @@ export class AiModelsService {
   constructor(
     @InjectRepository(AIModel)
     private aiModelsRepository: Repository<AIModel>,
+    @InjectRepository(Player)
+    private playersRepository: Repository<Player>,
   ) {}
+
+  /**
+   * Updates the player's aiGeneration to match the count of their AI models
+   */
+  private async updatePlayerAiGeneration(playerId: string): Promise<void> {
+    const aiModelCount = await this.aiModelsRepository.count({
+      where: { playerId },
+    });
+
+    await this.playersRepository.update(
+      { id: playerId },
+      { aiGeneration: aiModelCount },
+    );
+  }
 
   async create(
     userId: string,
@@ -30,7 +47,12 @@ export class AiModelsService {
       lastTrainingDate: new Date(),
     });
 
-    return this.aiModelsRepository.save(aiModel);
+    const savedModel = await this.aiModelsRepository.save(aiModel);
+
+    // Update player's aiGeneration count
+    await this.updatePlayerAiGeneration(userId);
+
+    return savedModel;
   }
 
   async findAll(filters: AIModelFilterDto): Promise<AIModel[]> {
@@ -121,7 +143,7 @@ export class AiModelsService {
     });
 
     // Crea una nueva generación basada en el mejor padre
-    return this.create(userId, {
+    const newModel = await this.create(userId, {
       name: `${bestParent.name}_gen_${bestParent.generationNumber + 1}`,
       version: `${bestParent.version}.${bestParent.generationNumber + 1}`,
       modelData: bestParent.modelData,
@@ -133,6 +155,9 @@ export class AiModelsService {
         mutationRate: 0.1, // Tasa de mutación configurable
       },
     });
+
+    // Note: this.create already calls updatePlayerAiGeneration, so no need to call it again
+    return newModel;
   }
 
   async remove(id: string, userId: string): Promise<void> {
@@ -145,6 +170,9 @@ export class AiModelsService {
     }
 
     await this.aiModelsRepository.remove(aiModel);
+
+    // Update player's aiGeneration count
+    await this.updatePlayerAiGeneration(userId);
   }
 
   async getEvolutionHistory(id: string, userId: string): Promise<AIModel[]> {

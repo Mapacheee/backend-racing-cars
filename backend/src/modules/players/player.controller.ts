@@ -31,16 +31,17 @@ export class PlayersController {
     return this.PlayersService.findAll();
   }
 
-  // @UseGuards(JwtAuthGuard)
-  // @Get(':username')
-  // increaseAiGeneration(@Param('username') username: string) {
-  //   return this.PlayersService.increaseAiGeneration(username);
-  // }
-
   @UseGuards(JwtAuthGuard)
   @Get(':username')
   findOne(@Param('username') username: string) {
     return this.PlayersService.findOne(username);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':username/sync-ai-generation')
+  async syncAiGeneration(@Param('username') username: string) {
+    const player = await this.PlayersService.findOne(username);
+    return this.PlayersService.syncAiGeneration(player.id);
   }
 
   @UseGuards(JwtAuthGuard)

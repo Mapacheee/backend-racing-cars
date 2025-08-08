@@ -1,5 +1,5 @@
 import { Exclude } from 'class-transformer';
-import { IsString, IsOptional, Length } from 'class-validator';
+import { IsString, IsOptional, Length, IsNumber, Min } from 'class-validator';
 
 export class UpdatePlayerDto {
   @IsOptional()
@@ -11,4 +11,9 @@ export class UpdatePlayerDto {
   @IsString()
   @Length(4, 4)
   password?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  aiGeneration?: number;
 }
