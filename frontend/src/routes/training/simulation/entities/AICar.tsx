@@ -36,8 +36,7 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
     const [carPosition, setCarPosition] = useState<Vector3>(new Vector3(...carData.position))
     const [carHeading, setCarHeading] = useState<number>(carData.rotation || 0)
 
-    const track = TRACKS[carData.trackId || 'main_circuit']
-    
+    const track = TRACKS[carData.trackId || 'circuito 1']
     const [controller] = useState(() => {
         const genome = carData.genome || GenomeBuilder.createMinimal(DEFAULT_NEAT_CONFIG)
         return new NEATCarController(genome)
@@ -84,6 +83,15 @@ export default function AICar({ carData, onFitnessUpdate, onCarElimination, isEl
                 const readings = createSensorReadings(newCarPosition, heading, track.walls, DEFAULT_SENSOR_CONFIG, SENSOR_CENTER_OFFSET)
                 fitnessTracker.updateSensorFitness(readings)
                 const actions = controller.getControlActions(readings)
+                if (fitnessTracker.getFitnessMetrics().timeAlive < 2) {
+                    actions.throttle = 1;
+                    actions.steering = 0;
+                }
+                const speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+                if (speed < 0.5) {
+                    actions.throttle = 1;
+                    actions.steering = 0;
+                }
                 if (Math.random() < 0.001) { 
                     console.log(`${carData.id} - Actions:`, {
                         throttle: actions.throttle.toFixed(3),
