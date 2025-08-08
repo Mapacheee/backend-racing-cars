@@ -5,6 +5,7 @@ import React, {
     useState,
     useCallback,
 } from 'react'
+import { Outlet } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { racingWebSocketService } from '../services/racing-websocket'
 import type { AdminAuth } from '../types/auth'
@@ -51,12 +52,10 @@ const AdminRoomContext = createContext<AdminRoomContextType | undefined>(
 )
 
 interface AdminRoomProviderProps {
-    children: React.ReactNode
+    // No children prop needed since we'll use Outlet
 }
 
-export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
-    children,
-}) => {
+export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = () => {
     const { auth } = useAuth<AdminAuth>()
 
     // Connection state
@@ -436,7 +435,7 @@ export const AdminRoomProvider: React.FC<AdminRoomProviderProps> = ({
 
     return (
         <AdminRoomContext.Provider value={value}>
-            {children}
+            <Outlet />
         </AdminRoomContext.Provider>
     )
 }

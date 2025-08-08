@@ -32,80 +32,41 @@ export default function App(): JSX.Element {
 
                 {/* Private routes */}
                 <Route element={<ProtectedRoute />}>
-                    {/* Training routes wrapped with PlayerRoomProvider */}
-                    <Route
-                        path="/training/*"
-                        element={
-                            <PlayerRoomProvider>
-                                <Routes>
-                                    <Route
-                                        path="menu"
-                                        element={<TrainingMenu />}
-                                    />
-                                    <Route
-                                        path="room"
-                                        element={<PlayerRoom />}
-                                    />
-                                    <Route
-                                        path="simulation"
-                                        element={<TrainingSimulation />}
-                                    />
-                                    {/* Default redirect to menu */}
-                                    <Route
-                                        path="*"
-                                        element={
-                                            <Navigate
-                                                to="/training/menu"
-                                                replace
-                                            />
-                                        }
-                                    />
-                                </Routes>
-                            </PlayerRoomProvider>
-                        }
-                    />
+                    <Route element={<PlayerRoomProvider />}>
+                        <Route
+                            path="/training/menu"
+                            element={<TrainingMenu />}
+                        />
+                        <Route path="/training/room" element={<PlayerRoom />} />
+                        <Route
+                            path="/training/simulation"
+                            element={<TrainingSimulation />}
+                        />
+                        <Route
+                            path="/training/*"
+                            element={<Navigate to="/training/menu" replace />}
+                        />
+                    </Route>
 
-                    {/* Admin routes wrapped with AdminRoomProvider */}
-                    <Route
-                        path="/admin/*"
-                        element={
-                            <AdminRoomProvider>
-                                <Routes>
-                                    <Route
-                                        path="menu"
-                                        element={<AdminMenu />}
-                                    />
-                                    <Route
-                                        path="room"
-                                        element={<AdminRoom />}
-                                    />
-                                    <Route path="list" element={<RaceList />} />
-                                    <Route
-                                        path="create"
-                                        element={<CreateRaceForm />}
-                                    />
-                                    <Route
-                                        path=":id"
-                                        element={<RaceDetail />}
-                                    />
-                                    <Route
-                                        path="dashboard"
-                                        element={<AdminDashboard />}
-                                    />
-                                    {/* Default redirect to menu */}
-                                    <Route
-                                        path="*"
-                                        element={
-                                            <Navigate
-                                                to="/admin/menu"
-                                                replace
-                                            />
-                                        }
-                                    />
-                                </Routes>
-                            </AdminRoomProvider>
-                        }
-                    />
+                    <Route element={<AdminRoomProvider />}>
+                        <Route path="/admin/menu" element={<AdminMenu />} />
+                        <Route path="/admin/room" element={<AdminRoom />} />
+                        <Route path="/admin/list" element={<RaceList />} />
+                        <Route
+                            path="/admin/create"
+                            element={<CreateRaceForm />}
+                        />
+                        <Route path="/admin/:id" element={<RaceDetail />} />
+                        <Route
+                            path="/admin/dashboard"
+                            element={<AdminDashboard />}
+                        />
+                        {/* Default redirect for /admin */}
+                        <Route
+                            path="/admin/*"
+                            element={<Navigate to="/admin/menu" replace />}
+                        />
+                    </Route>
 
                     {/* Default route */}
                     <Route path="*" element={<Navigate to="/" replace />} />

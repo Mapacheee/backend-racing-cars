@@ -5,10 +5,10 @@ import React, {
     useState,
     useCallback,
 } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { racingWebSocketService } from '../services/racing-websocket'
-import type { PlayerAuth } from '../types/auth'
+import type { Player } from '../types/auth'
 import type { RaceRoom, RoomParticipant } from '../types/racing-stream'
 
 interface PlayerRoomContextType {
@@ -53,13 +53,11 @@ export const usePlayerRoomContext = (): PlayerRoomContextType => {
 }
 
 interface PlayerRoomProviderProps {
-    children: React.ReactNode
+    // No children prop needed since we'll use Outlet
 }
 
-export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
-    children,
-}) => {
-    const { auth } = useAuth<PlayerAuth>()
+export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = () => {
+    const { auth, isPlayer } = useAuth()
     const location = useLocation()
 
     // Connection state
@@ -78,6 +76,9 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
 
     // Error states
     const [roomError, setRoomError] = useState<string | null>(null)
+
+    // Get player auth safely
+    const playerAuth = isPlayer() && auth ? (auth as Player) : null
 
     // Initialize room state from localStorage (only on mount)
     useEffect(() => {
@@ -125,11 +126,11 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
 
     // Initialize WebSocket connection when authenticated
     useEffect(() => {
-        if (!auth?.token) return
+        if (!playerAuth?.token) return
 
         try {
             // 🔑 Connect with JWT token - all WebSocket endpoints require authentication
-            const socket = racingWebSocketService.connect(auth.token)
+            const socket = racingWebSocketService.connect(playerAuth.token)
 
             // Connection event handlers
             socket.on('connect', () => {
@@ -159,7 +160,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
             racingWebSocketService.disconnect()
             setIsConnected(false)
         }
-    }, [auth?.token])
+    }, [playerAuth?.token])
 
     // Check for existing room status when connected and on room page
     useEffect(() => {
@@ -167,17 +168,17 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
             isConnected &&
             currentRoom &&
             location.pathname === '/training/room' &&
-            auth?.id &&
-            auth?.username
+            playerAuth?.id &&
+            playerAuth?.username
         ) {
             // First, try to rejoin the room (in case we got disconnected)
             console.log('🔄 Attempting to rejoin room:', currentRoom.id)
             racingWebSocketService.joinRoom(
                 {
                     roomId: currentRoom.id,
-                    userId: auth.id,
-                    aiGeneration: auth.aiGeneration,
-                    username: auth.username,
+                    userId: playerAuth.id,
+                    aiGeneration: playerAuth.aiGeneration,
+                    username: playerAuth.username,
                 },
                 response => {
                     // Successfully rejoined
@@ -222,9 +223,9 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
         isConnected,
         currentRoom?.id,
         location.pathname,
-        auth?.id,
-        auth?.username,
-        auth?.aiGeneration,
+        playerAuth?.id,
+        playerAuth?.username,
+        playerAuth?.aiGeneration,
     ])
 
     // Save room state to localStorage whenever room changes (not based on isInRoom)
@@ -263,7 +264,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
 
         // Participant removed event (kicked by admin)
         racingWebSocketService.onParticipantRemoved(data => {
-            if (data.userId === auth.id) {
+            if (data.userId === playerAuth?.id) {
                 // This player was removed
                 setCurrentRoom(null)
                 setParticipants([])
@@ -295,12 +296,12 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
                 // TODO: Navigate to race view or update UI
             }
         })
-    }, [auth.id, isInRoom])
+    }, [playerAuth?.id, isInRoom])
 
     // Room management methods
     const joinRoom = useCallback(
         async (roomId: string): Promise<void> => {
-            if (!auth?.id || !auth?.username) {
+            if (!playerAuth?.id || !playerAuth?.username) {
                 throw new Error('User authentication required')
             }
 
@@ -308,13 +309,15 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
             setRoomError(null)
 
             return new Promise((resolve, reject) => {
-                console.log(`🔄 Joining room ${roomId} as ${auth.username}...`)
+                console.log(
+                    `🔄 Joining room ${roomId} as ${playerAuth.username}...`
+                )
                 racingWebSocketService.joinRoom(
                     {
                         roomId,
-                        userId: auth.id,
-                        aiGeneration: auth.aiGeneration,
-                        username: auth.username,
+                        userId: playerAuth.id,
+                        aiGeneration: playerAuth.aiGeneration,
+                        username: playerAuth.username,
                     },
                     response => {
                         setCurrentRoom(response.room)
@@ -339,11 +342,11 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
                 )
             })
         },
-        [auth?.id, auth?.username]
+        [playerAuth?.id, playerAuth?.username, playerAuth?.aiGeneration]
     )
 
     const leaveRoom = useCallback(async (): Promise<void> => {
-        if (!currentRoom || !auth?.id) {
+        if (!currentRoom || !playerAuth?.id) {
             return
         }
 
@@ -354,7 +357,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
             console.log(`🔄 Leaving room ${currentRoom.id}...`)
             racingWebSocketService.leaveRoom(
                 currentRoom.id,
-                auth.id,
+                playerAuth.id,
                 _response => {
                     setCurrentRoom(null)
                     setParticipants([])
@@ -372,7 +375,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
                 }
             )
         })
-    }, [currentRoom, auth?.id])
+    }, [currentRoom, playerAuth?.id])
 
     const clearErrors = useCallback(() => {
         setRoomError(null)
@@ -417,7 +420,7 @@ export const PlayerRoomProvider: React.FC<PlayerRoomProviderProps> = ({
 
     return (
         <PlayerRoomContext.Provider value={value}>
-            {children}
+            <Outlet />
         </PlayerRoomContext.Provider>
     )
 }
