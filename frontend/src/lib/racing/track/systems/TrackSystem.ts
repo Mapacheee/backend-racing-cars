@@ -9,17 +9,17 @@ import {
 // track geometry configuration
 export const ROAD_GEOMETRY = {
     width: 6,
-    height: 1.2,
-    length: 6,
+    height: 0.3,
+    length: 2,
 } as const
 
 // track generation settings
 export const TRACK_GENERATION = {
-    segmentsPerSection: 2,
-    wallLength: 2.0,
-    minimumWaypoints: 3,
+    segmentsPerSection: 20,
+    wallLength: 4,
+    minimumWaypoints: 8,
     // new spline settings - SHORTER TRACKS
-    trackWidth: 6, // Much smaller track width for closer walls
+    trackWidth: ROAD_GEOMETRY.width + 2, // Much smaller track width for closer walls
     baseRadius: 40, // Reduced from 80 to 40 for shorter tracks
     radiusVariation: 20, // Reduced from 50 to 30 for tighter curves
     numControlPoints: 12, // Reduced from 12 to 8 for shorter tracks
@@ -40,8 +40,8 @@ function generateMainTrack(): Track {
         controlPoints,
         TRACK_GENERATION.trackWidth,
         {
-            segmentsPerSpline: 40, // More segments for smoother curves
-            numCheckpoints: 30, // More checkpoints for better tracking
+            segmentsPerSpline: 8, // More segments for smoother curves
+            numCheckpoints: 2, // More checkpoints for better tracking
             roadPieceLength: ROAD_GEOMETRY.length,
         }
     )

@@ -389,8 +389,10 @@ export function splineTrackToTrack(
 ): Track {
     // Generate road pieces
     const pieces: TrackPiece[] = []
-    const roadPieceLength = 4
-    const numPieces = Math.floor(splineTrack.totalLength / roadPieceLength)
+    const roadSegmentSeparation = 0.5
+    const numPieces = Math.floor(
+        splineTrack.totalLength / roadSegmentSeparation
+    )
 
     for (let i = 0; i < numPieces; i++) {
         const t = i / numPieces

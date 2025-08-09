@@ -30,7 +30,7 @@ export default function TrackWalls({
                         position={[centerX, 0.25, centerZ]}
                         rotation={[0, rotation, 0]}
                     >
-                        <boxGeometry args={[0.2, 0.5, length]} />
+                        <boxGeometry args={[2, 3, length]} />
                         <meshBasicMaterial
                             color={
                                 showColors
