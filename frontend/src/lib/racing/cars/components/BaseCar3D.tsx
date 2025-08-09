@@ -148,22 +148,9 @@ const BaseCar3D = forwardRef<Car3DRef, BaseCar3DProps>(
                 <primitive
                     object={scene.clone()}
                     scale={1.5}
-                    ref={(primitive: any) => {
-                        if (primitive && car.color) {
-                            // Apply color to all meshes in the car model
-                            primitive.traverse((child: any) => {
-                                if (child.isMesh && child.material) {
-                                    if (Array.isArray(child.material)) {
-                                        child.material.forEach((mat: any) => {
-                                            mat.color.set(car.color)
-                                        })
-                                    } else {
-                                        child.material.color.set(car.color)
-                                    }
-                                }
-                            })
-                        }
-                    }}
+                    {...(car.color && {
+                        material: { color: car.color },
+                    })}
                 />
                 {children}
             </RigidBody>

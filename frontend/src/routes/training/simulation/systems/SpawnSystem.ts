@@ -6,10 +6,8 @@ import { TRACKS } from '../../../../lib/racing/track'
 export interface SpawnConfig {
     trackId: string
     carCount: number
-    colors?: string[] // Made optional since we now use simple white/red system
+    colors: string[]
     useNEAT?: boolean
-    generation?: number
-    genomes?: any[]
 }
 
 export function calculateSpawnTransform(track: Track): {
@@ -42,7 +40,7 @@ export function calculateSpawnTransform(track: Track): {
 export function generateAICars(config: {
     trackId: string
     carCount: number
-    colors?: string[] // Made optional
+    colors: string[]
     useNEAT: boolean
     generation: number
     genomes?: any[] // Genomas evolucionados opcionales
@@ -64,7 +62,7 @@ export function generateAICars(config: {
                 position[2], // Exact Z position of first waypoint (start line)
             ],
             rotation, // Facing towards second waypoint for correct start direction
-            color: 'white', // All cars start white, turn red on collision
+            color: config.colors[i % config.colors.length] || 'blue',
             trackId: config.trackId,
         }
 

@@ -74,7 +74,6 @@ export default function AICar({
     })
 
     const [lastCollisionTime, setLastCollisionTime] = useState(0)
-    const [hasWallCollision, setHasWallCollision] = useState(false)
 
     useEffect(() => {
         if (carRef.current) {
@@ -149,8 +148,28 @@ export default function AICar({
                 )
                 fitnessTracker.updateSensorFitness(readings)
 
-                // Note: Wall collision detection now handled by physics collision events
-                // instead of sensor-based detection for more accurate fast-car collision detection
+                // Check for wall collision (when any sensor reading indicates actual contact)
+                const WALL_COLLISION_DISTANCE = 0.08 // Distance threshold for wall collision (actual contact)
+                const sensorValues = [
+                    readings.left,
+                    readings.leftCenter,
+                    readings.center,
+                    readings.rightCenter,
+                    readings.right,
+                ]
+                const hasWallCollision = sensorValues.some(
+                    distance => distance < WALL_COLLISION_DISTANCE
+                )
+
+                if (hasWallCollision && !isEliminated) {
+                    console.log(
+                        `💥 Car ${carData.id} touched wall during training - eliminating`
+                    )
+                    if (onCarElimination) {
+                        onCarElimination(carData.id)
+                    }
+                    return // Stop processing this car
+                }
 
                 // Determine which controller to use
                 let actions
@@ -363,29 +382,21 @@ export default function AICar({
         isTraining,
     ])
 
-    const handleCollision = (event: any) => {
+    const handleCollision = () => {
         const now = Date.now()
         if (now - lastCollisionTime > 100 && !isEliminated) {
-            // Check if collision is with a wall
-            const otherCollider = event.other.rigidBodyObject?.userData
-            const isWallCollision = otherCollider?.type === 'wall'
-            
-            if (isWallCollision) {
-                console.log(`💥 Car ${carData.id} hit wall - physics collision detected!`)
-                setHasWallCollision(true)
-                
-                // Reset collision state after brief visual feedback
-                setTimeout(() => setHasWallCollision(false), 500)
-                
-                // Only eliminate cars during training
-                if (isTraining && onCarElimination) {
-                    fitnessTracker.recordCollision()
-                    setLastCollisionTime(now)
-                    onCarElimination(carData.id)
-                    console.log(`💥 Car ${carData.id} eliminated due to wall collision!`)
-                } else {
-                    console.log(`💥 Car ${carData.id} hit wall (no elimination - not training)`)
-                }
+            // Only eliminate cars during training
+            if (isTraining && onCarElimination) {
+                fitnessTracker.recordCollision()
+                setLastCollisionTime(now)
+                onCarElimination(carData.id)
+                console.log(
+                    `💥 Car ${carData.id} crashed and eliminated during training!`
+                )
+            } else {
+                console.log(
+                    `💥 Car ${carData.id} crashed (no elimination - not training)`
+                )
             }
         }
     }
@@ -441,10 +452,7 @@ export default function AICar({
     return (
         <BaseCar3D
             ref={carRef}
-            car={{
-                ...carData,
-                color: hasWallCollision ? 'red' : 'white' // Simple color system: white=normal, red=collision
-            }}
+            car={carData}
             modelPath={
                 isEliminated && isTraining
                     ? CAR_MODELS.eliminated
@@ -473,7 +481,7 @@ export default function AICar({
                 <mesh position={[-0.5, 0.2, -1]}>
                     <boxGeometry args={[1, 0.4, 2]} />
                     <meshBasicMaterial
-                        color={hasWallCollision ? 'red' : 'white'}
+                        color={carData.color || 'blue'}
                         wireframe
                         transparent
                         opacity={0.5}

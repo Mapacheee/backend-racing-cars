@@ -61,7 +61,7 @@ export default function TrackScene({
             <TrackWalls
                 walls={track.walls}
                 visible={settings.showWalls}
-                enablePhysics={enablePhysics} // Enable physics for proper collision detection
+                enablePhysics={false} // Walls don't have physics, only visual collision detection
             />
             <TrackWaypoints
                 waypoints={track.waypoints}
@@ -82,13 +82,7 @@ export default function TrackScene({
     // wrap in physics world if enabled
     if (enablePhysics) {
         return (
-            <Physics 
-                gravity={[0, -9.81, 0]} 
-                paused={false} 
-                timeStep={1/120} 
-                numSolverIterations={8}
-                numAdditionalFrictionIterations={4}
-            >
+            <Physics gravity={[0, -9.81, 0]} paused={false}>
                 {sceneContent}
             </Physics>
         )

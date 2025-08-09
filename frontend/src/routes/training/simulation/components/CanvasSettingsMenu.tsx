@@ -136,12 +136,6 @@ export default function CanvasSettingsMenu(): JSX.Element {
                         </span>
                     </div>
                     <div>
-                        Pista:{' '}
-                        <span className="font-medium text-purple-600">
-                            {Math.round(track.length)}m total
-                        </span>
-                    </div>
-                    <div>
                         Mejor Fitness:{' '}
                         <span className="font-medium">
                             {bestFitness.toFixed(2)}
@@ -163,29 +157,6 @@ export default function CanvasSettingsMenu(): JSX.Element {
                             </span>
                         </div>
                     )}
-
-                    {/* Nueva métrica: Mejor distancia recorrida */}
-                    {Array.from(carStates.values()).length > 0 && (() => {
-                        const cars = Array.from(carStates.values())
-                        const bestDistanceCar = cars.reduce((best, car) => {
-                            const carDistance = car.metrics?.distanceTraveled || 0
-                            const bestDistance = best.metrics?.distanceTraveled || 0
-                            return carDistance > bestDistance ? car : best
-                        })
-                        const bestDistance = bestDistanceCar.metrics?.distanceTraveled || 0
-                        
-                        return (
-                            <div>
-                                Mejor Distancia:{' '}
-                                <span className="font-medium text-blue-600">
-                                    {bestDistance.toFixed(1)}m
-                                </span>
-                                <span className="text-xs text-gray-500 ml-1">
-                                    (Car {bestDistanceCar.id})
-                                </span>
-                            </div>
-                        )
-                    })()}
 
                     <div
                         className={`${isTraining ? 'text-green-600' : 'text-red-600'}`}
