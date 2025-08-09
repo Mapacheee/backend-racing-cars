@@ -37,7 +37,7 @@ function TrackPieceComponent({
                 type="fixed"
                 colliders="cuboid"
                 restitution={0}
-                friction={3.0}
+                friction={4.0} // Reduced from 3.0 to 0.7 for better car movement
                 collisionGroups={interactionGroups(2, [1])} // track in group 2, collides with cars (group 1)
                 solverGroups={interactionGroups(2, [1])} // physics interaction groups
             >

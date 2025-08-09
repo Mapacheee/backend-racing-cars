@@ -39,16 +39,20 @@ export function generateBaseCars(config: SpawnConfig, track: Track): BaseCar[] {
 
     for (let i = 0; i < config.carCount; i++) {
         // calculate spawn position with formation pattern
-        const spawnPosition = calculateFormationPosition(position, i, config.formation || 'single')
-        
+        const spawnPosition = calculateFormationPosition(
+            position,
+            i,
+            config.formation || 'single'
+        )
+
         const car: BaseCar = {
             id: `car-${i + 1}`,
             position: spawnPosition,
             rotation,
             color: config.colors[i % config.colors.length] || '#ff0000',
-            trackId: config.trackId
+            trackId: config.trackId,
         }
-        
+
         cars.push(car)
     }
 
@@ -57,8 +61,8 @@ export function generateBaseCars(config: SpawnConfig, track: Track): BaseCar[] {
 
 // calculate spawn position based on formation pattern
 function calculateFormationPosition(
-    basePosition: [number, number, number], 
-    index: number, 
+    basePosition: [number, number, number],
+    index: number,
     formation: 'single' | 'grid' | 'random'
 ): [number, number, number] {
     switch (formation) {
@@ -69,16 +73,16 @@ function calculateFormationPosition(
             return [
                 basePosition[0] + (col - gridSize / 2) * 2,
                 basePosition[1],
-                basePosition[2] - row * 3
+                basePosition[2] - row * 3,
             ]
-        
+
         case 'random':
             return [
                 basePosition[0] + (Math.random() - 0.5) * 10,
                 basePosition[1],
-                basePosition[2] + (Math.random() - 0.5) * 5
+                basePosition[2] + (Math.random() - 0.5) * 5,
             ]
-        
+
         case 'single':
         default:
             // all cars spawn at same position (ghost mode for AI training)
@@ -89,21 +93,31 @@ function calculateFormationPosition(
 // generate colors for cars if not provided
 export function generateCarColors(count: number): string[] {
     const baseColors = [
-        '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', 
-        '#00ffff', '#ffa500', '#800080', '#008000', '#000080'
+        '#ff0000',
+        '#00ff00',
+        '#0000ff',
+        '#ffff00',
+        '#ff00ff',
+        '#00ffff',
+        '#ffa500',
+        '#800080',
+        '#008000',
+        '#000080',
     ]
-    
+
     const colors: string[] = []
     for (let i = 0; i < count; i++) {
         colors.push(baseColors[i % baseColors.length])
     }
-    
+
     return colors
 }
 
 // validate spawn configuration
 export function validateSpawnConfig(config: SpawnConfig): boolean {
-    return config.carCount > 0 && 
-           config.trackId.length > 0 && 
-           config.colors.length > 0
+    return (
+        config.carCount > 0 &&
+        config.trackId.length > 0 &&
+        config.colors.length > 0
+    )
 }

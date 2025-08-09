@@ -1,16 +1,16 @@
 export const CAMERA_CONFIG = {
-    position: [0, 80, 120] as const,
-    fov: 30
+    position: [0, 400, 0] as const,
+    fov: 30,
 }
 
 export const LIGHTING_CONFIG = {
     ambient: {
-        intensity: 0.7
+        intensity: 0.7,
     },
     directional: {
         position: [5, 10, 7] as const,
-        intensity: 1
-    }
+        intensity: 1,
+    },
 }
 
 export const GROUND_CONFIG = {
@@ -18,7 +18,6 @@ export const GROUND_CONFIG = {
     size: [80, 80] as const,
     colors: {
         normal: 'lightgreen',
-        editMode: 'lightblue',
-        moveMode: 'lightcoral'
-    }
+        moveMode: 'lightcoral',
+    },
 }

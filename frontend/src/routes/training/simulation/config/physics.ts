@@ -1,20 +1,20 @@
 import type { CarPhysicsConfig, CarCollisionGroups } from '../types/car'
 
 export const CAR_PHYSICS_CONFIG: CarPhysicsConfig = {
-    angularDamping: 3.0,  // Higher damping to prevent wild spinning
-    linearDamping: 0.12,  // More damping to prevent erratic movement
-    spawnHeight: 0.6      // Just above track level (track height is 1.2)
+    angularDamping: 5.0, // Higher damping for stable arcade physics
+    linearDamping: 0.1, // Lower damping for responsive movement
+    spawnHeight: 0.6, // Just above track level (track height is 1.2)
 }
 
 export const COLLISION_GROUPS: CarCollisionGroups = {
-    cars: 1,     // Grupo 1: Carros 
-    walls: 2,    // Grupo 2: Paredes y suelo
-    track: 4     // Grupo 4: Track elementos
+    cars: 1, // Group 1: Cars
+    walls: 2, // Group 2: Walls and ground
+    track: 4, // Group 4: Track elements
 }
 
-// Configuración de Rapier con máscaras de bits:
-// Carros: collisionGroups=0b0001 (soy bit 1), solverGroups=0b0010 (colisiono con bit 2)
-// Suelo/Paredes: collisionGroups=0b0010 (soy bit 2), solverGroups=0b0001 (colisiono con bit 1)
-// Resultado: Carros NO chocan entre sí, SÍ chocan con suelo/paredes
+// Rapier configuration with bit masks:
+// Cars: collisionGroups=0b0001 (I am bit 1), solverGroups=0b0010 (I collide with bit 2)
+// Ground/Walls: collisionGroups=0b0010 (I am bit 2), solverGroups=0b0001 (I collide with bit 1)
+// Result: Cars DON'T collide with each other, DO collide with ground/walls
 
-export const GRAVITY = [0, -3, 0] as const  // Gravedad más suave para caída controlada
+export const GRAVITY = [0, -9.81, 0] as const // Standard gravity for better car stability

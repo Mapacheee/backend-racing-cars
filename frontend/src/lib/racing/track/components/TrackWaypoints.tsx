@@ -1,11 +1,30 @@
-import { Text } from '@react-three/drei'
+import { Text, useGLTF } from '@react-three/drei'
 import type { Waypoint } from '../types/index'
+
+// Preload the overhead model
+useGLTF.preload('/assets/models/overhead.glb')
+
+// Component for the starting line overhead model
+function StartLineOverhead({
+    position,
+}: {
+    position: [number, number, number]
+}) {
+    const { scene } = useGLTF('/assets/models/overhead.glb')
+
+    return (
+        <primitive
+            object={scene.clone()}
+            position={position}
+            rotation={[0, 1, 0]}
+            scale={[5, 5, 5]}
+        />
+    )
+}
 
 interface TrackWaypointsProps {
     waypoints: Waypoint[]
     visible?: boolean
-    editMode?: boolean
-    onWaypointClick?: (index: number, event: any) => void
     highlightedIndex?: number
     startPointColor?: string
     waypointColor?: string
@@ -16,12 +35,10 @@ interface TrackWaypointsProps {
 export default function TrackWaypoints({
     waypoints,
     visible = true,
-    editMode = false,
-    onWaypointClick,
     highlightedIndex = -1,
     startPointColor = 'green',
     waypointColor = 'red',
-    highlightColor = 'cyan'
+    highlightColor = 'cyan',
 }: TrackWaypointsProps) {
     if (!visible) return <></>
 
@@ -37,41 +54,38 @@ export default function TrackWaypoints({
                 const getWaypointColor = () => {
                     if (isStartPoint) return startPointColor
                     if (isHighlighted) return highlightColor
-                    if (editMode) return 'orange'
                     return waypointColor
                 }
 
                 return (
                     <group key={`waypoint-${index}`}>
+                        {/* Special overhead model for start point */}
+                        {isStartPoint && (
+                            <StartLineOverhead
+                                position={[waypoint.x, -1, waypoint.z]}
+                            />
+                        )}
+
                         {/* waypoint sphere marker */}
-                        <mesh
-                            position={[waypoint.x, 0.3, waypoint.z]}
-                            {...(editMode && onWaypointClick && {
-                                onClick: (e: any) => {
-                                    e.stopPropagation()
-                                    onWaypointClick(index, e)
-                                }
-                            })}
-                        >
-                            <sphereGeometry args={[editMode ? 0.5 : 0.3]} />
+                        <mesh position={[waypoint.x, 0.3, waypoint.z]}>
+                            <sphereGeometry args={[isStartPoint ? 0.4 : 0.3]} />
                             <meshStandardMaterial
                                 color={getWaypointColor()}
-                                transparent={editMode}
-                                opacity={isHighlighted ? 1 : editMode ? 0.8 : 1}
+                                opacity={isHighlighted ? 1 : 1}
                             />
                         </mesh>
 
-                        {/* waypoint number label in edit mode */}
-                        {editMode && (
+                        {/* waypoint number label for start point only */}
+                        {isStartPoint && (
                             <Text
                                 position={[waypoint.x, 0.8, waypoint.z]}
-                                fontSize={0.4}
-                                color="black"
+                                fontSize={0.5}
+                                color="white"
                                 anchorX="center"
                                 anchorY="middle"
                                 rotation={[-Math.PI / 2, 0, 0]}
                             >
-                                {(index + 1).toString()}
+                                START
                             </Text>
                         )}
 
@@ -97,7 +111,7 @@ export default function TrackWaypoints({
                                     0.1,
                                     Math.sqrt(
                                         (nextWaypoint.x - waypoint.x) ** 2 +
-                                        (nextWaypoint.z - waypoint.z) ** 2
+                                            (nextWaypoint.z - waypoint.z) ** 2
                                     ),
                                 ]}
                             />

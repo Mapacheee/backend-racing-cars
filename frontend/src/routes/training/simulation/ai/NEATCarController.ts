@@ -1,281 +1,83 @@
 import { Network } from './neat/Network'
 import type { Genome, NetworkOutput } from '../types/neat'
 import type { SensorReading } from '../types/sensors'
+import { SimpleCarPhysics, type CarControls } from './utils/SimpleCarPhysics'
 
 export class NEATCarController {
     private network: Network
     private genome: Genome
     private startTime: number
     private isControlActive: boolean
-    
-    constructor(genome: Genome) {
+    private carId: string
+
+    constructor(genome: Genome, carId?: string) {
         this.genome = genome
         this.network = new Network(genome)
         this.startTime = Date.now()
         this.isControlActive = false
+        this.carId = carId || ''
     }
-    
-    // Procesar sensores y obtener acciones de control
+
+    // Process sensors and get control actions - PURE AI LOGIC ONLY
     getControlActions(sensorReadings: SensorReading): NetworkOutput {
+        // Pure AI behavior - no manual control interference
         const actions = this.network.activate(sensorReadings)
-                
+
         let throttle = actions.throttle
         let steering = actions.steering
-                
+
         // Clamp final values
         throttle = Math.max(-1, Math.min(1, throttle))
         steering = Math.max(-1, Math.min(1, steering))
-        
+
         return {
             throttle,
-            steering
+            steering,
         }
     }
-    
-    // Aplicar las acciones al RigidBody del carro
+
+    // Apply simple car physics - same system as manual control
     applyActions(actions: NetworkOutput, rigidBody: any): void {
         if (!rigidBody) {
-            console.log('ERROR: No rigidBody provided to applyActions')
+            console.warn('NEATCarController: No rigidBody provided')
             return
         }
-        
-        // AI CONTROL DELAY: Sin delay para arcade - ¡acción inmediata!
+
+        // Short delay for physics stabilization
         const elapsedTime = Date.now() - this.startTime
-        if (elapsedTime < 100) { // Solo 100ms para estabilizar física
+        if (elapsedTime < 100) {
             this.isControlActive = false
             return
         }
-        
+
         this.isControlActive = true
-        
-        // EMERGENCY CHECK: Prevent cars from falling through ground
-        const position = rigidBody.translation()
-        if (position.y < -5) {
-            console.log('🚨 Car fell through ground! Resetting position...')
-            rigidBody.setTranslation({ x: position.x, y: 1.0, z: position.z }, true)
-            rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
-            rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
-            return
-        }
-        
-        const { throttle, steering } = actions
-        
 
-        
-        if (throttle > 0.05) {  
-            this.accelerate(rigidBody)
-        } else if (throttle < -0.05) {  
-            this.brake(rigidBody)
+        // Use the same simple car physics system
+        const controls: CarControls = {
+            throttle: actions.throttle,
+            steering: actions.steering,
         }
 
-        if (steering > 0.08) {  
-            this.turnRight(rigidBody)
-        } else if (steering < -0.08) { 
-            this.turnLeft(rigidBody)
-        } else {
-            this.stabilizeSteering(rigidBody)
-        }        
-        this.applyNaturalResistance(rigidBody)
+        SimpleCarPhysics.updateCarPhysics(rigidBody, controls)
     }
-    
-    // VEHICLE CONTROL FUNCTIONS - Real car physics constraints
-    
-    /**
-     * Accelerate like an arcade racer - rápido y divertido!
-     */
-    private accelerate(rigidBody: any): void {
-        const rotation = rigidBody.rotation()
-        const velocity = rigidBody.linvel()
-        
-        // Calculate current speed in the forward direction only
-        const forward = {
-            x: Math.sin(rotation.y),
-            y: 0,
-            z: Math.cos(rotation.y)
-        }
-        
-        // Project current velocity onto forward direction
-        const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
-        
-        const MAX_SPEED = 12  
-        if (forwardSpeed >= MAX_SPEED) return
-        
-        const ACCELERATION_FORCE = 5.0  // Aumentado de 4.5 a 5.0 para más potencia
-        
-        rigidBody.applyImpulse({
-            x: forward.x * ACCELERATION_FORCE,
-            y: 0,
-            z: forward.z * ACCELERATION_FORCE
-        }, true)
-    }
-    
-    /**
-     * Brake like a real car - friction-based deceleration
-     */
-    private brake(rigidBody: any): void {
-        const velocity = rigidBody.linvel()
-        const currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
-        
-        // Only brake if moving
-        if (currentSpeed <= 0.2) return
-        
-        // Real car braking - más suave
-        const BRAKE_FORCE = 0.85
-        rigidBody.setLinvel({
-            x: velocity.x * BRAKE_FORCE,
-            y: velocity.y,
-            z: velocity.z * BRAKE_FORCE
-        }, true)
-    }
-    
-    /**
-     * Turn left like an arcade racer - ¡giros rápidos y divertidos!
-     */
-    private turnLeft(rigidBody: any): void {
-        const velocity = rigidBody.linvel()
-        const rotation = rigidBody.rotation()
-        
-        // Calculate forward speed
-        const forward = {
-            x: Math.sin(rotation.y),
-            z: Math.cos(rotation.y)
-        }
-        const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
-        
-        // Arcade turning - permitir giros incluso a baja velocidad
-        const MIN_TURN_SPEED = 0.05  
-        if (forwardSpeed <= MIN_TURN_SPEED) return
-        
-        const speedFactor = Math.min(forwardSpeed / 8, 1.0)
-        const TURN_FORCE = -1.4 * speedFactor  
-        
-        rigidBody.applyTorqueImpulse({
-            x: 0,
-            y: TURN_FORCE,
-            z: 0
-        }, true)
-    }
-    
-    /**
-     * Turn right like an arcade racer - ¡giros rápidos y divertidos!
-     */
-    private turnRight(rigidBody: any): void {
-        const velocity = rigidBody.linvel()
-        const rotation = rigidBody.rotation()
-        
-        // Calculate forward speed
-        const forward = {
-            x: Math.sin(rotation.y),
-            z: Math.cos(rotation.y)
-        }
-        const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
-        
-        // Arcade turning - permitir giros incluso a baja velocidad
-        const MIN_TURN_SPEED = 0.05  // CRÍTICO: Ultra-bajo para máxima sensibilidad
-        if (forwardSpeed <= MIN_TURN_SPEED) return
-        
-        // Turn force más responsivo para mejor control
-        const speedFactor = Math.min(forwardSpeed / 8, 1.0)
-        const TURN_FORCE = 1.4 * speedFactor  // CRÍTICO: Más agresivo para respuesta rápida
-        
-        rigidBody.applyTorqueImpulse({
-            x: 0,
-            y: TURN_FORCE,
-            z: 0
-        }, true)
-    }
-    
-    /**
-     * Keep the car stable like a real car with suspension
-     */
-    private stabilizeSteering(rigidBody: any): void {
-        const angularVelocity = rigidBody.angvel()
-        const velocity = rigidBody.linvel()
-        
-        // Real cars naturally straighten out due to wheel alignment - más suave
-        const STABILIZATION_FACTOR = 0.92  // Más suave
-        if (Math.abs(angularVelocity.y) > 0.02) {
-            rigidBody.setAngvel({
-                x: 0,
-                y: angularVelocity.y * STABILIZATION_FACTOR,
-                z: 0
-            }, true)
-        }
-        
-        // Prevent sideways sliding (like real tires have grip)
-        this.preventSidewaysSliding(rigidBody, velocity)
-    }
-    
-    /**
-     * Prevent unrealistic sideways sliding - simulate tire grip
-     */
-    private preventSidewaysSliding(rigidBody: any, velocity: any): void {
-        const rotation = rigidBody.rotation()
-        
-        // Calculate car's right direction for sideways detection
-        const right = {
-            x: Math.cos(rotation.y),
-            z: -Math.sin(rotation.y)
-        }
-        
-        // Calculate sideways velocity component
-        const sidewaysVelocity = velocity.x * right.x + velocity.z * right.z
-        
-        // Apply tire grip - reduce sideways motion
-        const TIRE_GRIP = 0.85  // Strong grip like real tires
-        if (Math.abs(sidewaysVelocity) > 0.5) {
-            const correctionX = -right.x * sidewaysVelocity * (1 - TIRE_GRIP)
-            const correctionZ = -right.z * sidewaysVelocity * (1 - TIRE_GRIP)
-            
-            rigidBody.setLinvel({
-                x: velocity.x + correctionX,
-                y: velocity.y,
-                z: velocity.z + correctionZ
-            }, true)
-        }
-    }
-    
-    /**
-     * Apply realistic rolling resistance and air drag
-     */
-    private applyNaturalResistance(rigidBody: any): void {
-        const velocity = rigidBody.linvel()
-        const currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
-        
-        // Real car resistance increases with speed
-        let resistanceFactor = 0.992  // Base rolling resistance
-        
-        // Add air resistance at higher speeds
-        if (currentSpeed > 8) {
-            resistanceFactor = 0.985  // More resistance at high speed
-        }
-        
-        if (currentSpeed > 0.2) {
-            rigidBody.setLinvel({
-                x: velocity.x * resistanceFactor,
-                y: velocity.y,
-                z: velocity.z * resistanceFactor
-            }, true)
-        }
-    }
-    
+
     getGenome(): Genome {
         return this.genome
     }
-    
+
     getNetworkStats() {
         return {
-            nodeCount: this.network.getNodeCount(),
-            connectionCount: this.network.getActiveConnectionCount()
+            nodes: this.network.getNodeCount(),
+            connections: this.network.getActiveConnectionCount(),
         }
     }
-    
+
     isAIControlActive(): boolean {
         return this.isControlActive
     }
-    
+
     getControlDelay(): number {
         const elapsedTime = Date.now() - this.startTime
-        return Math.max(0, 100 - elapsedTime)  // Actualizado a 100ms para arcade
+        return Math.max(0, 100 - elapsedTime)
     }
 }

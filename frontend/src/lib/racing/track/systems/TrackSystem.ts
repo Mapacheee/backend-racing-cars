@@ -1,243 +1,221 @@
 import type { Waypoint, Track, TrackPiece, Wall } from '../types/index'
+import {
+    generateProceduralControlPoints,
+    generateSplineRaceTrack,
+    splineTrackToTrack,
+    SplinePath,
+} from './SplineTrackGenerator'
 
 // track geometry configuration
 export const ROAD_GEOMETRY = {
-    width: 2.9,
+    width: 6,
     height: 1.2,
-    length: 4
+    length: 6,
 } as const
 
 // track generation settings
 export const TRACK_GENERATION = {
-    segmentsPerSection: 16,
+    segmentsPerSection: 2,
     wallLength: 2.0,
-    minimumWaypoints: 3
+    minimumWaypoints: 3,
+    // new spline settings - SHORTER TRACKS
+    trackWidth: 6, // Much smaller track width for closer walls
+    baseRadius: 40, // Reduced from 80 to 40 for shorter tracks
+    radiusVariation: 20, // Reduced from 50 to 30 for tighter curves
+    numControlPoints: 12, // Reduced from 12 to 8 for shorter tracks
 } as const
 
-// main track definition - can be extended with more tracks
-const MAIN_TRACK: Track = {
-    id: 'main_circuit',
-    name: 'main circuit',
-    waypoints: [
-        { x: 0, z: 0, radius: 6 }, 
-        { x: 15, z: 0, radius: 6 },  
-        { x: 25, z: 10, radius: 4 }, 
-        { x: 25, z: 20, radius: 4 }, 
-        { x: 15, z: 30, radius: 6 },
-        { x: 0, z: 30, radius: 6 }, 
-        { x: -15, z: 30, radius: 6 }, 
-        { x: -25, z: 20, radius: 4 },
-        { x: -25, z: 10, radius: 4 },
-        { x: -15, z: 0, radius: 6 }, 
-    ],
-    pieces: [],
-    walls: [],
-    length: 200
+// Generate main track using spline system
+function generateMainTrack(): Track {
+    const controlPoints = generateProceduralControlPoints({
+        numControlPoints: TRACK_GENERATION.numControlPoints,
+        baseRadius: TRACK_GENERATION.baseRadius,
+        radiusVariation: TRACK_GENERATION.radiusVariation,
+        centerX: 0,
+        centerY: 0,
+        seed: 12345, // fixed seed for reproducible main track
+    })
+
+    const splineTrack = generateSplineRaceTrack(
+        controlPoints,
+        TRACK_GENERATION.trackWidth,
+        {
+            segmentsPerSpline: 40, // More segments for smoother curves
+            numCheckpoints: 30, // More checkpoints for better tracking
+            roadPieceLength: ROAD_GEOMETRY.length,
+        }
+    )
+
+    return splineTrackToTrack(
+        splineTrack,
+        'main_circuit',
+        'Main Circuit',
+        controlPoints
+    )
 }
 
-// initialize track pieces and walls on load
-MAIN_TRACK.pieces = generateRoad(MAIN_TRACK.waypoints)
-MAIN_TRACK.walls = generateTrackWalls(MAIN_TRACK.waypoints)
+// Generate a random track
+export function generateRandomTrack(
+    id: string,
+    name: string,
+    seed?: number
+): Track {
+    const options: Parameters<typeof generateProceduralControlPoints>[0] = {
+        numControlPoints: 6 + Math.floor(Math.random() * 4), // 6-9 control points (shorter)
+        baseRadius: 30 + Math.random() * 30, // 30-60 base radius (smaller)
+        radiusVariation: 20 + Math.random() * 25, // 20-45 variation (tighter curves)
+        centerX: 0,
+        centerY: 0,
+    }
+
+    if (seed !== undefined) {
+        options.seed = seed
+    }
+
+    const controlPoints = generateProceduralControlPoints(options)
+
+    const trackWidth = 3 + Math.random() * 2 // 3-5 track width (smaller)
+
+    const splineTrack = generateSplineRaceTrack(controlPoints, trackWidth, {
+        segmentsPerSpline: 25 + Math.floor(Math.random() * 15), // 25-40 segments
+        numCheckpoints: 20 + Math.floor(Math.random() * 10), // 20-30 checkpoints
+        roadPieceLength: ROAD_GEOMETRY.length,
+    })
+
+    return splineTrackToTrack(splineTrack, id, name, controlPoints)
+}
+
+// main track definition - generated procedurally
+const MAIN_TRACK: Track = generateMainTrack()
 
 // exported tracks registry
 export const TRACKS: Record<string, Track> = {
-    main_circuit: MAIN_TRACK
+    main_circuit: MAIN_TRACK,
 }
 
-// catmull-rom spline interpolation for smooth track curves
-function catmullRom(t: number, p0: number, p1: number, p2: number, p3: number): number {
-    const t2 = t * t
-    const t3 = t2 * t
-    return 0.5 * (
-        (2 * p1) +
-        (-p0 + p2) * t +
-        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-        (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+// Regenerate main track with new seed
+export function regenerateMainTrack(seed?: number): Track {
+    const controlPoints = generateProceduralControlPoints({
+        numControlPoints: TRACK_GENERATION.numControlPoints,
+        baseRadius: TRACK_GENERATION.baseRadius,
+        radiusVariation: TRACK_GENERATION.radiusVariation,
+        centerX: 0,
+        centerY: 0,
+        seed: seed ?? 12345, // use fixed seed 12345 for reproducible default track
+    })
+
+    const splineTrack = generateSplineRaceTrack(
+        controlPoints,
+        TRACK_GENERATION.trackWidth,
+        {
+            segmentsPerSpline: 40, // More segments for smoother curves
+            numCheckpoints: 30, // More checkpoints for better tracking
+            roadPieceLength: ROAD_GEOMETRY.length,
+        }
     )
-}
 
-// derivative of catmull-rom for calculating tangent direction
-function catmullRomDerivative(t: number, p0: number, p1: number, p2: number, p3: number): number {
-    const t2 = t * t
-    return 0.5 * (
-        (-p0 + p2) +
-        2 * (2 * p0 - 5 * p1 + 4 * p2 - p3) * t +
-        3 * (-p0 + 3 * p1 - 3 * p2 + p3) * t2
+    const newTrack = splineTrackToTrack(
+        splineTrack,
+        'main_circuit',
+        'Main Circuit',
+        controlPoints
     )
+
+    // Update the tracks registry
+    TRACKS['main_circuit'] = newTrack
+
+    // Notify listeners about track update
+    try {
+        // Dynamic import to avoid circular dependencies
+        import(
+            '../../../../routes/training/simulation/utils/TrackUpdateEvent'
+        ).then(module => {
+            module.trackUpdateEvents.notifyTrackUpdate()
+        })
+    } catch (error) {
+        console.warn('Could not notify track update listeners:', error)
+    }
+
+    return newTrack
 }
 
-// generate road segments along waypoints using catmull-rom splines
-export function generateRoad(waypoints: Waypoint[]): TrackPiece[] {
-    if (waypoints.length < TRACK_GENERATION.minimumWaypoints) return []
-    
-    const pieces: TrackPiece[] = []
-    const { segmentsPerSection } = TRACK_GENERATION
-    
-    for (let i = 0; i < waypoints.length; i++) {
-        const p0 = waypoints[(i - 1 + waypoints.length) % waypoints.length]
-        const p1 = waypoints[i]
-        const p2 = waypoints[(i + 1) % waypoints.length]
-        const p3 = waypoints[(i + 2) % waypoints.length]
-        
-        for (let j = 0; j < segmentsPerSection; j++) {
-            const t = j / segmentsPerSection
-            
-            const x = catmullRom(t, p0.x, p1.x, p2.x, p3.x)
-            const z = catmullRom(t, p0.z, p1.z, p2.z, p3.z)
-            const dx = catmullRomDerivative(t, p0.x, p1.x, p2.x, p3.x)
-            const dz = catmullRomDerivative(t, p0.z, p1.z, p2.z, p3.z)
-            const rotation = Math.atan2(dx, dz)
-            
-            pieces.push({
-                model: 'road_segment',
-                position: [x, -ROAD_GEOMETRY.height / 2, z],
-                rotation: [0, rotation, 0]
-            })
-        }
+// Create a spline path for distance tracking from a track
+export function createSplinePathFromTrack(track: Track): SplinePath | null {
+    if (!track.splineData) {
+        console.warn('Track does not have spline data for distance tracking')
+        return null
     }
-    
-    return pieces
+
+    return new SplinePath(track.splineData.centralPath)
 }
 
-// generate collision walls along both sides of the track
-export function generateTrackWalls(waypoints: Waypoint[]): Wall[] {
-    const { segmentsPerSection, wallLength } = TRACK_GENERATION
-    const roadHalfWidth = ROAD_GEOMETRY.width / 2
-    
-    const normalWalls: Wall[] = []
-    
-    for (let i = 0; i < waypoints.length; i++) {
-        const p0 = waypoints[(i - 1 + waypoints.length) % waypoints.length]
-        const p1 = waypoints[i]
-        const p2 = waypoints[(i + 1) % waypoints.length]
-        const p3 = waypoints[(i + 2) % waypoints.length]
-        
-        for (let j = 0; j < segmentsPerSection; j++) {
-            if (j % 2 !== 0) continue
-            
-            const t = j / segmentsPerSection
-            const x = catmullRom(t, p0.x, p1.x, p2.x, p3.x)
-            const z = catmullRom(t, p0.z, p1.z, p2.z, p3.z)
-            const dx = catmullRomDerivative(t, p0.x, p1.x, p2.x, p3.x)
-            const dz = catmullRomDerivative(t, p0.z, p1.z, p2.z, p3.z)
-            
-            const dirLength = Math.sqrt(dx * dx + dz * dz)
-            if (dirLength === 0) continue
-            
-            const normalizedDx = dx / dirLength
-            const normalizedDz = dz / dirLength
-            const perpX = -normalizedDz
-            const perpZ = normalizedDx
-            
-            const trackHalfWidth = roadHalfWidth
-            
-            // left wall
-            normalWalls.push({
-                start: { 
-                    x: x + perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
-                    z: z + perpZ * trackHalfWidth - normalizedDz * wallLength * 0.5 
-                },
-                end: { 
-                    x: x + perpX * trackHalfWidth + normalizedDx * wallLength * 0.5, 
-                    z: z + perpZ * trackHalfWidth + normalizedDz * wallLength * 0.5 
-                },
-                side: 'left'
-            })
-            
-            // right wall
-            normalWalls.push({
-                start: { 
-                    x: x - perpX * trackHalfWidth - normalizedDx * wallLength * 0.5, 
-                    z: z - perpZ * trackHalfWidth - normalizedDz * wallLength * 0.5 
-                },
-                end: { 
-                    x: x - perpX * trackHalfWidth + normalizedDx * wallLength * 0.5, 
-                    z: z - perpZ * trackHalfWidth + normalizedDz * wallLength * 0.5 
-                },
-                side: 'right'
-            })
-        }
-    }
-    
-    return fillWallGaps(normalWalls)
-}
+// Re-export spline system for car tracking
+export { SplinePath, CarTracker } from './SplineTrackGenerator'
 
-// fill large gaps between walls to prevent cars from escaping track boundaries
-function fillWallGaps(walls: Wall[]): Wall[] {
-    const leftWalls = walls.filter(w => w.side === 'left')
-    const rightWalls = walls.filter(w => w.side === 'right')
-    
-    const filledWalls: Wall[] = [...walls]
-    const MAX_GAP_DISTANCE = 2.0
-    
-    // fill left wall gaps
-    for (let i = 0; i < leftWalls.length; i++) {
-        const currentWall = leftWalls[i]
-        const nextWall = leftWalls[(i + 1) % leftWalls.length]
-        
-        const distance = getDistanceBetweenPoints(currentWall.end, nextWall.start)
-        
-        if (distance > MAX_GAP_DISTANCE) {
-            filledWalls.push({
-                start: { ...currentWall.end },
-                end: { ...nextWall.start },
-                side: 'left'
-            })
-        }
-    }
-    
-    // fill right wall gaps
-    for (let i = 0; i < rightWalls.length; i++) {
-        const currentWall = rightWalls[i]
-        const nextWall = rightWalls[(i + 1) % rightWalls.length]
-        
-        const distance = getDistanceBetweenPoints(currentWall.end, nextWall.start)
-        
-        if (distance > MAX_GAP_DISTANCE) {
-            filledWalls.push({
-                start: { ...currentWall.end },
-                end: { ...nextWall.start },
-                side: 'right'
-            })
-        }
-    }
-    
-    return filledWalls
-}
-
-// utility functions for track navigation and waypoint calculations
-function getDistanceBetweenPoints(p1: { x: number, z: number }, p2: { x: number, z: number }): number {
+// Utility functions for track navigation and waypoint calculations
+export function getDistanceBetweenPoints(
+    p1: { x: number; z: number },
+    p2: { x: number; z: number }
+): number {
     const dx = p2.x - p1.x
     const dz = p2.z - p1.z
     return Math.sqrt(dx * dx + dz * dz)
 }
 
-export function getDistanceToWaypoint(carX: number, carZ: number, waypoint: Waypoint): number {
+export function getDistanceToWaypoint(
+    carX: number,
+    carZ: number,
+    waypoint: Waypoint
+): number {
     const dx = waypoint.x - carX
     const dz = waypoint.z - carZ
     return Math.sqrt(dx * dx + dz * dz)
 }
 
-export function getDirectionToWaypoint(carX: number, carZ: number, waypoint: Waypoint): { x: number, z: number } {
+export function getDirectionToWaypoint(
+    carX: number,
+    carZ: number,
+    waypoint: Waypoint
+): { x: number; z: number } {
     const dx = waypoint.x - carX
     const dz = waypoint.z - carZ
     const distance = Math.sqrt(dx * dx + dz * dz)
-    
+
     if (distance === 0) return { x: 0, z: 0 }
-    
+
     return {
         x: dx / distance,
-        z: dz / distance
+        z: dz / distance,
     }
 }
 
-export function findNextWaypoint(carX: number, carZ: number, track: Track, currentWaypointIndex: number): number {
+export function findNextWaypoint(
+    carX: number,
+    carZ: number,
+    track: Track,
+    currentWaypointIndex: number
+): number {
     const currentWaypoint = track.waypoints[currentWaypointIndex]
     const distance = getDistanceToWaypoint(carX, carZ, currentWaypoint)
-    
+
     if (distance < currentWaypoint.radius) {
         return (currentWaypointIndex + 1) % track.waypoints.length
     }
-    
+
     return currentWaypointIndex
+}
+
+// Legacy road generation for backward compatibility (deprecated - use spline system)
+export function generateRoad(_waypoints: Waypoint[]): TrackPiece[] {
+    console.warn(
+        'generateRoad is deprecated. Use spline-based track generation instead.'
+    )
+    return []
+}
+
+export function generateTrackWalls(_waypoints: Waypoint[]): Wall[] {
+    console.warn(
+        'generateTrackWalls is deprecated. Use spline-based track generation instead.'
+    )
+    return []
 }

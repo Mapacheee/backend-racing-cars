@@ -9,8 +9,6 @@ import TrackWaypoints from './TrackWaypoints'
 interface TrackSceneProps {
     track: Track
     settings: TrackViewSettings
-    onGroundClick?: (event: any) => void
-    onWaypointClick?: (index: number, event: any) => void
     highlightedWaypoint?: number
     children?: ReactNode
     enablePhysics?: boolean
@@ -21,8 +19,6 @@ interface TrackSceneProps {
 export default function TrackScene({
     track,
     settings,
-    onGroundClick,
-    onWaypointClick,
     highlightedWaypoint = -1,
     children,
     enablePhysics = true,
@@ -40,39 +36,19 @@ export default function TrackScene({
                     type="fixed"
                     colliders="cuboid"
                     restitution={0}
-                    friction={5.0}
+                    friction={10.0} // Maximum friction to stop cars from leaving the map
                     collisionGroups={interactionGroups(2, [1])}
                     solverGroups={interactionGroups(2, [1])}
                 >
-                    <mesh
-                        position={[0, -0.8, 0]}
-                        receiveShadow
-                        {...(settings.editMode &&
-                            onGroundClick && { onClick: onGroundClick })}
-                    >
+                    <mesh position={[0, -0.8, 0]} receiveShadow>
                         <boxGeometry args={[200, 0.2, 200]} />
-                        <meshStandardMaterial
-                            color={
-                                settings.editMode ? 'lightblue' : 'lightgreen'
-                            }
-                            transparent={settings.editMode}
-                            opacity={settings.editMode ? 0.7 : 1}
-                        />
+                        <meshStandardMaterial color="lightgreen" />
                     </mesh>
                 </RigidBody>
             ) : (
-                <mesh
-                    position={[0, -0.8, 0]}
-                    receiveShadow
-                    {...(settings.editMode &&
-                        onGroundClick && { onClick: onGroundClick })}
-                >
+                <mesh position={[0, -0.8, 0]} receiveShadow>
                     <boxGeometry args={[200, 0.2, 200]} />
-                    <meshStandardMaterial
-                        color={settings.editMode ? 'lightblue' : 'lightgreen'}
-                        transparent={settings.editMode}
-                        opacity={settings.editMode ? 0.7 : 1}
-                    />
+                    <meshStandardMaterial color="lightgreen" />
                 </mesh>
             )}
 
@@ -85,13 +61,11 @@ export default function TrackScene({
             <TrackWalls
                 walls={track.walls}
                 visible={settings.showWalls}
-                enablePhysics={enablePhysics}
+                enablePhysics={enablePhysics} // Enable physics for proper collision detection
             />
             <TrackWaypoints
                 waypoints={track.waypoints}
                 visible={settings.showWaypoints}
-                editMode={settings.editMode}
-                {...(onWaypointClick && { onWaypointClick })}
                 highlightedIndex={highlightedWaypoint}
             />
 
@@ -108,7 +82,13 @@ export default function TrackScene({
     // wrap in physics world if enabled
     if (enablePhysics) {
         return (
-            <Physics gravity={[0, -9.81, 0]} paused={false}>
+            <Physics 
+                gravity={[0, -9.81, 0]} 
+                paused={false} 
+                timeStep={1/120} 
+                numSolverIterations={8}
+                numAdditionalFrictionIterations={4}
+            >
                 {sceneContent}
             </Physics>
         )

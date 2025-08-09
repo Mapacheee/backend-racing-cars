@@ -21,107 +21,155 @@ export interface Car3DRef {
     getVelocity: () => [number, number, number]
     applyForce: (force: [number, number, number]) => void
     applyTorque: (torque: [number, number, number]) => void
-    resetPosition: (position: [number, number, number], rotation?: [number, number, number]) => void
+    resetPosition: (
+        position: [number, number, number],
+        rotation?: [number, number, number]
+    ) => void
 }
 
 // basic 3D car component with physics and customizable appearance
-const BaseCar3D = forwardRef<Car3DRef, BaseCar3DProps>(({
-    car,
-    physics = {},
-    modelPath,
-    visible = true,
-    children,
-    onCollision
-}, ref) => {
-    const rigidBodyRef = useRef<any>(null)
-    const finalPhysics = { ...DEFAULT_CAR_PHYSICS, ...physics }
-    const finalModelPath = modelPath || CAR_MODELS.default
-    
-    const { scene } = useGLTF(finalModelPath)
+const BaseCar3D = forwardRef<Car3DRef, BaseCar3DProps>(
+    (
+        { car, physics = {}, modelPath, visible = true, children, onCollision },
+        ref
+    ) => {
+        const rigidBodyRef = useRef<any>(null)
+        const finalPhysics = { ...DEFAULT_CAR_PHYSICS, ...physics }
+        const finalModelPath = modelPath || CAR_MODELS.default
 
-    // callback ref that updates when rigidbody is ready
-    const setRigidBodyRef = useCallback((rigidBody: any) => {
-        rigidBodyRef.current = rigidBody
-        
-        // force update of imperative handle when rigidbody changes
-        if (ref && typeof ref === 'object' && ref.current) {
-            ref.current.rigidBody = rigidBody
-        }
-    }, [ref])
+        const { scene } = useGLTF(finalModelPath)
 
-    // expose car control methods through ref
-    useImperativeHandle(ref, () => ({
-        rigidBody: rigidBodyRef.current,
-        getPosition: () => {
-            if (!rigidBodyRef.current) return [0, 0, 0]
-            const pos = rigidBodyRef.current.translation()
-            return [pos.x, pos.y, pos.z]
-        },
-        getRotation: () => {
-            if (!rigidBodyRef.current) return [0, 0, 0]
-            const rot = rigidBodyRef.current.rotation()
-            return [rot.x, rot.y, rot.z]
-        },
-        getVelocity: () => {
-            if (!rigidBodyRef.current) return [0, 0, 0]
-            const vel = rigidBodyRef.current.linvel()
-            return [vel.x, vel.y, vel.z]
-        },
-        applyForce: (force: [number, number, number]) => {
-            if (rigidBodyRef.current) {
-                rigidBodyRef.current.addForce({ x: force[0], y: force[1], z: force[2] }, true)
-            }
-        },
-        applyTorque: (torque: [number, number, number]) => {
-            if (rigidBodyRef.current) {
-                rigidBodyRef.current.addTorque({ x: torque[0], y: torque[1], z: torque[2] }, true)
-            }
-        },
-        resetPosition: (position: [number, number, number], rotation?: [number, number, number]) => {
-            if (rigidBodyRef.current) {
-                rigidBodyRef.current.setTranslation({ x: position[0], y: position[1], z: position[2] }, true)
-                if (rotation) {
-                    rigidBodyRef.current.setRotation({ x: rotation[0], y: rotation[1], z: rotation[2], w: 1 }, true)
+        // callback ref that updates when rigidbody is ready
+        const setRigidBodyRef = useCallback(
+            (rigidBody: any) => {
+                rigidBodyRef.current = rigidBody
+
+                // force update of imperative handle when rigidbody changes
+                if (ref && typeof ref === 'object' && ref.current) {
+                    ref.current.rigidBody = rigidBody
                 }
-            }
-        }
-    }), [])
+            },
+            [ref]
+        )
 
-    if (!visible) return null
+        // expose car control methods through ref
+        useImperativeHandle(
+            ref,
+            () => ({
+                rigidBody: rigidBodyRef.current,
+                getPosition: () => {
+                    if (!rigidBodyRef.current) return [0, 0, 0]
+                    const pos = rigidBodyRef.current.translation()
+                    return [pos.x, pos.y, pos.z]
+                },
+                getRotation: () => {
+                    if (!rigidBodyRef.current) return [0, 0, 0]
+                    const rot = rigidBodyRef.current.rotation()
+                    return [rot.x, rot.y, rot.z]
+                },
+                getVelocity: () => {
+                    if (!rigidBodyRef.current) return [0, 0, 0]
+                    const vel = rigidBodyRef.current.linvel()
+                    return [vel.x, vel.y, vel.z]
+                },
+                applyForce: (force: [number, number, number]) => {
+                    if (rigidBodyRef.current) {
+                        rigidBodyRef.current.addForce(
+                            { x: force[0], y: force[1], z: force[2] },
+                            true
+                        )
+                    }
+                },
+                applyTorque: (torque: [number, number, number]) => {
+                    if (rigidBodyRef.current) {
+                        rigidBodyRef.current.addTorque(
+                            { x: torque[0], y: torque[1], z: torque[2] },
+                            true
+                        )
+                    }
+                },
+                resetPosition: (
+                    position: [number, number, number],
+                    rotation?: [number, number, number]
+                ) => {
+                    if (rigidBodyRef.current) {
+                        rigidBodyRef.current.setTranslation(
+                            { x: position[0], y: position[1], z: position[2] },
+                            true
+                        )
+                        if (rotation) {
+                            rigidBodyRef.current.setRotation(
+                                {
+                                    x: rotation[0],
+                                    y: rotation[1],
+                                    z: rotation[2],
+                                    w: 1,
+                                },
+                                true
+                            )
+                        }
+                    }
+                },
+            }),
+            []
+        )
 
-    return (
-        <RigidBody
-            ref={setRigidBodyRef}
-            type="dynamic"
-            position={car.position}
-            rotation={car.rotation ? [0, car.rotation, 0] : [0, 0, 0]}
-            angularDamping={finalPhysics.angularDamping}
-            linearDamping={finalPhysics.linearDamping}
-            mass={finalPhysics.mass || 1.0}
-            friction={finalPhysics.friction || 0.8}
-            restitution={finalPhysics.restitution || 0.1}
-            colliders="cuboid"
-            canSleep={false}
-            enabledRotations={[false, true, false]}
-            ccd={true}
-            gravityScale={1.0}
-            collisionGroups={interactionGroups(COLLISION_GROUPS.cars, [COLLISION_GROUPS.walls])}
-            solverGroups={interactionGroups(COLLISION_GROUPS.cars, [COLLISION_GROUPS.walls])}
-            userData={{ type: 'car', id: car.id }}
-            {...(onCollision && { onCollisionEnter: onCollision })}
-        >
+        if (!visible) return null
 
-            <primitive
-                object={scene.clone()}
-                scale={1.5}
-                {...(car.color && {
-                    material: { color: car.color }
-                })}
-            />
-            {children}
-        </RigidBody>
-    )
-})
+        return (
+            <RigidBody
+                ref={setRigidBodyRef}
+                type="dynamic"
+                position={car.position}
+                rotation={
+                    car.rotation ? [0, car.rotation + Math.PI, 0] : [0, 0, 0]
+                }
+                angularDamping={finalPhysics.angularDamping}
+                linearDamping={finalPhysics.linearDamping}
+                mass={finalPhysics.mass || 1.0}
+                friction={0.3} // Reduced friction to prevent getting stuck on ground
+                restitution={finalPhysics.restitution || 0.1}
+                colliders="cuboid"
+                canSleep={false}
+                enabledRotations={[false, true, false]}
+                ccd={true}
+                gravityScale={1.0}
+                collisionGroups={interactionGroups(COLLISION_GROUPS.cars, [
+                    COLLISION_GROUPS.walls,
+                    COLLISION_GROUPS.track,
+                ])}
+                solverGroups={interactionGroups(COLLISION_GROUPS.cars, [
+                    COLLISION_GROUPS.walls,
+                    COLLISION_GROUPS.track,
+                ])}
+                userData={{ type: 'car', id: car.id }}
+                {...(onCollision && { onCollisionEnter: onCollision })}
+            >
+                <primitive
+                    object={scene.clone()}
+                    scale={1.5}
+                    ref={(primitive: any) => {
+                        if (primitive && car.color) {
+                            // Apply color to all meshes in the car model
+                            primitive.traverse((child: any) => {
+                                if (child.isMesh && child.material) {
+                                    if (Array.isArray(child.material)) {
+                                        child.material.forEach((mat: any) => {
+                                            mat.color.set(car.color)
+                                        })
+                                    } else {
+                                        child.material.color.set(car.color)
+                                    }
+                                }
+                            })
+                        }
+                    }}
+                />
+                {children}
+            </RigidBody>
+        )
+    }
+)
 
 BaseCar3D.displayName = 'BaseCar3D'
 

@@ -24,6 +24,12 @@ export interface Track {
     pieces: TrackPiece[]
     walls: Wall[]
     length: number
+    // Optional spline data for distance tracking
+    splineData?: {
+        controlPoints: { x: number; y: number }[]
+        centralPath: { x: number; y: number }[]
+        trackWidth: number
+    }
 }
 
 export interface TrackGeometry {
@@ -43,5 +49,14 @@ export interface TrackViewSettings {
     showWaypoints: boolean
     showWalls: boolean
     showTrack: boolean
-    editMode: boolean
+}
+
+// Car distance tracking types
+export interface CarTrackingState {
+    currentT: number
+    distanceTraveled: number
+    totalDistance: number
+    isGoingReverse: boolean
+    distanceFromTrack: number
+    progress: number // 0-1 around the track
 }

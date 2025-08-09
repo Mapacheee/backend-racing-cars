@@ -2,8 +2,6 @@ import type { JSX } from 'react'
 import { useEffect } from 'react'
 import {
     TrackEditorCanvas,
-    TrackEditorControlPanel,
-    TrackEditorWaypointModal,
     TrackEditorProviders,
 } from '../../../lib/components/track-editor'
 import { CanvasSettingsProvider } from '../../../lib/contexts/CanvasSettings'
@@ -17,9 +15,7 @@ export default function TrackEditor(): JSX.Element {
         <CanvasSettingsProvider>
             <TrackEditorProviders>
                 <div className="fixed inset-0 w-screen h-screen bg-cyan-200 z-50">
-                    <TrackEditorControlPanel />
                     <TrackEditorCanvas />
-                    <TrackEditorWaypointModal />
                 </div>
             </TrackEditorProviders>
         </CanvasSettingsProvider>

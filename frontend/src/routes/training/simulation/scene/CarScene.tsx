@@ -3,25 +3,30 @@ import type { JSX } from 'react'
 import AICar from '../entities/AICar'
 import { TrackScene } from '../../../../lib/racing/track'
 import { TRACKS } from '../../../../lib/racing/track'
-import { addWaypoint, moveWaypoint, reorderWaypoints } from '../../../../lib/racing/track'
 import { generateAICars } from '../systems/SpawnSystem'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useRaceReset } from '../../../../lib/contexts/RaceResetContext'
-import { useWaypointModal } from '../contexts/WaypointModalContext'
 import { useNEATTraining } from '../contexts/NEATTrainingContext'
+import { useTrackUpdates } from '../utils/TrackUpdateEvent'
 
 export default function CarScene(): JSX.Element {
-    const { showWaypoints, showWalls, editMode } = useCanvasSettings()
-    const { triggerReset, resetCounter } = useRaceReset()
-    const { modalState, openModal, closeModal } = useWaypointModal()
+    const { showWaypoints, showWalls } = useCanvasSettings()
+    const { resetCounter } = useRaceReset()
     const [, forceUpdate] = useState({})
+    const trackUpdateKey = useTrackUpdates() // Listen for track updates
     const neatContext = useNEATTraining()
-    
+
     if (!neatContext) {
         return <div>Loading NEAT context...</div>
     }
 
-    const { generation, carStates, handleFitnessUpdate, handleCarElimination, population } = neatContext
+    const {
+        generation,
+        carStates,
+        handleFitnessUpdate,
+        handleCarElimination,
+        population,
+    } = neatContext
 
     // regenerate cars when generation changes
     const [aiCars, setAiCars] = useState(() => {
@@ -29,18 +34,43 @@ export default function CarScene(): JSX.Element {
         return generateAICars({
             trackId: 'main_circuit',
             carCount: 20,
-            colors: ['red', 'blue', 'green', 'yellow', 'purple',
-                   'orange', 'pink', 'cyan', 'magenta', 'lime',
-                   'indigo', 'maroon', 'navy', 'olive', 'teal',
-                   'silver', 'gold', 'coral', 'salmon', 'khaki'],
+            colors: [
+                'red',
+                'blue',
+                'green',
+                'yellow',
+                'purple',
+                'orange',
+                'pink',
+                'cyan',
+                'magenta',
+                'lime',
+                'indigo',
+                'maroon',
+                'navy',
+                'olive',
+                'teal',
+                'silver',
+                'gold',
+                'coral',
+                'salmon',
+                'khaki',
+            ],
             useNEAT: true,
             generation: generation,
-            genomes: initialGenomes
+            genomes: initialGenomes,
         })
     })
 
     const currentTrack = 'main_circuit'
+    // Get track fresh from TRACKS registry on each render to catch updates
     const track = TRACKS[currentTrack]
+
+    // Listen for track updates (this will be triggered by track regeneration)
+    useEffect(() => {
+        // Track updates will cause re-render through trackUpdateKey
+        // This effect runs when trackUpdateKey changes
+    }, [resetCounter, trackUpdateKey])
 
     // update cars when generation changes
     useEffect(() => {
@@ -48,71 +78,37 @@ export default function CarScene(): JSX.Element {
         const config: any = {
             trackId: currentTrack,
             carCount: 20,
-            colors: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'magenta', 'lime', 'indigo', 'maroon', 'navy', 'olive', 'teal', 'silver', 'gold', 'coral', 'salmon', 'khaki'],
+            colors: [
+                'red',
+                'blue',
+                'green',
+                'yellow',
+                'purple',
+                'orange',
+                'pink',
+                'cyan',
+                'magenta',
+                'lime',
+                'indigo',
+                'maroon',
+                'navy',
+                'olive',
+                'teal',
+                'silver',
+                'gold',
+                'coral',
+                'salmon',
+                'khaki',
+            ],
             useNEAT: true,
             generation: generation,
-            genomes: allGenomes 
+            genomes: allGenomes,
         }
-                
+
         const newCars = generateAICars(config)
         setAiCars(newCars)
         forceUpdate({})
-    }, [generation, currentTrack, population, resetCounter])
-
-    const refreshTrack = () => {
-        forceUpdate({})
-        triggerReset()
-    }
-
-    // handle ground clicks for waypoint editing
-    const handleGroundClick = (event: any) => {
-        if (!editMode) return
-
-        if (modalState.isOpen) {
-            closeModal()
-            return
-        }
-
-        if (modalState.mode === 'move' && modalState.waypointIndex >= 0) {
-            const [x, , z] = event.point
-            moveWaypoint(currentTrack, modalState.waypointIndex, x, z)
-            refreshTrack()
-            closeModal()
-        } else {
-            const [x, , z] = event.point
-            addWaypoint(currentTrack, x, z)
-            refreshTrack()
-        }
-    }
-
-    // handle waypoint clicks for editing
-    const handleWaypointClick = (index: number, event: any) => {
-        if (!editMode) return
-        event.stopPropagation()
-
-        if (
-            modalState.mode === 'swap' &&
-            modalState.waypointIndex >= 0 &&
-            modalState.waypointIndex !== index
-        ) {
-            reorderWaypoints(currentTrack, modalState.waypointIndex, index)
-            refreshTrack()
-            closeModal()
-        } else {
-            openModal(index, {
-                x: window.innerWidth / 2,
-                y: window.innerHeight / 2 - 100,
-            })
-        }
-    }
-
-    // determine highlighted waypoint based on modal state
-    const getHighlightedWaypoint = () => {
-        if (modalState.mode === 'swap' && modalState.waypointIndex >= 0) {
-            return modalState.waypointIndex
-        }
-        return -1
-    }
+    }, [generation, currentTrack, population, resetCounter, trackUpdateKey])
 
     return (
         <TrackScene
@@ -121,11 +117,7 @@ export default function CarScene(): JSX.Element {
                 showWaypoints,
                 showWalls,
                 showTrack: true,
-                editMode
             }}
-            onGroundClick={handleGroundClick}
-            onWaypointClick={handleWaypointClick}
-            highlightedWaypoint={getHighlightedWaypoint()}
             enablePhysics={true}
             enableControls={true}
         >

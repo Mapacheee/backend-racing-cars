@@ -4,14 +4,8 @@ import { useCanvasSettings } from '../../contexts/useCanvasSettings'
 import { TRACKS } from '../../racing/track'
 
 export default function TrackEditorControlPanel(): JSX.Element {
-    const {
-        showWaypoints,
-        setShowWaypoints,
-        showWalls,
-        setShowWalls,
-        editMode,
-        setEditMode,
-    } = useCanvasSettings()
+    const { showWaypoints, setShowWaypoints, showWalls, setShowWalls } =
+        useCanvasSettings()
 
     const navigate = useNavigate()
     const track = TRACKS['main_circuit']
@@ -97,40 +91,9 @@ export default function TrackEditorControlPanel(): JSX.Element {
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
-                    <input
-                        type="checkbox"
-                        checked={editMode}
-                        onChange={e => setEditMode(e.target.checked)}
-                        className="accent-purple-600"
-                    />
+                    <input type="checkbox" className="accent-purple-600" />
                     Modo edición de waypoints
                 </label>
-
-                {editMode && (
-                    <div className="text-xs text-gray-600 mt-2 p-2 bg-purple-50 rounded">
-                        <div className="font-medium text-purple-700 mb-1">
-                            🎯 Modo Edición Activo
-                        </div>
-                        <div className="space-y-1">
-                            <div>
-                                • <strong>Click en suelo:</strong> Agregar
-                                waypoint
-                            </div>
-                            <div>
-                                • <strong>Click en waypoint:</strong> Abrir menú
-                                de opciones
-                            </div>
-                            <div>
-                                • <strong>Mover:</strong> Reposicionar waypoint
-                                existente
-                            </div>
-                            <div>
-                                • <strong>Intercambiar:</strong> Cambiar orden
-                                de waypoints
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Track Editor Tips */}
