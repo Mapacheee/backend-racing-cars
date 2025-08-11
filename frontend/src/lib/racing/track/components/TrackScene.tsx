@@ -61,7 +61,7 @@ export default function TrackScene({
             <TrackWalls
                 walls={track.walls}
                 visible={settings.showWalls}
-                enablePhysics={false} // Walls don't have physics, only visual collision detection
+                enablePhysics={true}
             />
             <TrackWaypoints
                 waypoints={track.waypoints}
