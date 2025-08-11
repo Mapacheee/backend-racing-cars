@@ -323,7 +323,8 @@ export function generateSplineRaceTrack(
     // Generate walls by computing normals per-segment
     const innerWalls: Wall[] = []
     const outerWalls: Wall[] = []
-    const halfWidth = trackWidth / 2
+    const wallVisualWidth = 1.5;
+    const halfWidth = (trackWidth / 2) - (wallVisualWidth / 2);
 
     for (let i = 0; i < centralPath.length - 1; i++) {
         const a = centralPath[i]

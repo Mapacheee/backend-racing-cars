@@ -59,12 +59,6 @@ export default function TrackWaypoints({
 
                 return (
                     <group key={`waypoint-${index}`}>
-                        {/* Special overhead model for start point */}
-                        {isStartPoint && (
-                            <StartLineOverhead
-                                position={[waypoint.x, -1, waypoint.z]}
-                            />
-                        )}
 
                         {/* waypoint sphere marker */}
                         <mesh position={[waypoint.x, 0.3, waypoint.z]}>
