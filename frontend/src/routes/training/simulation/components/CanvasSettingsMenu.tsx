@@ -1,10 +1,9 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, type JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCanvasSettings } from '../../../../lib/contexts/useCanvasSettings'
 import { useNEATTraining } from '../contexts/NEATTrainingContext'
 import { TRACKS, regenerateMainTrack } from '../../../../lib/racing/track'
 import { getPopulationSize } from '../ai/neat/NEATConfig'
-import { globalKeyboardInput } from '../ai/utils/KeyboardInput'
 
 export default function CanvasSettingsMenu(): JSX.Element {
     const {
@@ -19,40 +18,6 @@ export default function CanvasSettingsMenu(): JSX.Element {
     const neatContext = useNEATTraining()
     const navigate = useNavigate()
 
-    // State for WASD control
-    const [isWASDEnabled, setIsWASDEnabled] = useState(false)
-
-    // Sync WASD state with keyboard input
-    useEffect(() => {
-        const checkKeyboardState = () => {
-            setIsWASDEnabled(globalKeyboardInput.isActive())
-        }
-
-        // Check initial state
-        checkKeyboardState()
-
-        // Set up interval to check state changes
-        const interval = setInterval(checkKeyboardState, 500)
-
-        return () => clearInterval(interval)
-    }, [])
-
-    const handleWASDToggle = (enabled: boolean) => {
-        console.log(`🔧 WASD Toggle called with enabled: ${enabled}`)
-
-        if (enabled) {
-            globalKeyboardInput.startListening()
-            console.log('🎮 WASD control enabled for car ai-1')
-            console.log('🔧 KeyboardInput state after startListening:', {
-                isActive: globalKeyboardInput.isActive(),
-                timestamp: new Date().toLocaleTimeString(),
-            })
-        } else {
-            globalKeyboardInput.stopListening()
-            console.log('🎮 WASD control disabled')
-        }
-        setIsWASDEnabled(enabled)
-    }
 
     if (!neatContext) {
         return (
@@ -264,31 +229,7 @@ export default function CanvasSettingsMenu(): JSX.Element {
                     ver paredes
                 </label>
 
-                {/* WASD Control Toggle */}
-                <div className="border-t pt-2 mt-2">
-                    <h5 className="font-semibold text-gray-700 text-xs mb-2">
-                        🎮 Control Manual
-                    </h5>
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-gray-800 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={isWASDEnabled}
-                            onChange={e => handleWASDToggle(e.target.checked)}
-                            className="accent-green-600"
-                        />
-                        <span className="flex-1">WASD car ai-1</span>
-                        {isWASDEnabled && (
-                            <span className="text-xs text-green-600 font-medium">
-                                ACTIVO
-                            </span>
-                        )}
-                    </label>
-                    {isWASDEnabled && (
-                        <div className="text-xs text-gray-500 mt-1 ml-5">
-                            W/S: Acelerar/Frenar • A/D: Girar • ESC: Desactivar
-                        </div>
-                    )}
-                </div>
+                {/* ...existing code... */}
 
                 <div className="border-t pt-2 mt-2">
                     <div className="text-xs font-medium text-gray-700 mb-1">

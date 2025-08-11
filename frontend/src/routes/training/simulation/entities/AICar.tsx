@@ -15,13 +15,11 @@ import {
     NEATCarController,
     CarFitnessTracker,
     GenomeBuilder,
-    ManualCarController,
 } from '../ai'
 import { DEFAULT_NEAT_CONFIG } from '../ai/neat/NEATConfig'
 import type { FitnessMetrics } from '../types/neat'
 import { useNEATTraining } from '../contexts/NEATTrainingContext'
 import { CAR_PHYSICS_CONFIG } from '../config/physics'
-import { globalKeyboardInput } from '../ai/utils/KeyboardInput'
 
 interface AICarProps {
     carData: AICarType
@@ -49,6 +47,13 @@ export default function AICar({
     }
 
     const { isTraining, generation } = neatContext
+    useEffect(() => {
+        if (!isTraining && carRef.current?.rigidBody) {
+            const rb = carRef.current.rigidBody;
+            rb.setLinvel({ x: 0, y: 0, z: 0 });
+            rb.setAngvel({ x: 0, y: 0, z: 0 });
+        }
+    }, [isTraining]);
     const [carPosition, setCarPosition] = useState<Vector3>(
         new Vector3(...carData.position)
     )
@@ -61,12 +66,6 @@ export default function AICar({
         return new NEATCarController(genome, carData.id) // Pass car ID for debug control
     })
 
-    // Separate manual controller for WASD testing (only for ai-1)
-    const [manualController] = useState(() => {
-        return carData.id === 'ai-1'
-            ? new ManualCarController(carData.id)
-            : null
-    })
 
     const [fitnessTracker] = useState(() => {
         const startPos = new Vector3(...carData.position)
@@ -137,8 +136,7 @@ export default function AICar({
                 )
                 fitnessTracker.updateSensorFitness(readings)
 
-                // Check for wall collision (when any sensor reading indicates actual contact)
-                const WALL_COLLISION_DISTANCE = 0.08 // Distance threshold for wall collision (actual contact)
+                const WALL_COLLISION_DISTANCE = 0.05
                 const sensorValues = [
                     readings.left,
                     readings.leftCenter,
@@ -162,142 +160,25 @@ export default function AICar({
 
                 // Determine which controller to use
                 let actions
-                let controllerUsed = 'AI'
+                // Solo AI control
+                actions = controller.getControlActions(readings)
 
-                // Debug: Always log for ai-1 to see what's happening
-                if (carData.id === 'ai-1' && Math.random() < 0.2) {
-                    console.log(`🔧 ai-1 Controller Check:`, {
-                        carId: carData.id,
-                        hasManualController: !!manualController,
-                        keyboardIsActive: globalKeyboardInput.isActive(),
-                        keyboardHasInput: globalKeyboardInput.hasActiveInput(),
-                        currentKeys: globalKeyboardInput.getCurrentKeys(),
-                        willUseManual: !!(
-                            carData.id === 'ai-1' &&
-                            manualController &&
-                            globalKeyboardInput.isActive()
-                        ),
-                    })
+                if (fitnessTracker.getFitnessMetrics().timeAlive < 2) {
+                    actions.throttle = 1
+                    actions.steering = 0
+                }
+                const speed = Math.sqrt(
+                    velocity.x * velocity.x + velocity.z * velocity.z
+                )
+                if (speed < 0.5) {
+                    actions.throttle = 1
+                    actions.steering = 0
                 }
 
-                // Check if this is ai-1 and manual control is active
-                if (
-                    carData.id === 'ai-1' &&
-                    manualController &&
-                    globalKeyboardInput.isActive()
-                ) {
-                    // Use manual control - completely separate from AI
-                    actions = manualController.getControlActions()
-                    controllerUsed = 'Manual'
 
-                    // Debug: Always log when manual control is used
-                    console.log(
-                        `🎮 MANUAL CONTROL ACTIVATED for ${carData.id}!`,
-                        {
-                            throttle: actions.throttle.toFixed(2),
-                            steering: actions.steering.toFixed(2),
-                            timestamp: new Date().toLocaleTimeString(),
-                        }
-                    )
+                // Apply AI physics
+                controller.applyActions(actions, rb)
 
-                    // Debug: Check rigid body before applying manual physics
-                    if (Math.random() < 0.1) {
-                        console.log(
-                            `🔧 ${carData.id} Manual - Before Physics:`,
-                            {
-                                rigidBodyExists: !!rb,
-                                velocity: rb
-                                    ? {
-                                          x: rb.linvel().x.toFixed(3),
-                                          z: rb.linvel().z.toFixed(3),
-                                      }
-                                    : 'no-rb',
-                                actions: {
-                                    throttle: actions.throttle.toFixed(2),
-                                    steering: actions.steering.toFixed(2),
-                                },
-                            }
-                        )
-                    }
-
-                    // Apply manual physics directly
-                    manualController.applyActions(actions, rb)
-
-                    // Debug: Check rigid body after applying manual physics
-                    if (Math.random() < 0.1) {
-                        console.log(
-                            `🔧 ${carData.id} Manual - After Physics:`,
-                            {
-                                velocity: rb
-                                    ? {
-                                          x: rb.linvel().x.toFixed(3),
-                                          z: rb.linvel().z.toFixed(3),
-                                      }
-                                    : 'no-rb',
-                                speed: rb
-                                    ? Math.sqrt(
-                                          rb.linvel().x * rb.linvel().x +
-                                              rb.linvel().z * rb.linvel().z
-                                      ).toFixed(2)
-                                    : 'no-rb',
-                            }
-                        )
-                    }
-                } else {
-                    // Use AI control (normal behavior)
-                    actions = controller.getControlActions(readings)
-
-                    // AI assistance for early training
-                    if (fitnessTracker.getFitnessMetrics().timeAlive < 2) {
-                        actions.throttle = 1
-                        actions.steering = 0
-                    }
-                    const speed = Math.sqrt(
-                        velocity.x * velocity.x + velocity.z * velocity.z
-                    )
-                    if (speed < 0.5) {
-                        actions.throttle = 1
-                        actions.steering = 0
-                    }
-
-                    // Debug: Check rigid body before applying AI physics
-                    if (Math.random() < 0.02) {
-                        console.log(`🔧 ${carData.id} AI - Before Physics:`, {
-                            rigidBodyExists: !!rb,
-                            velocity: rb
-                                ? {
-                                      x: rb.linvel().x.toFixed(3),
-                                      z: rb.linvel().z.toFixed(3),
-                                  }
-                                : 'no-rb',
-                            actions: {
-                                throttle: actions.throttle.toFixed(2),
-                                steering: actions.steering.toFixed(2),
-                            },
-                        })
-                    }
-
-                    // Apply AI physics
-                    controller.applyActions(actions, rb)
-
-                    // Debug: Check rigid body after applying AI physics
-                    if (Math.random() < 0.02) {
-                        console.log(`🔧 ${carData.id} AI - After Physics:`, {
-                            velocity: rb
-                                ? {
-                                      x: rb.linvel().x.toFixed(3),
-                                      z: rb.linvel().z.toFixed(3),
-                                  }
-                                : 'no-rb',
-                            speed: rb
-                                ? Math.sqrt(
-                                      rb.linvel().x * rb.linvel().x +
-                                          rb.linvel().z * rb.linvel().z
-                                  ).toFixed(2)
-                                : 'no-rb',
-                        })
-                    }
-                }
 
                 // Debug: Final check after all physics applied
                 if (Math.random() < 0.02) {
@@ -324,20 +205,7 @@ export default function AICar({
                     })
                 }
 
-                // Debug logging
-                if (Math.random() < 0.001) {
-                    console.log(`${carData.id} - ${controllerUsed} Actions:`, {
-                        throttle: actions.throttle.toFixed(3),
-                        steering: actions.steering.toFixed(3),
-                        position: {
-                            x: position.x.toFixed(2),
-                            z: position.z.toFixed(2),
-                        },
-                        speed: Math.sqrt(
-                            velocity.x * velocity.x + velocity.z * velocity.z
-                        ).toFixed(2),
-                    })
-                }
+                
                 const currentPosition = new Vector3(
                     position.x,
                     position.y,
@@ -392,11 +260,11 @@ export default function AICar({
 
     useEffect(() => {
         if (isEliminated && carRef.current?.rigidBody) {
-            const rb = carRef.current.rigidBody
-            rb.setLinvel({ x: 0, y: 0, z: 0 })
-            rb.setAngvel({ x: 0, y: 0, z: 0 })
+            const rb = carRef.current.rigidBody;
+            rb.setLinvel({ x: 0, y: 0, z: 0 });
+            rb.setAngvel({ x: 0, y: 0, z: 0 });
         }
-    }, [isEliminated])
+    }, [isEliminated]);
 
     // Cleanup effect for fitness tracker
     useEffect(() => {
@@ -477,17 +345,6 @@ export default function AICar({
                 </mesh>
             )}
 
-            {/* Debug indicator for manual control */}
-            {carData.id === 'ai-1' && globalKeyboardInput.isActive() && (
-                <mesh position={[0, 2, 0]}>
-                    <sphereGeometry args={[0.3]} />
-                    <meshBasicMaterial
-                        color="#00ff00"
-                        transparent
-                        opacity={0.8}
-                    />
-                </mesh>
-            )}
         </BaseCar3D>
     )
 }
