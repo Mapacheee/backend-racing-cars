@@ -88,20 +88,10 @@ export default function AICar({
         }
     }, [generation, carData.position, carData.rotation, fitnessTracker])
 
-    const SENSOR_CENTER_OFFSET = { x: 0, y: 0.2, z: -1 }
+    const SENSOR_CENTER_OFFSET = { x: -21.2, y: -2.5, z: -4.4 }
 
     useEffect(() => {
         if (isEliminated || !isTraining) return
-
-        // Debug: Log when simulation starts for ai-1
-        if (carData.id === 'ai-1') {
-            console.log(`🔧 ai-1 Simulation Starting:`, {
-                isEliminated,
-                isTraining,
-                hasManualController: !!manualController,
-                keyboardActive: globalKeyboardInput.isActive(),
-            })
-        }
 
         let frame = 0
         function updateSimulation() {
@@ -144,7 +134,6 @@ export default function AICar({
                     heading,
                     track.walls,
                     DEFAULT_SENSOR_CONFIG,
-                    SENSOR_CENTER_OFFSET
                 )
                 fitnessTracker.updateSensorFitness(readings)
 
@@ -447,7 +436,6 @@ export default function AICar({
         realTimeCarData.heading,
         track.walls,
         DEFAULT_SENSOR_CONFIG,
-        SENSOR_CENTER_OFFSET
     )
     return (
         <BaseCar3D

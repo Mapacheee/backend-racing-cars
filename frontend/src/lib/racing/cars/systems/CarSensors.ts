@@ -8,9 +8,8 @@ export function createSensorReadings(
     carRotation: number,
     walls: Wall[],
     config: SensorConfig,
-    centerOffset?: { x: number, y: number, z: number }
 ): SensorReading {
-    const offset = centerOffset || { x: 0, y: 0, z: 0 }
+    const offset = { x: 0, y: 0, z: 0 }
     const basePosition = new Vector3(
         carPosition.x + Math.sin(carRotation) * offset.z + Math.cos(carRotation) * offset.x,
         carPosition.y + offset.y,

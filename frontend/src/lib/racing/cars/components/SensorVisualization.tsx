@@ -53,13 +53,13 @@ export default function SensorVisualization({
 
         return sensors.map(sensor => {
             const sensorAngleRad = (sensor.angle * Math.PI) / 180
-            const absoluteAngle = carRotation + sensorAngleRad - Math.PI / 2
+            const absoluteAngle = carRotation + sensorAngleRad + 90.25
 
             const startX = basePosition.x
             const startY = basePosition.y
             const startZ = basePosition.z
 
-            const distance = config.maxDistance * 0.5
+            const distance = config.maxDistance
             const endX = startX + Math.sin(absoluteAngle) * distance
             const endY = startY
             const endZ = startZ + Math.cos(absoluteAngle) * distance
