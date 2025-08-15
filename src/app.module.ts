@@ -5,7 +5,6 @@ import { PlayersModule } from './modules/players/player.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AiModelsModule } from './modules/ai-models/ai-models.module';
 import { TracksModule } from './modules/tracks/tracks.module';
-import { RacesModule } from './modules/races/races.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { getDatabaseConfig } from './config/database.config';
 import { RacingModule } from './modules/racing-stream/racing-stream.module';
@@ -24,7 +23,6 @@ import { RacingModule } from './modules/racing-stream/racing-stream.module';
     AuthModule,
     AiModelsModule,
     TracksModule,
-    RacesModule,
     StatisticsModule,
     RacingModule,
   ],
