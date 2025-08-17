@@ -13,7 +13,7 @@ export class RaceStatistics {
   @CreateDateColumn()
   raceDate: Date;
 
-  @Column('simple-json')
+  @Column('json')
   participants: {
     aiModelId: string;
     position: number;
@@ -22,21 +22,21 @@ export class RaceStatistics {
     lapTimes: number[];
   }[];
 
-  @Column('simple-json')
+  @Column('json')
   trackInfo: {
     trackId: string;
     trackName: string;
     numberOfLaps: number;
   };
 
-  @Column('simple-json', { nullable: true })
+  @Column('json', { nullable: true })
   raceConditions: {
     weather?: string;
     difficulty?: string;
     numberOfParticipants: number;
   };
 
-  @Column('simple-json', { nullable: true })
+  @Column('json', { nullable: true })
   raceMetrics: {
     averageSpeed: number;
     bestLapTime: number;

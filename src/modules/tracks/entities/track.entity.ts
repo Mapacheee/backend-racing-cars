@@ -20,7 +20,7 @@ export class Track {
   @Column('float')
   length: number;
 
-  @Column('simple-json')
+  @Column('json')
   layoutData: Record<string, any>;
 
   @Column({ nullable: true })
