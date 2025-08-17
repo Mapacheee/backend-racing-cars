@@ -34,7 +34,7 @@ export class PlayersService {
       throw new NotFoundException(`Jugador con ID ${playerId} no encontrado`);
     }
 
-    player.aiGeneration = aiModelCount;
+    player.aiGeneration = aiModelCount + 1;
     return this.playersRepository.save(player);
   }
 

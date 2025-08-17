@@ -12,7 +12,6 @@ import {
   RacePackageServiceInterface,
 } from '../interfaces/racing-stream.interface';
 
-// Type definitions for configuration objects
 interface ParsedTrackLayout {
   x: number;
   y: number;
@@ -36,10 +35,8 @@ export class RacePackageService implements RacePackageServiceInterface {
   ) {}
 
   async buildRacePackage(raceConfig: RaceConfiguration): Promise<RacePackage> {
-    // Validate input
     this.validateRaceConfigurationInput(raceConfig);
 
-    // Get track data
     const track = await this.trackRepository.findOne({
       where: { id: raceConfig.trackId },
     });
@@ -48,7 +45,6 @@ export class RacePackageService implements RacePackageServiceInterface {
       throw new Error(`Track with ID ${raceConfig.trackId} not found`);
     }
 
-    // Get AI models
     const aiModels = await this.aiModelRepository.findByIds(
       raceConfig.aiModelIds,
     );
@@ -61,23 +57,21 @@ export class RacePackageService implements RacePackageServiceInterface {
       throw new Error(`AI Models not found: ${missingIds.join(', ')}`);
     }
 
-    // Convert track to race format
     const trackData = {
       id: track.id,
       name: track.name,
       layout: this.parseTrackLayout(track.layoutData),
       metadata: {
         length: track.length,
-        width: 10, // Default width - could be added to track entity later
+        width: 10,
         checkpoints: this.countCheckpoints(track.layoutData),
-        description: track.difficulty, // Using difficulty as description
+        description: track.difficulty,
       },
     };
 
-    // Convert AI models to race format
     const aiModelData: AIModelData[] = aiModels.map((model) => ({
       id: model.id,
-      name: `Generation ${model.generationNumber}`, // NEAT models don't have names, use generation
+      name: `Generation ${model.generationNumber}`,
       generation: model.generationNumber,
       weights: this.extractNEATWeights(model.neatGenomes),
       architecture: {
@@ -98,24 +92,20 @@ export class RacePackageService implements RacePackageServiceInterface {
     raceConfig: RaceConfiguration,
   ): Promise<boolean> {
     try {
-      // Validate input structure
       if (!this.isValidRaceConfigurationStructure(raceConfig)) {
         return false;
       }
 
-      // Check if track exists
       const track = await this.trackRepository.findOne({
         where: { id: raceConfig.trackId },
       });
       if (!track) return false;
 
-      // Check if all AI models exist
       const aiModels = await this.aiModelRepository.findByIds(
         raceConfig.aiModelIds,
       );
       if (aiModels.length !== raceConfig.aiModelIds.length) return false;
 
-      // Validate race settings
       if (
         raceConfig.raceSettings.timeLimit &&
         raceConfig.raceSettings.timeLimit <= 0
@@ -169,7 +159,6 @@ export class RacePackageService implements RacePackageServiceInterface {
   }
 
   private parseTrackLayout(layout: unknown): TrackPoint[] {
-    // Convert your track layout format to the racing interface format
     if (typeof layout === 'string') {
       try {
         const parsed = JSON.parse(layout) as unknown;
@@ -220,17 +209,15 @@ export class RacePackageService implements RacePackageServiceInterface {
   }
 
   private extractNEATWeights(genomes: Genome[]): number[][] {
-    // For NEAT genomes, we'll extract connection weights from the best genome (highest fitness)
     if (!genomes || genomes.length === 0) return [];
 
     const bestGenome = genomes.reduce((best, current) =>
       current.fitness > best.fitness ? current : best,
     );
 
-    // Convert NEAT connection genes to weight matrix format expected by racing system
     return bestGenome.connectionGenes
       .filter((gene) => gene.enabled)
-      .map((gene) => [gene.weight]); // Simplified weight format for racing compatibility
+      .map((gene) => [gene.weight]);
   }
 
   private extractHiddenLayersFromGenomes(genomes: Genome[]): number[] {
@@ -241,7 +228,6 @@ export class RacePackageService implements RacePackageServiceInterface {
       current.fitness > best.fitness ? current : best,
     );
 
-    // Count hidden nodes in the best genome
     const hiddenNodes = bestGenome.nodeGenes.filter(
       (node) => node.type === 'hidden',
     );
@@ -252,13 +238,11 @@ export class RacePackageService implements RacePackageServiceInterface {
       layerCounts.set(node.layer, count + 1);
     });
 
-    // Return array of node counts per hidden layer
     const layers = Array.from(layerCounts.values());
     return layers.length > 0 ? layers : [10, 8]; // Default if no hidden layers
   }
 
   private parseWeights(_modelData: unknown): number[][] {
-    // Legacy method - kept for backward compatibility but now delegates to NEAT extraction
     console.warn(
       'parseWeights is deprecated. Use extractNEATWeights for NEAT models.',
     );
