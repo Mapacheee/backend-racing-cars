@@ -71,7 +71,6 @@ export class PlayerAuthService {
     const { username, password } = registerDto;
 
     try {
-      // Check if user already exists
       const existingPlayer = await this.playersService.findByUsername(username);
       if (existingPlayer) {
         throw new ConflictException('El usuario ya existe');

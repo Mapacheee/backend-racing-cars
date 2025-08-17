@@ -24,20 +24,22 @@ export class AiModelsController {
   @Post('generations')
   @HttpCode(HttpStatus.CREATED)
   async pushGeneration(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Body() createAiModelDto: CreateAiModelDto,
   ) {
     return this.aiModelsService.pushGeneration(player.id, createAiModelDto);
   }
 
   @Get('generations/latest')
-  async getLatestGeneration(@Request() { player }: { player: PlayerFromJwt }) {
+  async getLatestGeneration(
+    @Request() { user: player }: { user: PlayerFromJwt },
+  ) {
     return this.aiModelsService.getLatestGeneration(player.id);
   }
 
   @Get('generations/:generationNumber')
   async getGeneration(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Param('generationNumber') generationNumber: number,
   ) {
     return this.aiModelsService.getGeneration(player.id, generationNumber);
@@ -59,14 +61,16 @@ export class AiModelsController {
 
   @Delete('generations/reset')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async resetAllGenerations(@Request() { player }: { player: PlayerFromJwt }) {
+  async resetAllGenerations(
+    @Request() { user: player }: { user: PlayerFromJwt },
+  ) {
     return this.aiModelsService.resetAllGenerations(player.id);
   }
 
   @Delete('generations/:generationNumber')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteGeneration(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Param('generationNumber') generationNumber: number,
   ) {
     return this.aiModelsService.deleteGeneration(player.id, generationNumber);
@@ -74,21 +78,21 @@ export class AiModelsController {
 
   @Get('statistics')
   async getGenerationStatistics(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
   ) {
     return this.aiModelsService.getGenerationStatistics(player.id);
   }
 
   @Get('statistics/fitness-progression')
   async getFitnessProgression(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
   ) {
     return this.aiModelsService.getFitnessProgression(player.id);
   }
 
   @Get('statistics/best-performers')
   async getBestPerformers(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Query('limit') limit: number = 5,
   ) {
     return this.aiModelsService.getBestPerformers(player.id, limit);
@@ -96,7 +100,7 @@ export class AiModelsController {
 
   @Get('genomes/best')
   async getBestGenomes(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Query('limit') limit: number = 10,
   ) {
     return this.aiModelsService.getBestGenomes(player.id, limit);
@@ -104,7 +108,7 @@ export class AiModelsController {
 
   @Get('genomes/generation/:generationNumber')
   async getGenomesFromGeneration(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Param('generationNumber') generationNumber: number,
   ) {
     return this.aiModelsService.getGenomesFromGeneration(
@@ -115,7 +119,7 @@ export class AiModelsController {
 
   @Get('genomes/export')
   async exportGenomes(
-    @Request() { player }: { player: PlayerFromJwt },
+    @Request() { user: player }: { user: PlayerFromJwt },
     @Query('generationNumber') generationNumber?: number,
     @Query('topN') topN?: number,
   ) {

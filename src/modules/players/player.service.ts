@@ -21,9 +21,6 @@ export class PlayersService {
     private aiModelsRepository: Repository<AIModel>,
   ) {}
 
-  /**
-   * Synchronizes the player's aiGeneration with their actual AI models count
-   */
   async syncAiGeneration(playerId: string): Promise<Player> {
     const aiModelCount = await this.aiModelsRepository.count({
       where: { playerId },
@@ -41,11 +38,6 @@ export class PlayersService {
     return this.playersRepository.save(player);
   }
 
-  /**
-   * Updates the player's aiGeneration to a specific value
-   * Note: This should typically only be used for administrative purposes
-   * In normal operation, aiGeneration should be synced with AI models count
-   */
   async updateAiGeneration(
     playerId: string,
     newGeneration: number,
@@ -90,27 +82,18 @@ export class PlayersService {
     return this.playersRepository.save(player);
   }
 
-  // TODO: Don't increase the counter, just count the number of AI models
-  // async increaseAiGeneration(username: string): Promise<Player> {
-  //   const user = await this.findOne(username);
-
-  //   const increasedAiGeneration = user.aiGeneration + 1;
-  //   const updatedUser = { ...user, aiGeneration: increasedAiGeneration };
-  //   return this.playersRepository.save(updatedUser);
-  // }
-
   async findAll(): Promise<Player[]> {
     return this.playersRepository.find();
   }
 
   async findOne(username: string): Promise<Player> {
-    const user = await this.playersRepository.findOneBy({ username });
-    if (!user) {
+    const player = await this.playersRepository.findOneBy({ username });
+    if (!player) {
       throw new NotFoundException(
         `Usuario con nombre ${username} no encontrado`,
       );
     }
-    return user;
+    return player;
   }
 
   async findByUsername(username: string): Promise<Player | null> {
@@ -121,20 +104,20 @@ export class PlayersService {
     username: string,
     updateUserDto: UpdatePlayerDto,
   ): Promise<Player> {
-    const user = await this.findOne(username);
+    const player = await this.findOne(username);
 
     // Handle password update separately
     if (updateUserDto.password) {
       const password_hash = await bcrypt.hash(updateUserDto.password, 10);
       const { password: _, aiGeneration, ...otherFields } = updateUserDto;
-      Object.assign(user, { ...otherFields, password_hash });
+      Object.assign(player, { ...otherFields, password_hash });
 
       // Handle aiGeneration separately if provided
       if (aiGeneration !== undefined) {
         if (aiGeneration < 0) {
           throw new BadRequestException('aiGeneration cannot be negative');
         }
-        user.aiGeneration = aiGeneration;
+        player.aiGeneration = aiGeneration;
       }
     } else {
       // Handle aiGeneration validation
@@ -144,10 +127,10 @@ export class PlayersService {
       ) {
         throw new BadRequestException('aiGeneration cannot be negative');
       }
-      Object.assign(user, updateUserDto);
+      Object.assign(player, updateUserDto);
     }
 
-    return this.playersRepository.save(user);
+    return this.playersRepository.save(player);
   }
 
   async remove(username: string): Promise<void> {
