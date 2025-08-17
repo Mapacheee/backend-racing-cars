@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Track } from '../../tracks/entities/track.entity';
 import { AIModel } from '../../ai-models/entities/ai-model.entity';
+import { Genome } from '../../ai-models/interfaces/ai-model.interface';
 import {
   RacePackage,
   RaceConfiguration,
@@ -12,13 +13,6 @@ import {
 } from '../interfaces/racing-stream.interface';
 
 // Type definitions for configuration objects
-interface AIModelConfiguration {
-  inputSize?: number;
-  outputSize?: number;
-  hiddenLayers?: number[];
-  [key: string]: unknown;
-}
-
 interface ParsedTrackLayout {
   x: number;
   y: number;
@@ -83,13 +77,13 @@ export class RacePackageService implements RacePackageServiceInterface {
     // Convert AI models to race format
     const aiModelData: AIModelData[] = aiModels.map((model) => ({
       id: model.id,
-      name: model.name,
+      name: `Generation ${model.generationNumber}`, // NEAT models don't have names, use generation
       generation: model.generationNumber,
-      weights: this.parseWeights(model.modelData),
+      weights: this.extractNEATWeights(model.neatGenomes),
       architecture: {
-        inputs: this.getInputSize(model.configuration),
-        hiddenLayers: this.parseHiddenLayers(model.configuration),
-        outputs: this.getOutputSize(model.configuration),
+        inputs: model.config.inputNodes,
+        hiddenLayers: this.extractHiddenLayersFromGenomes(model.neatGenomes),
+        outputs: model.config.outputNodes,
       },
     }));
 
@@ -225,11 +219,49 @@ export class RacePackageService implements RacePackageServiceInterface {
     return parsedLayout.filter((point) => point.type === 'checkpoint').length;
   }
 
-  private parseWeights(modelData: unknown): number[][] {
-    // Convert your AI model weights format to the racing interface format
-    if (this.isModelDataWithWeights(modelData)) {
-      return this.validateWeights(modelData.weights);
-    }
+  private extractNEATWeights(genomes: Genome[]): number[][] {
+    // For NEAT genomes, we'll extract connection weights from the best genome (highest fitness)
+    if (!genomes || genomes.length === 0) return [];
+
+    const bestGenome = genomes.reduce((best, current) =>
+      current.fitness > best.fitness ? current : best,
+    );
+
+    // Convert NEAT connection genes to weight matrix format expected by racing system
+    return bestGenome.connectionGenes
+      .filter((gene) => gene.enabled)
+      .map((gene) => [gene.weight]); // Simplified weight format for racing compatibility
+  }
+
+  private extractHiddenLayersFromGenomes(genomes: Genome[]): number[] {
+    // Extract hidden layer structure from NEAT genomes
+    if (!genomes || genomes.length === 0) return [10, 8]; // Default fallback
+
+    const bestGenome = genomes.reduce((best, current) =>
+      current.fitness > best.fitness ? current : best,
+    );
+
+    // Count hidden nodes in the best genome
+    const hiddenNodes = bestGenome.nodeGenes.filter(
+      (node) => node.type === 'hidden',
+    );
+    const layerCounts = new Map<number, number>();
+
+    hiddenNodes.forEach((node) => {
+      const count = layerCounts.get(node.layer) || 0;
+      layerCounts.set(node.layer, count + 1);
+    });
+
+    // Return array of node counts per hidden layer
+    const layers = Array.from(layerCounts.values());
+    return layers.length > 0 ? layers : [10, 8]; // Default if no hidden layers
+  }
+
+  private parseWeights(_modelData: unknown): number[][] {
+    // Legacy method - kept for backward compatibility but now delegates to NEAT extraction
+    console.warn(
+      'parseWeights is deprecated. Use extractNEATWeights for NEAT models.',
+    );
     return [];
   }
 
@@ -253,66 +285,5 @@ export class RacePackageService implements RacePackageServiceInterface {
         layer.every((weight) => typeof weight === 'number')
       );
     });
-  }
-
-  private parseHiddenLayers(configuration: unknown): number[] {
-    if (this.isConfigurationWithHiddenLayers(configuration)) {
-      return this.validateHiddenLayers(configuration.hiddenLayers);
-    }
-    return [10, 8]; // Default hidden layers if not specified
-  }
-
-  private isConfigurationWithHiddenLayers(
-    data: unknown,
-  ): data is AIModelConfiguration {
-    if (typeof data !== 'object' || data === null) {
-      return false;
-    }
-
-    const obj = data as Record<string, unknown>;
-    return 'hiddenLayers' in obj && Array.isArray(obj.hiddenLayers);
-  }
-
-  private validateHiddenLayers(hiddenLayers: unknown): number[] {
-    if (!Array.isArray(hiddenLayers)) {
-      return [10, 8];
-    }
-
-    const validLayers = hiddenLayers.filter(
-      (layer): layer is number => typeof layer === 'number' && layer > 0,
-    );
-    return validLayers.length > 0 ? validLayers : [10, 8];
-  }
-
-  private getInputSize(configuration: unknown): number {
-    if (this.isConfigurationWithInputSize(configuration)) {
-      return typeof configuration.inputSize === 'number' &&
-        configuration.inputSize > 0
-        ? configuration.inputSize
-        : 7;
-    }
-    return 7; // Default input size for racing AI (speed, direction, distances to walls, etc.)
-  }
-
-  private isConfigurationWithInputSize(
-    data: unknown,
-  ): data is AIModelConfiguration {
-    return typeof data === 'object' && data !== null && 'inputSize' in data;
-  }
-
-  private getOutputSize(configuration: unknown): number {
-    if (this.isConfigurationWithOutputSize(configuration)) {
-      return typeof configuration.outputSize === 'number' &&
-        configuration.outputSize > 0
-        ? configuration.outputSize
-        : 3;
-    }
-    return 3; // Default output size (steering, acceleration, braking)
-  }
-
-  private isConfigurationWithOutputSize(
-    data: unknown,
-  ): data is AIModelConfiguration {
-    return typeof data === 'object' && data !== null && 'outputSize' in data;
   }
 }

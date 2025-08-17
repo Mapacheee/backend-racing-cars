@@ -1,17 +1,25 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AIModel } from './entities/ai-model.entity';
 import { Player } from '../players/entities/player.entity';
-import {
-  CreateAIModelDto,
-  UpdateAIModelDto,
-  AIModelFilterDto,
-} from './dto/ai-model.dto';
+import { CreateAiModelDto } from './dto/create-ai-model.dto';
+import { Genome, NEATConfig } from './interfaces/ai-model.interface';
+
+export interface GenerationPaginationOptions {
+  page: number;
+  limit: number;
+  sortOrder: 'ASC' | 'DESC';
+}
+
+export interface ExportOptions {
+  generationNumber?: number;
+  topN?: number;
+}
 
 @Injectable()
 export class AiModelsService {
@@ -22,172 +30,305 @@ export class AiModelsService {
     private playersRepository: Repository<Player>,
   ) {}
 
-  /**
-   * Updates the player's aiGeneration to match the count of their AI models
-   */
   private async updatePlayerAiGeneration(playerId: string): Promise<void> {
-    const aiModelCount = await this.aiModelsRepository.count({
-      where: { playerId },
-    });
+    const maxGeneration = await this.aiModelsRepository
+      .createQueryBuilder('aiModel')
+      .select('MAX(aiModel.generationNumber)', 'maxGeneration')
+      .where('aiModel.playerId = :playerId', { playerId })
+      .getRawOne<{ maxGeneration: number }>();
 
-    await this.playersRepository.update(
-      { id: playerId },
-      { aiGeneration: aiModelCount },
-    );
+    const aiGeneration = (maxGeneration?.maxGeneration as number) || 0;
+
+    await this.playersRepository.update({ id: playerId }, { aiGeneration });
   }
 
-  async create(
-    userId: string,
-    createAiModelDto: CreateAIModelDto,
+  async pushGeneration(
+    playerId: string,
+    createAiModelDto: CreateAiModelDto,
   ): Promise<AIModel> {
+    // Get the current highest generation number for this player
+    const currentMaxGeneration = await this.aiModelsRepository
+      .createQueryBuilder('aiModel')
+      .select('MAX(aiModel.generationNumber)', 'maxGeneration')
+      .where('aiModel.playerId = :playerId', { playerId })
+      .getRawOne<{ maxGeneration: number }>();
+
+    const nextGenerationNumber =
+      ((currentMaxGeneration?.maxGeneration as number) || 0) + 1;
+
+    // Validate that we're not skipping generations
+    if (
+      nextGenerationNumber >
+      ((currentMaxGeneration?.maxGeneration as number) || 0) + 1
+    ) {
+      throw new BadRequestException(
+        `Cannot skip generations. Expected generation ${
+          ((currentMaxGeneration?.maxGeneration as number) || 0) + 1
+        }, got ${nextGenerationNumber}`,
+      );
+    }
+
+    // Check if this generation already exists
+    const existingGeneration = await this.aiModelsRepository.findOne({
+      where: { playerId, generationNumber: nextGenerationNumber },
+    });
+
+    if (existingGeneration) {
+      throw new BadRequestException(
+        `Generation ${nextGenerationNumber} already exists`,
+      );
+    }
+
+    // Create new AI model with the generation
     const aiModel = this.aiModelsRepository.create({
-      ...createAiModelDto,
-      playerId: userId,
-      generationNumber: createAiModelDto.generationNumber || 1,
-      lastTrainingDate: new Date(),
+      playerId,
+      neatGenomes: createAiModelDto.neatGenomes,
+      config: createAiModelDto.config,
+      generationNumber: nextGenerationNumber,
     });
 
     const savedModel = await this.aiModelsRepository.save(aiModel);
 
-    // Update player's aiGeneration count
-    await this.updatePlayerAiGeneration(userId);
+    // Update player's generation count
+    await this.updatePlayerAiGeneration(playerId);
 
     return savedModel;
   }
 
-  async findAll(filters: AIModelFilterDto): Promise<AIModel[]> {
-    const query = this.aiModelsRepository.createQueryBuilder('aiModel');
-
-    if (filters.userId) {
-      query.andWhere('aiModel.userId = :userId', { userId: filters.userId });
-    }
-
-    if (filters.minGeneration) {
-      query.andWhere('aiModel.generationNumber >= :minGeneration', {
-        minGeneration: filters.minGeneration,
-      });
-    }
-
-    if (filters.maxGeneration) {
-      query.andWhere('aiModel.generationNumber <= :maxGeneration', {
-        maxGeneration: filters.maxGeneration,
-      });
-    }
-
-    if (filters.isActive !== undefined) {
-      query.andWhere('aiModel.isActive = :isActive', {
-        isActive: filters.isActive,
-      });
-    }
-
-    if (filters.minFitnessScore) {
-      query.andWhere(
-        "CAST(aiModel.genetics->'$.fitnessScore' AS DECIMAL) >= :minFitnessScore",
-        {
-          minFitnessScore: filters.minFitnessScore,
-        },
-      );
-    }
-
-    return query.getMany();
+  async getLatestGeneration(playerId: string): Promise<AIModel | null> {
+    return this.aiModelsRepository.findOne({
+      where: { playerId },
+      order: { generationNumber: 'DESC' },
+    });
   }
 
-  async findOne(id: string, userId?: string): Promise<AIModel> {
-    const queryOptions = { where: { id } };
-
-    if (userId) {
-      queryOptions.where['userId'] = userId;
-    }
-
-    const aiModel = await this.aiModelsRepository.findOne(queryOptions);
-
-    if (!aiModel) {
-      throw new NotFoundException(`Modelo de IA con ID ${id} no encontrado`);
-    }
-
-    return aiModel;
-  }
-
-  async update(
-    id: string,
-    userId: string,
-    updateAiModelDto: UpdateAIModelDto,
+  async getGeneration(
+    playerId: string,
+    generationNumber: number,
   ): Promise<AIModel> {
-    const aiModel = await this.findOne(id);
-
-    if (aiModel.playerId !== userId) {
-      throw new ForbiddenException(
-        'No tienes permiso para actualizar este modelo de IA',
-      );
-    }
-
-    Object.assign(aiModel, updateAiModelDto);
-
-    if (updateAiModelDto.trainingMetrics) {
-      aiModel.lastTrainingDate = new Date();
-    }
-
-    return this.aiModelsRepository.save(aiModel);
-  }
-
-  async evolve(parentIds: string[], userId: string): Promise<AIModel> {
-    const parents = await Promise.all(
-      parentIds.map((id) => this.findOne(id, userId)),
-    );
-
-    // Encuentra el padre con mejor fitness score
-    const bestParent = parents.reduce((best, current) => {
-      const currentFitness = current.genetics?.fitnessScore || 0;
-      const bestFitness = best.genetics?.fitnessScore || 0;
-      return currentFitness > bestFitness ? current : best;
+    const generation = await this.aiModelsRepository.findOne({
+      where: { playerId, generationNumber },
     });
 
-    // Crea una nueva generación basada en el mejor padre
-    const newModel = await this.create(userId, {
-      name: `${bestParent.name}_gen_${bestParent.generationNumber + 1}`,
-      version: `${bestParent.version}.${bestParent.generationNumber + 1}`,
-      modelData: bestParent.modelData,
-      configuration: bestParent.configuration,
-      generationNumber: bestParent.generationNumber + 1,
-      genetics: {
-        parentIds,
-        fitnessScore: 0, // Se actualizará después del entrenamiento
-        mutationRate: 0.1, // Tasa de mutación configurable
-      },
+    if (!generation) {
+      throw new NotFoundException(
+        `Generation ${generationNumber} not found for player`,
+      );
+    }
+
+    return generation;
+  }
+
+  async getAllGenerations(
+    playerId: string,
+    options: GenerationPaginationOptions,
+  ): Promise<{
+    generations: AIModel[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const { page, limit, sortOrder } = options;
+    const skip = (page - 1) * limit;
+
+    const [generations, total] = await this.aiModelsRepository.findAndCount({
+      where: { playerId },
+      order: { generationNumber: sortOrder },
+      skip,
+      take: limit,
     });
 
-    // Note: this.create already calls updatePlayerAiGeneration, so no need to call it again
-    return newModel;
+    return {
+      generations,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async remove(id: string, userId: string): Promise<void> {
-    const aiModel = await this.findOne(id);
+  async resetAllGenerations(playerId: string): Promise<void> {
+    await this.aiModelsRepository.delete({ playerId });
+    await this.updatePlayerAiGeneration(playerId);
+  }
 
-    if (aiModel.playerId !== userId) {
-      throw new ForbiddenException(
-        'No tienes permiso para eliminar este modelo de IA',
+  async deleteGeneration(
+    playerId: string,
+    generationNumber: number,
+  ): Promise<void> {
+    const result = await this.aiModelsRepository.delete({
+      playerId,
+      generationNumber,
+    });
+
+    if (result.affected === 0) {
+      throw new NotFoundException(
+        `Generation ${generationNumber} not found for player`,
       );
     }
 
-    await this.aiModelsRepository.remove(aiModel);
-
-    // Update player's aiGeneration count
-    await this.updatePlayerAiGeneration(userId);
+    await this.updatePlayerAiGeneration(playerId);
   }
 
-  async getEvolutionHistory(id: string, userId: string): Promise<AIModel[]> {
-    const currentModel = await this.findOne(id, userId);
-    const history = [currentModel];
+  async getGenerationStatistics(playerId: string): Promise<{
+    totalGenerations: number;
+    averageFitness: number;
+    bestFitness: number;
+    latestGeneration: number;
+    totalGenomes: number;
+  }> {
+    const generations = await this.aiModelsRepository.find({
+      where: { playerId },
+      order: { generationNumber: 'ASC' },
+    });
 
-    let currentParents = currentModel.genetics?.parentIds || [];
-    while (currentParents.length > 0) {
-      const parents = await Promise.all(
-        currentParents.map((parentId) => this.findOne(parentId, userId)),
-      );
-      history.push(...parents);
-      currentParents = parents.flatMap((p) => p.genetics?.parentIds || []);
+    if (generations.length === 0) {
+      return {
+        totalGenerations: 0,
+        averageFitness: 0,
+        bestFitness: 0,
+        latestGeneration: 0,
+        totalGenomes: 0,
+      };
     }
 
-    return history;
+    let totalFitness = 0;
+    let maxFitness = 0;
+    let totalGenomes = 0;
+
+    generations.forEach((generation) => {
+      generation.neatGenomes.forEach((genome) => {
+        totalFitness += genome.fitness;
+        maxFitness = Math.max(maxFitness, genome.fitness);
+        totalGenomes++;
+      });
+    });
+
+    return {
+      totalGenerations: generations.length,
+      averageFitness: totalGenomes > 0 ? totalFitness / totalGenomes : 0,
+      bestFitness: maxFitness,
+      latestGeneration: Math.max(...generations.map((g) => g.generationNumber)),
+      totalGenomes,
+    };
+  }
+
+  async getFitnessProgression(playerId: string): Promise<
+    {
+      generationNumber: number;
+      avgFitness: number;
+      maxFitness: number;
+      minFitness: number;
+    }[]
+  > {
+    const generations = await this.aiModelsRepository.find({
+      where: { playerId },
+      order: { generationNumber: 'ASC' },
+    });
+
+    return generations.map((generation) => {
+      const fitnesses = generation.neatGenomes.map((genome) => genome.fitness);
+
+      return {
+        generationNumber: generation.generationNumber,
+        avgFitness: fitnesses.reduce((a, b) => a + b, 0) / fitnesses.length,
+        maxFitness: Math.max(...fitnesses),
+        minFitness: Math.min(...fitnesses),
+      };
+    });
+  }
+
+  async getBestPerformers(
+    playerId: string,
+    limit: number = 5,
+  ): Promise<
+    {
+      generationNumber: number;
+      bestGenome: Genome;
+      averageFitness: number;
+    }[]
+  > {
+    const generations = await this.aiModelsRepository.find({
+      where: { playerId },
+      order: { generationNumber: 'ASC' },
+    });
+
+    return generations
+      .map((generation) => {
+        const genomes = generation.neatGenomes;
+        const bestGenome = genomes.reduce((best, current) =>
+          current.fitness > best.fitness ? current : best,
+        );
+
+        const averageFitness =
+          genomes.reduce((sum, genome) => sum + genome.fitness, 0) /
+          genomes.length;
+
+        return {
+          generationNumber: generation.generationNumber,
+          bestGenome,
+          averageFitness,
+        };
+      })
+      .slice(-limit);
+  }
+
+  async getBestGenomes(
+    playerId: string,
+    limit: number = 10,
+  ): Promise<Genome[]> {
+    const latestGeneration = await this.getLatestGeneration(playerId);
+
+    if (!latestGeneration) {
+      return [];
+    }
+
+    return latestGeneration.neatGenomes
+      .sort((a, b) => b.fitness - a.fitness)
+      .slice(0, limit);
+  }
+
+  async getGenomesFromGeneration(
+    playerId: string,
+    generationNumber: number,
+  ): Promise<Genome[]> {
+    const generation = await this.getGeneration(playerId, generationNumber);
+    return generation.neatGenomes;
+  }
+
+  async exportGenomes(
+    playerId: string,
+    options: ExportOptions,
+  ): Promise<{
+    genomes: Genome[];
+    config: NEATConfig;
+    generationNumber: number;
+    exportDate: Date;
+  }> {
+    let generation: AIModel;
+
+    if (options.generationNumber) {
+      generation = await this.getGeneration(playerId, options.generationNumber);
+    } else {
+      const latestGeneration = await this.getLatestGeneration(playerId);
+      if (!latestGeneration) {
+        throw new NotFoundException('No generations found for player');
+      }
+      generation = latestGeneration;
+    }
+
+    let genomes = generation.neatGenomes;
+
+    if (options.topN) {
+      genomes = genomes
+        .sort((a, b) => b.fitness - a.fitness)
+        .slice(0, options.topN);
+    }
+
+    return {
+      genomes,
+      config: generation.config,
+      generationNumber: generation.generationNumber,
+      exportDate: new Date(),
+    };
   }
 }

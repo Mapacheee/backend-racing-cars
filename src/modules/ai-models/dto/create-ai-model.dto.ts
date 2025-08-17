@@ -1,27 +1,18 @@
-import { IsNotEmpty, IsString, IsObject, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsArray, IsObject, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { GenomeDto } from './genome.dto';
+import { NEATConfigDto } from './neat-config.dto';
 
 export class CreateAiModelDto {
   @IsNotEmpty()
-  @IsString()
-  name: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsNotEmpty()
-  @IsString()
-  version: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => GenomeDto)
+  neatGenomes: GenomeDto[];
 
   @IsNotEmpty()
   @IsObject()
-  modelData: Record<string, any>;
-
-  @IsOptional()
-  @IsObject()
-  configuration?: Record<string, any>;
-
-  @IsOptional()
-  @IsString()
-  trainingStats?: string;
+  @ValidateNested()
+  @Type(() => NEATConfigDto)
+  config: NEATConfigDto;
 }

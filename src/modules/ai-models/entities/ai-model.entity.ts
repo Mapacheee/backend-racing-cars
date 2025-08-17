@@ -3,65 +3,31 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { Player } from '../../players/entities/player.entity';
+import { Genome, NEATConfig } from '../interfaces/ai-model.interface';
 
 @Entity('ai_models')
 export class AIModel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  name: string;
-
-  @Column({ nullable: true })
-  description: string;
-
-  @Column()
-  version: string;
-
-  @Column('simple-json')
-  modelData: Record<string, any>;
-
-  @Column('simple-json', { nullable: true })
-  configuration: Record<string, any>;
+  @Column('json')
+  neatGenomes: Genome[];
 
   @Column('int', { default: 1 })
   generationNumber: number;
 
-  @Column('simple-json', { nullable: true })
-  trainingMetrics: {
-    distanceCompleted: number;
-    timeElapsed: number;
-    avgSpeed: number;
-    collisions: number;
-    lapTimes?: number[];
-  };
-
-  @Column('simple-json', { nullable: true })
-  genetics: {
-    parentIds?: string[];
-    fitnessScore: number;
-    mutationRate?: number;
-  };
-
-  @Column({ nullable: true })
-  lastTrainingDate: Date;
-
-  @Column('boolean', { default: true })
-  isActive: boolean;
+  @Column('json')
+  config: NEATConfig;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @ManyToOne(() => Player, (user) => user.aiModels)
-  @JoinColumn({ name: 'userId' })
+  @ManyToOne(() => Player, (player) => player.aiModels)
+  @JoinColumn({ name: 'playerId' })
   player: Player;
 
   @Column()
