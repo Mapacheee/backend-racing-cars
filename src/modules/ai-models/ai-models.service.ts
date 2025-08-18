@@ -46,7 +46,6 @@ export class AiModelsService {
     playerId: string,
     createAiModelDto: CreateAiModelDto,
   ): Promise<AIModel> {
-    // Get the current highest generation number for this player
     const currentMaxGeneration = await this.aiModelsRepository
       .createQueryBuilder('aiModel')
       .select('MAX(aiModel.generationNumber)', 'maxGeneration')
@@ -56,7 +55,6 @@ export class AiModelsService {
     const nextGenerationNumber =
       ((currentMaxGeneration?.maxGeneration as number) || 0) + 1;
 
-    // Validate that we're not skipping generations
     if (
       nextGenerationNumber >
       ((currentMaxGeneration?.maxGeneration as number) || 0) + 1
@@ -68,7 +66,6 @@ export class AiModelsService {
       );
     }
 
-    // Check if this generation already exists
     const existingGeneration = await this.aiModelsRepository.findOne({
       where: { playerId, generationNumber: nextGenerationNumber },
     });
@@ -79,7 +76,6 @@ export class AiModelsService {
       );
     }
 
-    // Create new AI model with the generation
     const aiModel = this.aiModelsRepository.create({
       playerId,
       neatGenomes: createAiModelDto.neatGenomes,

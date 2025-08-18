@@ -76,13 +76,11 @@ export class PlayerAuthService {
         throw new ConflictException('El usuario ya existe');
       }
 
-      // Create new player
       const newPlayer = await this.playersService.create({
         username,
         password,
       });
 
-      // Generate token
       const token = this.generatePlayerToken({
         id: newPlayer.id,
         username: newPlayer.username,
@@ -113,7 +111,6 @@ export class PlayerAuthService {
         throw new UnauthorizedException('Usuario no encontrado');
       }
 
-      // Validate password
       const isPasswordValid = await bcrypt.compare(
         password,
         player.password_hash,
@@ -123,7 +120,6 @@ export class PlayerAuthService {
         throw new UnauthorizedException('La contraseña es incorrecta');
       }
 
-      // Generate token
       const token = this.generatePlayerToken({
         id: player.id,
         username: player.username,
@@ -148,7 +144,6 @@ export class PlayerAuthService {
     try {
       const decoded = this.verifyPlayerToken(token);
 
-      // Generate new token
       const newToken = this.generatePlayerToken({
         id: decoded.id,
         username: decoded.username,

@@ -56,7 +56,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket): Promise<void> {
     this.logger.log(`Client disconnected: ${client.id}`);
-    // Handle room cleanup on disconnect
+
     await this.handleClientDisconnect(client);
   }
 
@@ -66,7 +66,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     try {
-      // Verify admin authentication via JWT token
       const adminUsername = this.getAdminFromToken(client);
 
       if (!adminUsername || adminUsername !== data.adminUsername) {
@@ -81,16 +80,13 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.maxParticipants,
       );
 
-      // Admin joins the socket room for management purposes
       await client.join(room.id);
 
-      // Send room created confirmation
       client.emit('roomCreated', {
         room,
         message: 'Room created successfully',
       });
 
-      // Broadcast new room availability to all clients
       this.server.emit('roomAvailable', {
         roomId: room.id,
         maxParticipants: room.maxParticipants,
@@ -124,16 +120,13 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Join the socket room
       await client.join(data.roomId);
 
-      // Notify all participants about the new player
       this.server.to(data.roomId).emit('playerJoined', {
         participant: room.participants.find((p) => p.userId === data.userId),
         room,
       });
 
-      // Send room state to the new participant
       client.emit('roomJoined', { room });
 
       this.logger.log(`${data.username} joined room ${data.roomId}`);
@@ -153,18 +146,14 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const room = this.roomService.leaveRoom(data.roomId, data.userId);
 
-      // Leave the socket room
       await client.leave(data.roomId);
 
       if (room) {
-        // Notify remaining participants that someone left
         this.server.to(data.roomId).emit('playerLeft', {
           userId: data.userId,
           room,
         });
       }
-      // Note: Rooms are no longer automatically closed when empty
-      // Only the admin can explicitly close rooms
 
       client.emit('roomLeft', { message: 'Successfully left room' });
     } catch (error) {
@@ -181,7 +170,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     try {
-      // Verify admin authentication via JWT token
       const adminUsername = this.getAdminFromToken(client);
       if (!adminUsername || adminUsername !== data.adminUsername) {
         client.emit('error', {
@@ -190,7 +178,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Validate race configuration
       const isValid = await this.racePackageService.validateRaceConfiguration(
         data.raceConfig,
       );
@@ -211,15 +198,12 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Build race package
       const racePackage = await this.racePackageService.buildRacePackage(
         data.raceConfig,
       );
 
-      // Send race package to admin
       client.emit('racePackage', racePackage);
 
-      // Notify all participants about race configuration
       this.server.to(data.roomId).emit('raceConfigured', {
         room,
         config: data.raceConfig,
@@ -240,7 +224,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): void {
     try {
-      // Verify admin authentication via JWT token
       const adminUsername = this.getAdminFromToken(client);
       if (!adminUsername || adminUsername !== data.adminUsername) {
         client.emit('error', {
@@ -256,7 +239,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Notify all participants that race has started
       this.server.to(data.roomId).emit('raceStarted', {
         room,
         timestamp: Date.now(),
@@ -276,7 +258,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: PositionUpdateDto,
     @ConnectedSocket() client: Socket,
   ): void {
-    // Verify this is from the admin (only admin can send position updates)
     const room = this.roomService.getRoom(data.roomId);
     if (!room || room.status !== RoomStatus.RACING) {
       return;
@@ -287,7 +268,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Broadcast position updates to all participants (admin manages the simulation)
     client.to(data.roomId).emit('positionUpdate', data);
   }
 
@@ -296,7 +276,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: RaceEventDto,
     @ConnectedSocket() client: Socket,
   ): void {
-    // Verify this is from the admin (only admin can send race events)
     const room = this.roomService.getRoom(data.roomId);
     if (!room || room.status !== RoomStatus.RACING) {
       return;
@@ -307,12 +286,10 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Handle race finish
     if (data.event.type === 'race_finish') {
       this.roomService.finishRace(data.roomId);
     }
 
-    // Broadcast race event to all participants
     this.server.to(data.roomId).emit('raceEvent', data.event);
   }
 
@@ -335,7 +312,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): void {
     try {
-      // Verify admin authentication via JWT token
       const adminUsername = this.getAdminFromToken(client);
       if (!adminUsername || adminUsername !== data.adminUsername) {
         client.emit('error', {
@@ -350,7 +326,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       if (success) {
-        // Notify all participants that room is being closed
         this.server.to(data.roomId).emit('roomClosed', {
           message: 'Room closed by admin',
         });
@@ -378,7 +353,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): void {
     try {
-      // Verify admin authentication via JWT token
       const adminUsername = this.getAdminFromToken(client);
       if (!adminUsername || adminUsername !== data.adminUsername) {
         client.emit('error', {
@@ -395,13 +369,11 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       if (room) {
-        // Notify the removed participant
         this.server.to(data.roomId).emit('participantRemoved', {
           userId: data.userId,
           message: 'You have been removed from the room by admin',
         });
 
-        // Notify admin of successful removal
         client.emit('participantRemovedSuccess', {
           roomId: data.roomId,
           userId: data.userId,
@@ -440,7 +412,6 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private getUserFromSocket(client: Socket): PlayerFromJwt | null {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const user = client.data?.user;
     return user as PlayerFromJwt | null;
   }

@@ -16,7 +16,7 @@ import { UpdatePlayerDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('users')
-@UseInterceptors(ClassSerializerInterceptor) // Para excluir campos sensibles como password
+@UseInterceptors(ClassSerializerInterceptor)
 export class PlayersController {
   constructor(private readonly PlayersService: PlayersService) {}
 

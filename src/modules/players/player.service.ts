@@ -71,7 +71,6 @@ export class PlayersService {
       );
     }
 
-    // Hash the password before saving
     const password_hash = await bcrypt.hash(password, 10);
 
     const player = this.playersRepository.create({
@@ -106,13 +105,11 @@ export class PlayersService {
   ): Promise<Player> {
     const player = await this.findOne(username);
 
-    // Handle password update separately
     if (updateUserDto.password) {
       const password_hash = await bcrypt.hash(updateUserDto.password, 10);
       const { password: _, aiGeneration, ...otherFields } = updateUserDto;
       Object.assign(player, { ...otherFields, password_hash });
 
-      // Handle aiGeneration separately if provided
       if (aiGeneration !== undefined) {
         if (aiGeneration < 0) {
           throw new BadRequestException('aiGeneration cannot be negative');
@@ -120,7 +117,6 @@ export class PlayersService {
         player.aiGeneration = aiGeneration;
       }
     } else {
-      // Handle aiGeneration validation
       if (
         updateUserDto.aiGeneration !== undefined &&
         updateUserDto.aiGeneration < 0

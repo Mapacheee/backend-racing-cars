@@ -23,13 +23,13 @@ export class SpeciationDto {
   compatibilityThreshold: number;
 
   @IsNumber()
-  c1: number; // Coeficiente excess genes
+  c1: number;
 
   @IsNumber()
-  c2: number; // Coeficiente disjoint genes
+  c2: number;
 
   @IsNumber()
-  c3: number; // Coeficiente weight differences
+  c3: number;
 }
 
 export class SurvivalDto {

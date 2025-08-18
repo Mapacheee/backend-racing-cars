@@ -35,9 +35,9 @@ export interface NEATConfig {
   };
   speciation: {
     compatibilityThreshold: number;
-    c1: number; // Coeficiente excess genes
-    c2: number; // Coeficiente disjoint genes
-    c3: number; // Coeficiente weight differences
+    c1: number;
+    c2: number;
+    c3: number;
   };
   survival: {
     survivalRate: number;

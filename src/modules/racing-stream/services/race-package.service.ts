@@ -221,8 +221,7 @@ export class RacePackageService implements RacePackageServiceInterface {
   }
 
   private extractHiddenLayersFromGenomes(genomes: Genome[]): number[] {
-    // Extract hidden layer structure from NEAT genomes
-    if (!genomes || genomes.length === 0) return [10, 8]; // Default fallback
+    if (!genomes || genomes.length === 0) return [10, 8];
 
     const bestGenome = genomes.reduce((best, current) =>
       current.fitness > best.fitness ? current : best,
@@ -239,7 +238,7 @@ export class RacePackageService implements RacePackageServiceInterface {
     });
 
     const layers = Array.from(layerCounts.values());
-    return layers.length > 0 ? layers : [10, 8]; // Default if no hidden layers
+    return layers.length > 0 ? layers : [10, 8];
   }
 
   private parseWeights(_modelData: unknown): number[][] {

@@ -1,4 +1,3 @@
-// Core room and race interfaces
 export interface RaceRoom {
   id: string;
   participants: RoomParticipant[];
@@ -6,7 +5,7 @@ export interface RaceRoom {
   raceConfig?: RaceConfiguration;
   createdAt: Date;
   maxParticipants: number;
-  adminId: string; // Only admin can create rooms
+  adminId: string;
 }
 
 export interface RoomParticipant {
@@ -109,7 +108,6 @@ export interface CollisionData {
   otherCarId?: string;
 }
 
-// WebSocket message interfaces
 export interface WebSocketMessage<T = any> {
   type: string;
   data: T;
@@ -131,7 +129,6 @@ export interface EventMessage extends RoomMessage {
   data: RaceEvent;
 }
 
-// Service interfaces
 export interface RoomServiceInterface {
   createRoom(adminUsername: string, maxParticipants?: number): RaceRoom;
   joinRoom(
@@ -175,7 +172,6 @@ export interface RacePackageServiceInterface {
   validateRaceConfiguration(raceConfig: RaceConfiguration): Promise<boolean>;
 }
 
-// Race simulation interfaces
 export interface RaceState {
   raceId: string;
   status: RaceStatus;
@@ -200,7 +196,6 @@ export interface CarState {
   collisions: number;
 }
 
-// Statistics and results interfaces
 export interface RaceResult {
   raceId: string;
   trackId: string;
@@ -221,7 +216,6 @@ export interface ParticipantResult {
   didFinish: boolean;
 }
 
-// Error and validation interfaces
 export interface ValidationResult {
   valid: boolean;
   errors?: ValidationError[];
@@ -239,7 +233,6 @@ export interface ServiceError {
   details?: any;
 }
 
-// Enums
 export enum RoomStatus {
   WAITING = 'waiting',
   PREPARING = 'preparing',
@@ -269,7 +262,6 @@ export enum RaceStatus {
   CANCELLED = 'cancelled',
 }
 
-// Type aliases for better readability
 export type RoomId = string;
 export type UserId = string;
 export type CarId = string;

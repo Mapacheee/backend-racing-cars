@@ -10,7 +10,6 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-// Request DTOs
 export class CreateRoomDto {
   @IsString()
   adminUsername: string;
@@ -185,7 +184,6 @@ export class ParticipantResponseDto {
   socketId: string;
 }
 
-// Complex response DTOs for room and participant data
 export class RoomResponseDto {
   @IsString()
   id: string;
@@ -214,7 +212,6 @@ export class RoomResponseDto {
   maxParticipants: number;
 }
 
-// Response DTOs
 export class RoomCreatedResponseDto {
   @ValidateNested()
   @Type(() => RoomResponseDto)
@@ -324,7 +321,6 @@ export class TrackDataResponseDto {
   metadata: TrackMetadataResponseDto;
 }
 
-// Race package response DTOs
 export class RacePackageResponseDto {
   @ValidateNested()
   @Type(() => TrackDataResponseDto)
@@ -384,7 +380,6 @@ export class AIModelDataResponseDto {
   architecture: AIArchitectureResponseDto;
 }
 
-// Admin-specific DTOs
 export class CloseRoomDto {
   @IsString()
   roomId: string;

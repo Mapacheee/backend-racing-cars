@@ -1,5 +1,4 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-// import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 
 export const getDatabaseConfig =
