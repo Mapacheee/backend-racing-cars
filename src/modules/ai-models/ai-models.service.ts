@@ -37,7 +37,7 @@ export class AiModelsService {
       .where('aiModel.playerId = :playerId', { playerId })
       .getRawOne<{ maxGeneration: number }>();
 
-    const aiGeneration = ((maxGeneration?.maxGeneration as number) || 0) + 1;
+    const aiGeneration = (maxGeneration?.maxGeneration as number) || 0;
 
     await this.playersRepository.update({ id: playerId }, { aiGeneration });
   }

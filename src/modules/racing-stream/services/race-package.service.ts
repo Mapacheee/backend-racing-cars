@@ -20,11 +20,6 @@ interface ParsedTrackLayout {
   [key: string]: unknown;
 }
 
-interface ModelDataWeights {
-  weights?: number[][];
-  [key: string]: unknown;
-}
-
 @Injectable()
 export class RacePackageService implements RacePackageServiceInterface {
   constructor(
@@ -239,34 +234,5 @@ export class RacePackageService implements RacePackageServiceInterface {
 
     const layers = Array.from(layerCounts.values());
     return layers.length > 0 ? layers : [10, 8];
-  }
-
-  private parseWeights(_modelData: unknown): number[][] {
-    console.warn(
-      'parseWeights is deprecated. Use extractNEATWeights for NEAT models.',
-    );
-    return [];
-  }
-
-  private isModelDataWithWeights(data: unknown): data is ModelDataWeights {
-    if (typeof data !== 'object' || data === null) {
-      return false;
-    }
-
-    const obj = data as Record<string, unknown>;
-    return 'weights' in obj && Array.isArray(obj.weights);
-  }
-
-  private validateWeights(weights: unknown): number[][] {
-    if (!Array.isArray(weights)) {
-      return [];
-    }
-
-    return weights.filter((layer): layer is number[] => {
-      return (
-        Array.isArray(layer) &&
-        layer.every((weight) => typeof weight === 'number')
-      );
-    });
   }
 }
