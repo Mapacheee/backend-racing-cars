@@ -6,6 +6,7 @@ export interface RaceRoom {
   createdAt: Date;
   maxParticipants: number;
   adminId: string;
+  trackSeed?: string; 
 }
 
 export interface RoomParticipant {

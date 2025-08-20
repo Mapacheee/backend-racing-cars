@@ -31,12 +31,53 @@ import { AdminTokenPayload } from '../auth/admin/interfaces/admin-token-payload.
 // ERROR: adminId (admin name) should not be public exposed
 // current behavior: { id: "2309", participants: [], status: "waiting", createdAt: "2025-08-07T21:47:47.564Z", maxParticipants: 10, adminId: "monsalves" }
 
+// TODO: BREAKING CHANGE: change websocket/rest implementation, rest to create the room, and websocket to update the date and subscribe
+// TODO: BREAKING CHANGE: set seed shouldn't have it own endpoint, just update room configs
+
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/racing-stream',
 })
 @UseGuards(WsJwtAuthGuard)
 export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @SubscribeMessage('setTrackSeed')
+  async handleSetTrackSeed(
+    @MessageBody() data: { roomId: string; seed: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const room = this.roomService.getRoom(data.roomId);
+      if (!room) {
+        client.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const adminUsername = this.getAdminFromToken(client);
+      if (!adminUsername || adminUsername !== room.adminId) {
+        client.emit('error', {
+          message: 'Unauthorized: Only admin can set track seed',
+        });
+        return;
+      }
+      const success = this.roomService.updateTrackSeed(data.roomId, data.seed);
+      if (success) {
+        this.server
+          .to(data.roomId)
+          .emit('trackSeedUpdated', { seed: data.seed });
+        client.emit('trackSeedSet', {
+          message: 'Track seed updated successfully',
+        });
+        this.logger.log(`Track seed updated for room ${data.roomId}`);
+      } else {
+        client.emit('error', { message: 'Failed to update track seed' });
+      }
+    } catch (error) {
+      client.emit('error', {
+        message: 'Failed to set track seed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
   @WebSocketServer()
   server: Server;
 
