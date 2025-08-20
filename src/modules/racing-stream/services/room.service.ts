@@ -280,4 +280,11 @@ export class RoomService {
 
     return room.participants.length < initialCount ? room : null;
   }
+
+  updateTrackSeed(roomId: string, seed: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room) return false;
+    room.trackSeed = seed;
+    return true;
+  }
 }
