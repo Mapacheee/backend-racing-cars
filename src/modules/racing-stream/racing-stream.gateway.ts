@@ -45,6 +45,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string; seed: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
+    await Promise.resolve();
     try {
       const room = this.roomService.getRoom(data.roomId);
       if (!room) {
