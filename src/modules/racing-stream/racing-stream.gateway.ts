@@ -28,7 +28,7 @@ import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { PlayerFromJwt } from '../auth/player/interfaces/player-jwt.interface';
 import { AdminTokenPayload } from '../auth/admin/interfaces/admin-token-payload.dto';
 
-// ERROR: adminId (admin name) should not be public exposed
+// TODO: ERROR: adminId (admin name) should not be public exposed
 // current behavior: { id: "2309", participants: [], status: "waiting", createdAt: "2025-08-07T21:47:47.564Z", maxParticipants: 10, adminId: "monsalves" }
 
 // TODO: BREAKING CHANGE: change websocket/rest implementation, rest to create the room, and websocket to update the date and subscribe
