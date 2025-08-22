@@ -3,6 +3,7 @@ import {
   IsObject,
   ValidateNested,
   IsOptional,
+  IsJSON,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NEATConfigDto } from './neat-config.dto';
@@ -10,7 +11,7 @@ import { NetworkMetadataDto } from './network.dto';
 
 export class CreateAiModelDto {
   @IsNotEmpty()
-  @IsObject()
+  @IsJSON()
   networkData: any;
 
   @IsOptional()
