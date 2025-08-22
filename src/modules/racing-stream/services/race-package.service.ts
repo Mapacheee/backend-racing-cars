@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Track } from '../../tracks/entities/track.entity';
 import { AIModel } from '../../ai-models/entities/ai-model.entity';
-import { Genome } from '../../ai-models/interfaces/ai-model.interface';
 import {
   RacePackage,
   RaceConfiguration,
@@ -64,15 +63,15 @@ export class RacePackageService implements RacePackageServiceInterface {
       },
     };
 
-    const aiModelData: AIModelData[] = aiModels.map((model) => ({
+    const aiModelData: AIModelData[] = aiModels.map((model: AIModel) => ({
       id: model.id,
-      name: `Generation ${model.generationNumber}`,
+      name: `Gen ${model.generationNumber} Net ${model.networkIndex}`,
       generation: model.generationNumber,
-      weights: this.extractNEATWeights(model.neatGenomes),
+      weights: this.extractNetworkWeights(model.networkData),
       architecture: {
-        inputs: model.config.inputNodes,
-        hiddenLayers: this.extractHiddenLayersFromGenomes(model.neatGenomes),
-        outputs: model.config.outputNodes,
+        inputs: model.neatConfig.inputNodes,
+        hiddenLayers: this.extractHiddenLayersFromNetwork(model.networkData),
+        outputs: model.neatConfig.outputNodes,
       },
     }));
 
@@ -203,36 +202,47 @@ export class RacePackageService implements RacePackageServiceInterface {
     return parsedLayout.filter((point) => point.type === 'checkpoint').length;
   }
 
-  private extractNEATWeights(genomes: Genome[]): number[][] {
-    if (!genomes || genomes.length === 0) return [];
+  private extractNetworkWeights(networkData: any): number[][] {
+    if (!networkData || !networkData.connections) return [];
 
-    const bestGenome = genomes.reduce((best, current) =>
-      current.fitness > best.fitness ? current : best,
-    );
-
-    return bestGenome.connectionGenes
-      .filter((gene) => gene.enabled)
-      .map((gene) => [gene.weight]);
+    try {
+      return networkData.connections
+        .filter((connection: any) => connection.weight !== undefined)
+        .map((connection: any) => [connection.weight]);
+    } catch {
+      return [];
+    }
   }
 
-  private extractHiddenLayersFromGenomes(genomes: Genome[]): number[] {
-    if (!genomes || genomes.length === 0) return [10, 8];
+  private extractHiddenLayersFromNetwork(networkData: any): number[] {
+    if (!networkData || !networkData.nodes) return [10, 8];
 
-    const bestGenome = genomes.reduce((best, current) =>
-      current.fitness > best.fitness ? current : best,
-    );
+    try {
+      const layerCounts = new Map<number, number>();
+      networkData.nodes.forEach((node: any) => {
+        if (node.type === 'hidden' && node.layer !== undefined) {
+          const count = layerCounts.get(node.layer) || 0;
+          layerCounts.set(node.layer, count + 1);
+        }
+      });
 
-    const hiddenNodes = bestGenome.nodeGenes.filter(
-      (node) => node.type === 'hidden',
-    );
-    const layerCounts = new Map<number, number>();
+      const layers = Array.from(layerCounts.values());
+      return layers.length > 0 ? layers : [10, 8];
+    } catch {
+      return [10, 8];
+    }
+  }
 
-    hiddenNodes.forEach((node) => {
-      const count = layerCounts.get(node.layer) || 0;
-      layerCounts.set(node.layer, count + 1);
+  private validateWeights(weights: unknown): number[][] {
+    if (!Array.isArray(weights)) {
+      return [];
+    }
+
+    return weights.filter((layer): layer is number[] => {
+      return (
+        Array.isArray(layer) &&
+        layer.every((weight) => typeof weight === 'number')
+      );
     });
-
-    const layers = Array.from(layerCounts.values());
-    return layers.length > 0 ? layers : [10, 8];
   }
 }

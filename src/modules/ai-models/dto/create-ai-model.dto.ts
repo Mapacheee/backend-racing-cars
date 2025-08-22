@@ -1,18 +1,26 @@
-import { IsNotEmpty, IsArray, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsObject,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { GenomeDto } from './genome.dto';
 import { NEATConfigDto } from './neat-config.dto';
+import { NetworkMetadataDto } from './network.dto';
 
 export class CreateAiModelDto {
   @IsNotEmpty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => GenomeDto)
-  neatGenomes: GenomeDto[];
+  @IsObject()
+  networkData: any;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NetworkMetadataDto)
+  metadata?: NetworkMetadataDto;
 
   @IsNotEmpty()
   @IsObject()
   @ValidateNested()
   @Type(() => NEATConfigDto)
-  config: NEATConfigDto;
+  neatConfig: NEATConfigDto;
 }

@@ -3,33 +3,65 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { Player } from '../../players/entities/player.entity';
-import { Genome, NEATConfig } from '../interfaces/ai-model.interface';
+
+export interface NetworkMetadata {
+  nodes?: number;
+  connections?: number;
+  species?: number;
+  isElite?: boolean;
+}
+
+export interface NEATConfig {
+  populationSize: number;
+  mutationRate: number;
+  elitism: number;
+  inputNodes: number;
+  outputNodes: number;
+}
+
+interface Node {
+  bias: number;
+  type: string;
+}
 
 @Entity('ai_models')
 export class AIModel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('json')
-  neatGenomes: Genome[];
+  @Column()
+  playerId: string;
 
-  @Column('int', { default: 1 })
+  @Column('int')
   generationNumber: number;
 
+  @Column('int')
+  networkIndex: number;
+
   @Column('json')
-  config: NEATConfig;
+  networkData: any;
+
+  @Column('float', { default: 0 })
+  fitness: number;
+
+  @Column('json', { nullable: true })
+  metadata: NetworkMetadata;
+
+  @Column('json')
+  neatConfig: NEATConfig;
 
   @CreateDateColumn()
   createdAt: Date;
 
+  @UpdateDateColumn()
+  updatedAt: Date;
+
   @ManyToOne(() => Player, (player) => player.aiModels)
   @JoinColumn({ name: 'playerId' })
   player: Player;
-
-  @Column()
-  playerId: string;
 }
