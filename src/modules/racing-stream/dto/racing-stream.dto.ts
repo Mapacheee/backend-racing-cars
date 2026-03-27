@@ -11,8 +11,9 @@ import {
 import { Type } from 'class-transformer';
 
 export class CreateRoomDto {
+  @IsOptional()
   @IsString()
-  adminUsername: string;
+  adminUsername?: string;
 
   @IsOptional()
   @IsNumber()
@@ -64,8 +65,9 @@ export class ConfigureRaceDto {
   @IsString()
   roomId: string;
 
+  @IsOptional()
   @IsString()
-  adminUsername: string;
+  adminUsername?: string;
 
   @ValidateNested()
   @Type(() => RaceConfigurationDto)
@@ -76,8 +78,9 @@ export class StartRaceDto {
   @IsString()
   roomId: string;
 
+  @IsOptional()
   @IsString()
-  adminUsername: string;
+  adminUsername?: string;
 }
 
 export class GetRoomStatusDto {
@@ -384,8 +387,9 @@ export class CloseRoomDto {
   @IsString()
   roomId: string;
 
+  @IsOptional()
   @IsString()
-  adminUsername: string;
+  adminUsername?: string;
 }
 
 export class AdminStatsResponseDto {
@@ -407,6 +411,7 @@ export class RemoveParticipantDto {
   @IsString()
   userId: string;
 
+  @IsOptional()
   @IsString()
-  adminUsername: string;
+  adminUsername?: string;
 }

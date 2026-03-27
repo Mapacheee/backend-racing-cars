@@ -6,6 +6,7 @@ import {
   Body,
   NotFoundException,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { RacePackageService } from './services/race-package.service';
 import { RoomService } from './services/room.service';
@@ -16,10 +17,10 @@ import {
   RacePackageResponseDto,
   RoomResponseDto,
   CreateRoomDto,
-  CloseRoomDto,
   AdminStatsResponseDto,
 } from './dto/racing-stream.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PlayerFromJwt } from '../auth/player/interfaces/player-jwt.interface';
 
 @Controller('racing-stream')
 @UseGuards(JwtAuthGuard)
@@ -30,9 +31,12 @@ export class RacingController {
   ) {}
 
   @Post('admin/room')
-  createRoom(@Body() createRoomDto: CreateRoomDto): RoomResponseDto {
+  createRoom(
+    @Request() { user }: { user: PlayerFromJwt },
+    @Body() createRoomDto: CreateRoomDto,
+  ): RoomResponseDto {
     const room = this.roomService.createRoom(
-      createRoomDto.adminUsername,
+      user.username,
       createRoomDto.maxParticipants,
     );
     return this.mapRoomToDto(room);
@@ -40,13 +44,10 @@ export class RacingController {
 
   @Post('admin/room/:id/close')
   closeRoom(
+    @Request() { user }: { user: PlayerFromJwt },
     @Param('id') roomId: string,
-    @Body() closeRoomDto: CloseRoomDto,
   ): { success: boolean } {
-    const success = this.roomService.closeRoom(
-      roomId,
-      closeRoomDto.adminUsername,
-    );
+    const success = this.roomService.closeRoom(roomId, user.username);
     return { success };
   }
 

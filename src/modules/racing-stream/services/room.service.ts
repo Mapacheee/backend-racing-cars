@@ -9,11 +9,10 @@ import {
 @Injectable()
 export class RoomService {
   private rooms = new Map<string, RaceRoom>();
-  private readonly ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 
-  createRoom(adminUsername: string, maxParticipants = 10): RaceRoom {
-    if (adminUsername !== this.ADMIN_USERNAME) {
-      throw new Error('Only the admin can create racing rooms');
+  createRoom(ownerUsername: string, maxParticipants = 10): RaceRoom {
+    if (!ownerUsername) {
+      throw new Error('Owner username is required to create racing rooms');
     }
 
     const roomId = this.generateRoomId();
@@ -24,7 +23,7 @@ export class RoomService {
       status: RoomStatus.WAITING,
       createdAt: new Date(),
       maxParticipants,
-      adminId: this.ADMIN_USERNAME,
+      adminId: ownerUsername,
     };
 
     this.rooms.set(roomId, room);
@@ -92,16 +91,15 @@ export class RoomService {
 
   configureRace(
     roomId: string,
-    adminUsername: string,
+    ownerUsername: string,
     raceConfig: RaceConfiguration,
   ): RaceRoom | null {
-    if (adminUsername !== this.ADMIN_USERNAME) {
-      throw new Error('Only the admin can configure races');
-    }
-
     const room = this.rooms.get(roomId);
     if (!room) {
       throw new Error('Room not found');
+    }
+    if (ownerUsername !== room.adminId) {
+      throw new Error('Only the room owner can configure races');
     }
 
     if (room.status !== RoomStatus.WAITING) {
@@ -113,14 +111,13 @@ export class RoomService {
     return room;
   }
 
-  startRace(roomId: string, adminUsername: string): RaceRoom | null {
-    if (adminUsername !== this.ADMIN_USERNAME) {
-      throw new Error('Only the admin can start races');
-    }
-
+  startRace(roomId: string, ownerUsername: string): RaceRoom | null {
     const room = this.rooms.get(roomId);
     if (!room) {
       throw new Error('Room not found');
+    }
+    if (ownerUsername !== room.adminId) {
+      throw new Error('Only the room owner can start races');
     }
 
     if (room.status !== RoomStatus.PREPARING) {
@@ -153,14 +150,13 @@ export class RoomService {
     return room;
   }
 
-  closeRoom(roomId: string, adminUsername: string): boolean {
-    if (adminUsername !== this.ADMIN_USERNAME) {
-      throw new Error('Only the admin can close rooms');
-    }
-
+  closeRoom(roomId: string, ownerUsername: string): boolean {
     const room = this.rooms.get(roomId);
     if (!room) {
       return false;
+    }
+    if (ownerUsername !== room.adminId) {
+      throw new Error('Only the room owner can close rooms');
     }
 
     room.status = RoomStatus.CLOSED;
@@ -173,7 +169,7 @@ export class RoomService {
   }
 
   isAdmin(username: string): boolean {
-    return username === this.ADMIN_USERNAME;
+    return this.getAllRooms().some((room) => room.adminId === username);
   }
 
   getRoom(roomId: string): RaceRoom | null {
@@ -267,11 +263,7 @@ export class RoomService {
     return this.rooms.get(roomId) || null;
   }
 
-  removeParticipant(
-    roomId: string,
-    userId: string,
-    _isAdminAction = false,
-  ): RaceRoom | null {
+  removeParticipant(roomId: string, userId: string): RaceRoom | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
 

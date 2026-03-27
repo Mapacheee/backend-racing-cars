@@ -131,7 +131,7 @@ export interface EventMessage extends RoomMessage {
 }
 
 export interface RoomServiceInterface {
-  createRoom(adminUsername: string, maxParticipants?: number): RaceRoom;
+  createRoom(ownerUsername: string, maxParticipants?: number): RaceRoom;
   joinRoom(
     roomId: string,
     userId: string,
@@ -142,12 +142,12 @@ export interface RoomServiceInterface {
   updateSocketId(roomId: string, userId: string, socketId: string): void;
   configureRace(
     roomId: string,
-    adminUsername: string,
+    ownerUsername: string,
     raceConfig: RaceConfiguration,
   ): RaceRoom | null;
-  startRace(roomId: string, adminUsername: string): RaceRoom | null;
+  startRace(roomId: string, ownerUsername: string): RaceRoom | null;
   finishRace(roomId: string): RaceRoom | null;
-  closeRoom(roomId: string, adminUsername: string): boolean;
+  closeRoom(roomId: string, ownerUsername: string): boolean;
   getRoom(roomId: string): RaceRoom | null;
   getAllRooms(): RaceRoom[];
   getRoomsByStatus(status: RoomStatus): RaceRoom[];
@@ -156,11 +156,7 @@ export interface RoomServiceInterface {
   isAdmin(username: string): boolean;
   getAvailableRooms(): RaceRoom[];
   getRoomDetails(roomId: string): RaceRoom | null;
-  removeParticipant(
-    roomId: string,
-    userId: string,
-    isAdminAction?: boolean,
-  ): RaceRoom | null;
+  removeParticipant(roomId: string, userId: string): RaceRoom | null;
   getAdminStats(): {
     totalRooms: number;
     roomsByStatus: Record<RoomStatus, number>;

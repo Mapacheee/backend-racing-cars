@@ -9,8 +9,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { RoomService } from './services/room.service';
 import { RacePackageService } from './services/race-package.service';
 import {
@@ -26,7 +24,6 @@ import {
 import { RoomStatus } from './interfaces/racing-stream.interface';
 import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { PlayerFromJwt } from '../auth/player/interfaces/player-jwt.interface';
-import { AdminTokenPayload } from '../auth/admin/interfaces/admin-token-payload.dto';
 
 // TODO: ERROR: adminId (admin name) should not be public exposed
 // current behavior: { id: "2309", participants: [], status: "waiting", createdAt: "2025-08-07T21:47:47.564Z", maxParticipants: 10, adminId: "monsalves" }
@@ -52,10 +49,10 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit('error', { message: 'Room not found' });
         return;
       }
-      const adminUsername = this.getAdminFromToken(client);
-      if (!adminUsername || adminUsername !== room.adminId) {
+      const user = this.getUserFromSocket(client);
+      if (!user || user.username !== room.adminId) {
         client.emit('error', {
-          message: 'Unauthorized: Only admin can set track seed',
+          message: 'Unauthorized: Only room owner can set track seed',
         });
         return;
       }
@@ -83,13 +80,10 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(RaceGateway.name);
-  private readonly ADMIN_USERNAME = process.env.ADMIN_USERNAME as string;
 
   constructor(
     private readonly roomService: RoomService,
     private readonly racePackageService: RacePackageService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
   ) {}
 
   handleConnection(client: Socket): void {
@@ -108,19 +102,15 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     try {
-      const adminUsername = this.getAdminFromToken(client);
-
-      if (!adminUsername || adminUsername !== data.adminUsername) {
+      const user = this.getUserFromSocket(client);
+      if (!user) {
         client.emit('error', {
-          message: 'Unauthorized: Only authenticated admin can create rooms',
+          message: 'Unauthorized: Player authentication is required',
         });
         return;
       }
 
-      const room = this.roomService.createRoom(
-        data.adminUsername,
-        data.maxParticipants,
-      );
+      const room = this.roomService.createRoom(user.username, data.maxParticipants);
 
       await client.join(room.id);
 
@@ -134,7 +124,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         maxParticipants: room.maxParticipants,
       });
 
-      this.logger.log(`Room ${room.id} created by admin ${data.adminUsername}`);
+      this.logger.log(`Room ${room.id} created by player ${user.username}`);
     } catch (error) {
       client.emit('error', {
         message: 'Failed to create room',
@@ -149,11 +139,17 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     try {
+      const user = this.getUserFromSocket(client);
+      if (!user) {
+        client.emit('error', { message: 'Unauthorized player' });
+        return;
+      }
+
       const room = this.roomService.joinRoom(
         data.roomId,
-        data.userId,
-        data.aiGeneration,
-        data.username,
+        user.id,
+        user.aiGeneration,
+        user.username,
         client.id,
       );
 
@@ -165,13 +161,13 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await client.join(data.roomId);
 
       this.server.to(data.roomId).emit('playerJoined', {
-        participant: room.participants.find((p) => p.userId === data.userId),
+        participant: room.participants.find((p) => p.userId === user.id),
         room,
       });
 
       client.emit('roomJoined', { room });
 
-      this.logger.log(`${data.username} joined room ${data.roomId}`);
+      this.logger.log(`${user.username} joined room ${data.roomId}`);
     } catch (error) {
       client.emit('error', {
         message: 'Failed to join room',
@@ -186,13 +182,19 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     try {
-      const room = this.roomService.leaveRoom(data.roomId, data.userId);
+      const user = this.getUserFromSocket(client);
+      if (!user) {
+        client.emit('error', { message: 'Unauthorized player' });
+        return;
+      }
+
+      const room = this.roomService.leaveRoom(data.roomId, user.id);
 
       await client.leave(data.roomId);
 
       if (room) {
         this.server.to(data.roomId).emit('playerLeft', {
-          userId: data.userId,
+          userId: user.id,
           room,
         });
       }
@@ -212,10 +214,10 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     try {
-      const adminUsername = this.getAdminFromToken(client);
-      if (!adminUsername || adminUsername !== data.adminUsername) {
+      const user = this.getUserFromSocket(client);
+      if (!user) {
         client.emit('error', {
-          message: 'Unauthorized: Only authenticated admin can configure races',
+          message: 'Unauthorized player',
         });
         return;
       }
@@ -231,7 +233,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const room = this.roomService.configureRace(
         data.roomId,
-        data.adminUsername,
+        user.username,
         data.raceConfig,
       );
 
@@ -251,7 +253,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         config: data.raceConfig,
       });
 
-      this.logger.log(`Race configured for room ${data.roomId} by admin`);
+      this.logger.log(`Race configured for room ${data.roomId} by ${user.username}`);
     } catch (error) {
       client.emit('error', {
         message: 'Failed to configure race',
@@ -266,15 +268,15 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): void {
     try {
-      const adminUsername = this.getAdminFromToken(client);
-      if (!adminUsername || adminUsername !== data.adminUsername) {
+      const user = this.getUserFromSocket(client);
+      if (!user) {
         client.emit('error', {
-          message: 'Unauthorized: Only authenticated admin can start races',
+          message: 'Unauthorized player',
         });
         return;
       }
 
-      const room = this.roomService.startRace(data.roomId, data.adminUsername);
+      const room = this.roomService.startRace(data.roomId, user.username);
 
       if (!room) {
         client.emit('error', { message: 'Failed to start race' });
@@ -286,7 +288,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: Date.now(),
       });
 
-      this.logger.log(`Race started in room ${data.roomId} by admin`);
+      this.logger.log(`Race started in room ${data.roomId} by ${user.username}`);
     } catch (error) {
       client.emit('error', {
         message: 'Failed to start race',
@@ -305,8 +307,8 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const isAdmin = this.verifyAdminToken(client);
-    if (!isAdmin) {
+    const user = this.getUserFromSocket(client);
+    if (!user || user.username !== room.adminId) {
       return;
     }
 
@@ -323,8 +325,8 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const isAdmin = this.verifyAdminToken(client);
-    if (!isAdmin) {
+    const user = this.getUserFromSocket(client);
+    if (!user || user.username !== room.adminId) {
       return;
     }
 
@@ -354,22 +356,19 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): void {
     try {
-      const adminUsername = this.getAdminFromToken(client);
-      if (!adminUsername || adminUsername !== data.adminUsername) {
+      const user = this.getUserFromSocket(client);
+      if (!user) {
         client.emit('error', {
-          message: 'Unauthorized: Only authenticated admin can close rooms',
+          message: 'Unauthorized player',
         });
         return;
       }
 
-      const success = this.roomService.closeRoom(
-        data.roomId,
-        data.adminUsername,
-      );
+      const success = this.roomService.closeRoom(data.roomId, user.username);
 
       if (success) {
         this.server.to(data.roomId).emit('roomClosed', {
-          message: 'Room closed by admin',
+          message: 'Room closed by owner',
         });
 
         client.emit('roomClosedSuccess', {
@@ -377,7 +376,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
           message: 'Room closed successfully',
         });
 
-        this.logger.log(`Room ${data.roomId} closed by admin`);
+        this.logger.log(`Room ${data.roomId} closed by ${user.username}`);
       } else {
         client.emit('error', { message: 'Failed to close room' });
       }
@@ -395,25 +394,28 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ): void {
     try {
-      const adminUsername = this.getAdminFromToken(client);
-      if (!adminUsername || adminUsername !== data.adminUsername) {
+      const user = this.getUserFromSocket(client);
+      if (!user) {
         client.emit('error', {
-          message:
-            'Unauthorized: Only authenticated admin can remove participants',
+          message: 'Unauthorized player',
         });
         return;
       }
 
-      const room = this.roomService.removeParticipant(
-        data.roomId,
-        data.userId,
-        true,
-      );
+      const targetRoom = this.roomService.getRoom(data.roomId);
+      if (!targetRoom || targetRoom.adminId !== user.username) {
+        client.emit('error', {
+          message: 'Unauthorized: Only room owner can remove participants',
+        });
+        return;
+      }
+
+      const room = this.roomService.removeParticipant(data.roomId, data.userId);
 
       if (room) {
         this.server.to(data.roomId).emit('participantRemoved', {
           userId: data.userId,
-          message: 'You have been removed from the room by admin',
+          message: 'You have been removed from the room by owner',
         });
 
         client.emit('participantRemovedSuccess', {
@@ -423,7 +425,7 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
 
         this.logger.log(
-          `Participant ${data.userId} removed from room ${data.roomId} by admin`,
+          `Participant ${data.userId} removed from room ${data.roomId} by ${user.username}`,
         );
       } else {
         client.emit('error', { message: 'Failed to remove participant' });
@@ -458,50 +460,4 @@ export class RaceGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return user as PlayerFromJwt | null;
   }
 
-  private getUserIdFromSocket(client: Socket): string {
-    return (client.handshake.auth?.userId as string) || '';
-  }
-
-  /**
-   * Verify if the client is an authenticated admin
-   */
-  private verifyAdminToken(client: Socket): boolean {
-    try {
-      const token = client.handshake.auth?.token as string;
-      if (!token) {
-        return false;
-      }
-
-      const jwtSecret = this.configService.get<string>('JWT_SECRET') as string;
-      const payload = this.jwtService.verify<AdminTokenPayload>(token, {
-        secret: jwtSecret,
-      });
-      return payload.sub === this.ADMIN_USERNAME;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Get admin username from verified token
-   */
-  private getAdminFromToken(client: Socket): string | null {
-    try {
-      const token = client.handshake.auth?.token as string;
-      if (!token) {
-        return null;
-      }
-
-      const jwtSecret = this.configService.get<string>('JWT_SECRET');
-      const payload = this.jwtService.verify<AdminTokenPayload>(token, {
-        secret: jwtSecret,
-      });
-      if (payload?.sub === this.ADMIN_USERNAME) {
-        return this.ADMIN_USERNAME;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
 }
